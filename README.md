@@ -258,7 +258,7 @@ pytest tests/test_mcp_integration.py -v
 Questo progetto è distribuito sotto licenza **Apache 2.0**.  
 Vedere il file [LICENSE](LICENSE) per i dettagli completi.
 
-Copyright 2026 Christophe Mendez
+Copyright 2026 cmendezs
 
 ---
 
