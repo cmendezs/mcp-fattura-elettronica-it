@@ -1,0 +1,22 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-07-09/server.schema.json",
+  "name": "io.github.cmendezs/mcp-fattura-elettronica-it",
+  "title": "Fattura Elettronica Italia",
+  "description": "MCP server for Italian e-invoicing compliance. Generates and validates electronic invoices in FatturaPA XML format (SDI / Agenzia delle Entrate). 21 tools covering invoice structure, VAT codes, document types TD01–TD28, XSD validation, and SDI filename generation. Apache 2.0.",
+  "version": "0.1.0",
+  "repository": {
+    "url": "https://github.com/cmendezs/mcp-fattura-elettronica-it",
+    "source": "github"
+  },
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "mcp-fattura-elettronica-it",
+      "version": "0.1.0",
+      "transport": {
+        "type": "stdio"
+      }
+    }
+  ]
+}
