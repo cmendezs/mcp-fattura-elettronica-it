@@ -15,7 +15,7 @@ This is a **Model Context Protocol (MCP)** server for **Italian electronic invoi
 
 ---
 
-## Installazione
+## 🚀 Installazione
 
 ### Via PyPI (raccomandato)
 
@@ -44,7 +44,7 @@ cp .env.example .env
 
 ---
 
-## Configurazione
+## ⚙️ Configurazione
 
 Il server non richiede credenziali esterne in v0.1.0. Le variabili d'ambiente disponibili sono:
 
@@ -53,7 +53,7 @@ Il server non richiede credenziali esterne in v0.1.0. Le variabili d'ambiente di
 | `LOG_LEVEL` | Livello di log (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
 | `FATTURA_XSD_PATH` | Percorso del file XSD FatturaPA | `schemas/FatturaPA_v1.6.1.xsd` |
 
-### Integrazione Claude Desktop
+### 🤖 Integrazione Claude Desktop
 
 Aggiungere al file `claude_desktop_config.json`:
 
@@ -68,7 +68,7 @@ Aggiungere al file `claude_desktop_config.json`:
 }
 ```
 
-### Integrazione Cursor
+### ⌨️ Integrazione Cursor
 
 File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella cartella del progetto):
 
@@ -83,7 +83,7 @@ File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella car
 }
 ```
 
-### Integrazione Kiro
+### 🪐 Integrazione Kiro
 
 ```json
 {
@@ -100,7 +100,7 @@ File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella car
 
 ---
 
-## Strumenti MCP disponibili
+## 🧰 Strumenti MCP disponibili
 
 ### Header — FatturaElettronicaHeader (7 strumenti)
 
@@ -214,7 +214,7 @@ get_natura_codes()
 
 ---
 
-## Standard di riferimento
+## 📚 Standard di riferimento
 
 | Risorsa | Link |
 |---------|------|
@@ -226,7 +226,7 @@ get_natura_codes()
 
 ---
 
-## Test
+## 🧪 Test
 
 ```bash
 # Installare le dipendenze di sviluppo
@@ -253,7 +253,7 @@ pytest tests/test_mcp_integration.py -v
 
 ---
 
-## Licenza
+## 📄 Licenza
 
 Questo progetto è distribuito sotto licenza **Apache 2.0**.  
 Vedere il file [LICENSE](LICENSE) per i dettagli completi.
