@@ -12,10 +12,8 @@ Usage:
 
 from __future__ import annotations
 
-import logging
-import sys
-
 from fastmcp import FastMCP
+from mcp_einvoicing_core.logging_utils import get_logger, setup_logging
 
 from tools.body_tools import register_body_tools
 from tools.global_tools import register_global_tools
@@ -25,12 +23,8 @@ from tools.header_tools import register_header_tools
 # Logging
 # ---------------------------------------------------------------------------
 
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
-    stream=sys.stderr,
-)
-logger = logging.getLogger(__name__)
+setup_logging()
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # FastMCP server initialisation
@@ -42,12 +36,11 @@ mcp = FastMCP(
         "MCP server for Italian electronic invoicing (FatturaPA v1.6.1 / SDI). "
         "Generates, validates, and analyses e-invoices for B2B, B2G, and cross-border "
         "transactions compliant with Agenzia delle Entrate specifications.\n\n"
-        "**Header tools** — FatturaElettronicaHeader (7 tools):\n"
+        "**Header tools** — FatturaElettronicaHeader (6 tools):\n"
         "  • build_transmission_header: Build DatiTrasmissione block (SDI routing)\n"
         "  • validate_cedente_prestatore: Validate seller block (tax ID, address, regime)\n"
         "  • validate_cessionario: Validate buyer block (tax ID or CodiceFiscale)\n"
         "  • get_regime_fiscale_codes: List all RegimeFiscale codes RF01–RF19\n"
-        "  • validate_partita_iva: Validate Italian VAT number format + checksum\n"
         "  • generate_progressivo_invio: Generate a unique ProgressivoInvio sequence\n"
         "  • lookup_codice_destinatario: Validate SDI recipient code or PEC address\n\n"
         "**Body tools** — FatturaElettronicaBody (7 tools):\n"
@@ -67,7 +60,7 @@ mcp = FastMCP(
         "  • get_sdi_filename: Generate the SDI filename IT{PIVA}_{Progressivo}.xml\n"
         "  • check_ritenuta_acconto: Compute withholding tax (ritenuta d'acconto) RT01–RT06\n\n"
         "**Recommended workflow for generating a new invoice:**\n"
-        "1. validate_partita_iva_format(seller_piva) → verify seller ID\n"
+        "1. validate_partita_iva_format(seller_piva) → verify seller VAT number\n"
         "2. generate_progressivo_invio() → get a unique sequence number\n"
         "3. build_transmission_header(...) → DatiTrasmissione\n"
         "4. validate_cedente_prestatore(...) → seller block\n"

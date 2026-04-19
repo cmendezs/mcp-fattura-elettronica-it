@@ -8,15 +8,16 @@ Natura exemption codes, and attachments.
 from __future__ import annotations
 
 import base64
-import logging
-import re
 from decimal import Decimal, ROUND_HALF_UP
 from typing import Annotated, Optional
 
 from fastmcp import FastMCP
 from pydantic import Field
 
-logger = logging.getLogger(__name__)
+from mcp_einvoicing_core.logging_utils import get_logger
+from mcp_einvoicing_core.xml_utils import format_amount, format_quantity, validate_date_iso, validate_iban
+
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # TipoDocumento reference table (TD01–TD28)
@@ -207,7 +208,7 @@ def register_body_tools(mcp: FastMCP) -> None:
                 )
             }
 
-        if not re.match(r"^\d{4}-\d{2}-\d{2}$", data):
+        if not validate_date_iso(data):
             return {"error": f"Invalid date format '{data}'. Use YYYY-MM-DD."}
 
         if len(numero) > 20:
@@ -373,13 +374,13 @@ def register_body_tools(mcp: FastMCP) -> None:
         linea: dict = {
             "NumeroLinea": numero_linea,
             "Descrizione": descrizione[:1000],
-            "PrezzoUnitario": f"{prezzo_unitario:.8f}".rstrip("0").rstrip("."),
-            "PrezzoTotale": f"{prezzo_totale:.2f}",
-            "AliquotaIVA": f"{aliquota_iva:.2f}",
+            "PrezzoUnitario": format_quantity(prezzo_unitario),
+            "PrezzoTotale": format_amount(prezzo_totale),
+            "AliquotaIVA": format_amount(aliquota_iva),
         }
 
         if quantita is not None:
-            linea["Quantita"] = f"{quantita:.8f}".rstrip("0").rstrip(".")
+            linea["Quantita"] = format_quantity(quantita)
         if unita_misura:
             linea["UnitaMisura"] = unita_misura
         if natura:
@@ -569,10 +570,10 @@ def register_body_tools(mcp: FastMCP) -> None:
                 )
             }
 
-        if iban and not re.match(r"^[A-Z]{2}[0-9]{2}[A-Z0-9]{1,30}$", iban.replace(" ", "").upper()):
+        if iban and not validate_iban(iban):
             return {"error": f"Invalid IBAN format: '{iban}'."}
 
-        if data_scadenza_pagamento and not re.match(r"^\d{4}-\d{2}-\d{2}$", data_scadenza_pagamento):
+        if data_scadenza_pagamento and not validate_date_iso(data_scadenza_pagamento):
             return {"error": f"Invalid due date format '{data_scadenza_pagamento}'. Use YYYY-MM-DD."}
 
         dettaglio_pagamento: dict = {

@@ -6,7 +6,6 @@ JSON export, Partita IVA validation, SDI filename generation, and ritenuta d'acc
 from __future__ import annotations
 
 import json
-import logging
 import os
 import re
 from decimal import Decimal, ROUND_HALF_UP
@@ -16,7 +15,10 @@ from typing import Annotated, Optional
 from fastmcp import FastMCP
 from pydantic import Field
 
-logger = logging.getLogger(__name__)
+from mcp_einvoicing_core.logging_utils import get_logger
+from mcp_einvoicing_core.xml_utils import filter_empty_values
+
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # XSD schema path resolution
@@ -684,19 +686,7 @@ def register_global_tools(mcp: FastMCP) -> None:
         Returns:
             A dict with 'json_string' (str) and 'size_chars' (int).
         """
-        def _filter(obj):
-            if isinstance(obj, dict):
-                filtered = {
-                    k: _filter(v)
-                    for k, v in obj.items()
-                    if include_empty or (v is not None and v != "" and v != [] and v != {})
-                }
-                return filtered
-            if isinstance(obj, list):
-                return [_filter(item) for item in obj]
-            return obj
-
-        data = _filter(parsed_fattura) if not include_empty else parsed_fattura
+        data = filter_empty_values(parsed_fattura) if not include_empty else parsed_fattura
         json_str = json.dumps(data, indent=indent, ensure_ascii=False)
         return {"json_string": json_str, "size_chars": len(json_str)}
 

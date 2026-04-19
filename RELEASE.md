@@ -49,6 +49,26 @@ git push origin vX.Y.Z
 mcp-publisher publish
 ```
 
+## Changelog
+
+### v0.2.0 — 2026-04-19
+
+#### Changed
+- Refactored internals to extend `mcp-einvoicing-core>=0.1.0`
+  (logging utils, XML utils — `format_amount`, `format_quantity`, `validate_date_iso`,
+  `validate_iban`, `filter_empty_values` — now imported from the shared core)
+- No changes to public MCP tool names or signatures
+- `lxml` remains a direct dependency (required for XSD validation, deliberately excluded from core)
+
+#### Added
+- `mcp-einvoicing-core` listed as explicit dependency in `pyproject.toml`
+- `tools/adapters.py`: IT-specific adapter classes extending core base abstractions:
+  `FatturaGenerator`, `FatturaValidator`, `FatturaParser`, `ItalyPartyValidator`
+- Architecture diagram in `README.md` showing the core dependency hierarchy
+- `[tool.uv.sources]` in `pyproject.toml` for local development against the core source tree
+
+---
+
 ## Critical Notes
 
 - The MCP registry does **not** sync automatically with PyPI or GitHub — each release requires a manual `mcp-publisher publish`.

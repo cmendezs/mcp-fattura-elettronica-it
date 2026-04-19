@@ -23,6 +23,9 @@ This is a **Model Context Protocol (MCP)** server for **Italian electronic invoi
 pip install mcp-fattura-elettronica-it
 ```
 
+`mcp-einvoicing-core` is installed automatically as a dependency.
+`lxml` is also required and included — no extra steps needed.
+
 Senza installazione previa con `uvx`:
 
 ```bash
@@ -210,6 +213,25 @@ get_natura_codes()
       "legal_ref": "Art. 74 c. 7-8 DPR 633/72" },
     ...
   ]
+```
+
+---
+
+## Architecture
+
+```
+mcp-fattura-elettronica-it (this package — standalone MCP server)
+├── ItalyPartyValidator(BasePartyValidator)   ← Partita IVA modulo-10
+├── FatturaGenerator(BaseDocumentGenerator)   ← FatturaPA XML v1.6.1
+├── FatturaValidator(BaseDocumentValidator)   ← lxml XSD v1.6.1
+└── FatturaParser(BaseDocumentParser)         ← lxml xpath
+
+        ↑ extends
+mcp-einvoicing-core (shared foundation, installed as dependency)
+├── BaseDocumentGenerator / Validator / Parser / PartyValidator
+├── InvoiceDocument, InvoiceParty, InvoiceLineItem … (Pydantic)
+├── xml_utils, logging_utils, exceptions
+└── EInvoicingMCPServer (optional multi-country aggregator)
 ```
 
 ---

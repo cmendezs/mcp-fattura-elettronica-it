@@ -1,7 +1,7 @@
 {
   "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
   "name": "io.github.cmendezs/mcp-fattura-elettronica-it",
-  "version": "0.1.1",
+  "version": "0.2.0",
   "title": "Fattura Elettronica IT",
   "description": "Italian e-invoicing: FatturaPA XML/SDI v1.6.1, 21 MCP tools for B2B and B2G.",
   "repository": {
@@ -12,7 +12,7 @@
     {
       "registryType": "pypi",
       "identifier": "mcp-fattura-elettronica-it",
-      "version": "0.1.1",
+      "version": "0.2.0",
       "runtimeArguments": [],
       "installationInstructions": "uvx mcp-fattura-elettronica-it",
       "transport": {

@@ -7,7 +7,6 @@ Partita IVA validation, ProgressivoInvio generation, and SDI recipient lookup.
 
 from __future__ import annotations
 
-import logging
 import random
 import re
 import string
@@ -16,7 +15,9 @@ from typing import Annotated, Optional
 from fastmcp import FastMCP
 from pydantic import Field
 
-logger = logging.getLogger(__name__)
+from mcp_einvoicing_core.logging_utils import get_logger
+
+logger = get_logger(__name__)
 
 # ---------------------------------------------------------------------------
 # RegimeFiscale reference table (RF01–RF19)
@@ -401,50 +402,45 @@ def register_header_tools(mcp: FastMCP) -> None:
             str,
             Field(
                 description=(
-                    "Italian VAT number (Partita IVA) to validate — must be exactly 11 digits. "
-                    "Strips leading/trailing whitespace before validation."
+                    "Italian Partita IVA (VAT number) to validate. "
+                    "Must be exactly 11 digits. Whitespace is stripped before validation."
                 )
             ),
         ],
     ) -> dict:
-        """Validate an Italian Partita IVA: format (11 digits) and Luhn-like checksum.
+        """Validate an Italian Partita IVA: format (11 digits) and modulo-10 checksum.
 
-        Applies the official Agenzia delle Entrate modulo-10 control algorithm.
-        Returns validation status, the cleaned value, and error details on failure.
+        Applies the official Agenzia delle Entrate control algorithm to verify the check digit.
+        Use this in the header flow before calling validate_cedente_prestatore.
 
         Args:
-            partita_iva: The 11-digit Italian VAT number to validate.
+            partita_iva: 11-digit Italian VAT number.
 
         Returns:
-            A dict with 'valid' (bool), 'value' (cleaned string), and optional 'error'.
+            A dict with 'valid' (bool), 'value' (cleaned str), and optional 'error'.
         """
         piva = partita_iva.strip()
 
         if not re.match(r"^\d{11}$", piva):
-            return {
-                "valid": False,
-                "value": piva,
-                "error": "Partita IVA must be exactly 11 digits.",
-            }
+            return {"valid": False, "value": piva, "error": "Partita IVA must be exactly 11 digits."}
 
-        # Modulo-10 checksum (Luhn-like algorithm defined by Agenzia delle Entrate)
         total = 0
         for i, digit in enumerate(piva[:10]):
             d = int(digit)
-            if i % 2 == 1:  # odd position (0-indexed): double and subtract 9 if > 9
+            if i % 2 == 1:
                 d *= 2
                 if d > 9:
                     d -= 9
             total += d
 
-        expected_check = (10 - (total % 10)) % 10
-        actual_check = int(piva[10])
+        expected = (10 - (total % 10)) % 10
+        actual = int(piva[10])
 
-        if expected_check != actual_check:
+        if expected != actual:
             return {
                 "valid": False,
                 "value": piva,
-                "error": f"Checksum mismatch: expected {expected_check}, got {actual_check}.",
+                "error": f"Checksum mismatch: expected {expected}, got {actual}.",
             }
 
         return {"valid": True, "value": piva}
