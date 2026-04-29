@@ -3,7 +3,7 @@
 
 ![License](https://img.shields.io/badge/License-Apache_2.0-blue.svg)
 [![PyPI version](https://img.shields.io/pypi/v/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/)
-[![Python](https://img.shields.io/pypi/pyversions/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/)
+[![Python](https://img.shields.io/pypi/pyversions/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/) [![mcp-fattura-elettronica-it MCP server](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it/badges/score.svg)](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it)
 
 Server MCP Python per la **fatturazione elettronica italiana** in formato **FatturaPA XML** (standard SDI / Agenzia delle Entrate, versione 1.6.1). Permette agli agenti IA (Claude, IDE) di generare, validare e analizzare fatture elettroniche B2B, B2G e transfrontaliere direttamente conformi alle specifiche tecniche del Sistema di Interscambio (SDI).
 
