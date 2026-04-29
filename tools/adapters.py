@@ -22,7 +22,6 @@ from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.models import (
     DocumentValidationResult,
     InvoiceDocument,
-    InvoiceParty,
 )
 
 logger = get_logger(__name__)
@@ -359,15 +358,15 @@ class FatturaParser(BaseDocumentParser):
 
             result["body"]["dettaglio_linee"] = [
                 {
-                    "numero_linea": _txt(l, "NumeroLinea"),
-                    "descrizione": _txt(l, "Descrizione"),
-                    "quantita": _txt(l, "Quantita"),
-                    "prezzo_unitario": _txt(l, "PrezzoUnitario"),
-                    "prezzo_totale": _txt(l, "PrezzoTotale"),
-                    "aliquota_iva": _txt(l, "AliquotaIVA"),
-                    "natura": _txt(l, "Natura"),
+                    "numero_linea": _txt(ld, "NumeroLinea"),
+                    "descrizione": _txt(ld, "Descrizione"),
+                    "quantita": _txt(ld, "Quantita"),
+                    "prezzo_unitario": _txt(ld, "PrezzoUnitario"),
+                    "prezzo_totale": _txt(ld, "PrezzoTotale"),
+                    "aliquota_iva": _txt(ld, "AliquotaIVA"),
+                    "natura": _txt(ld, "Natura"),
                 }
-                for l in body.findall("DatiBeniServizi/DettaglioLinee")
+                for ld in body.findall("DatiBeniServizi/DettaglioLinee")
             ]
 
             result["body"]["dati_riepilogo"] = [

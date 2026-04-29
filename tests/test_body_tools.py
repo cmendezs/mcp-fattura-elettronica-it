@@ -10,7 +10,6 @@ import base64
 
 import asyncio
 
-import pytest
 
 from fastmcp import FastMCP
 from tools.body_tools import NATURA_CODES, TIPO_DOCUMENTO, register_body_tools

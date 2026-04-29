@@ -9,10 +9,9 @@ from __future__ import annotations
 
 import asyncio
 
-import pytest
 
 from fastmcp import FastMCP
-from tools.global_tools import FATTURA_NS, TIPO_RITENUTA, register_global_tools
+from tools.global_tools import FATTURA_NS, register_global_tools
 
 # ---------------------------------------------------------------------------
 # Setup
@@ -287,7 +286,6 @@ class TestExportToJson:
         assert not _has_none(data)
 
     def test_include_empty_keeps_null_fields(self):
-        import json
         xml = _generate_xml()["xml"]
         parsed = call("parse_fattura_xml", xml_string=xml)
         result = call("export_to_json", parsed_fattura=parsed, include_empty=True)

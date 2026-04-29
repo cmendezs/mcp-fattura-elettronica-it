@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "mcp-fattura-elettronica-it"
-version = "0.2.0"
+version = "0.2.1"
 description = "MCP server for Italian e-invoicing — FatturaPA XML / SDI"
 readme = "README.md"
 requires-python = ">=3.10"

@@ -8,7 +8,6 @@ via the in-process FastMCP client — no external dependencies required.
 
 from __future__ import annotations
 
-import base64
 import json
 
 import pytest

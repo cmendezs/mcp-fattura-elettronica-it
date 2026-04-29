@@ -169,26 +169,21 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> dict:
-        """Generate a complete FatturaPA XML string from structured input data.
+        """Assemble a complete FatturaPA v1.6.1 XML document from all prepared blocks.
 
-        Assembles all header and body blocks into a valid FatturaPA v1.6.1 XML document.
-        The generated XML uses the official Agenzia delle Entrate namespace. Returns the
-        XML string and SDI filename; does not validate against XSD (call validate_fattura_xsd
-        separately).
+        Use this as step 10 in the invoice generation workflow — the final assembly step.
+        All required blocks must come from their respective builder/validator tools;
+        pass the full dict returned by each tool (the function unwraps the top-level key).
 
-        Args:
-            dati_trasmissione: Transmission header block.
-            cedente_prestatore: Seller block.
-            cessionario_committente: Buyer block.
-            dati_generali: General document data block.
-            dettaglio_linee: List of line item dicts.
-            dati_riepilogo: VAT summary dicts.
-            dati_pagamento: Payment terms block (optional).
-            allegati: List of attachment dicts (optional).
-            dati_ritenuta: Withholding tax block (optional).
+        Required: dati_trasmissione, cedente_prestatore, cessionario_committente,
+        dati_generali, dettaglio_linee (list), dati_riepilogo (list from compute_totali()).
+        Optional: dati_pagamento, allegati (list), dati_ritenuta.
 
-        Returns:
-            A dict with 'xml' (str), 'filename' (str), and 'formato_trasmissione'.
+        Does NOT validate against the XSD schema — call validate_fattura_xsd() (step 11)
+        on the returned 'xml' string immediately after to confirm conformance.
+
+        On success returns {'xml': str, 'filename': str, 'formato_trasmissione': str, 'length_bytes': int}.
+        On unexpected error returns {'error': '<reason>'}.
         """
         try:
             dt = dati_trasmissione.get("DatiTrasmissione", dati_trasmissione)
@@ -247,19 +242,19 @@ def register_global_tools(mcp: FastMCP) -> None:
             def _linee_xml(linee: list) -> str:
                 parts = []
                 for linea in linee:
-                    l = linea.get("DettaglioLinee", linea)
-                    qta = f"<Quantita>{l['Quantita']}</Quantita>" if "Quantita" in l else ""
-                    um = f"<UnitaMisura>{l['UnitaMisura']}</UnitaMisura>" if "UnitaMisura" in l else ""
-                    nat = f"<Natura>{l['Natura']}</Natura>" if "Natura" in l else ""
-                    rit = f"<Ritenuta>{l['Ritenuta']}</Ritenuta>" if "Ritenuta" in l else ""
+                    ld = linea.get("DettaglioLinee", linea)
+                    qta = f"<Quantita>{ld['Quantita']}</Quantita>" if "Quantita" in ld else ""
+                    um = f"<UnitaMisura>{ld['UnitaMisura']}</UnitaMisura>" if "UnitaMisura" in ld else ""
+                    nat = f"<Natura>{ld['Natura']}</Natura>" if "Natura" in ld else ""
+                    rit = f"<Ritenuta>{ld['Ritenuta']}</Ritenuta>" if "Ritenuta" in ld else ""
                     parts.append(
                         f"<DettaglioLinee>"
-                        f"<NumeroLinea>{l['NumeroLinea']}</NumeroLinea>"
-                        f"<Descrizione>{l['Descrizione']}</Descrizione>"
+                        f"<NumeroLinea>{ld['NumeroLinea']}</NumeroLinea>"
+                        f"<Descrizione>{ld['Descrizione']}</Descrizione>"
                         f"{qta}{um}"
-                        f"<PrezzoUnitario>{l['PrezzoUnitario']}</PrezzoUnitario>"
-                        f"<PrezzoTotale>{l['PrezzoTotale']}</PrezzoTotale>"
-                        f"<AliquotaIVA>{l['AliquotaIVA']}</AliquotaIVA>"
+                        f"<PrezzoUnitario>{ld['PrezzoUnitario']}</PrezzoUnitario>"
+                        f"<PrezzoTotale>{ld['PrezzoTotale']}</PrezzoTotale>"
+                        f"<AliquotaIVA>{ld['AliquotaIVA']}</AliquotaIVA>"
                         f"{nat}{rit}"
                         f"</DettaglioLinee>"
                     )
@@ -428,18 +423,19 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> dict:
-        """Validate a FatturaPA XML string against the official XSD schema v1.6.1.
+        """Validate a FatturaPA XML string against the official Agenzia delle Entrate XSD v1.6.1.
 
-        Uses lxml.etree.XMLSchema to perform structural and type validation against
-        the Agenzia delle Entrate XSD. Returns a list of validation errors on failure
-        or a success confirmation with the detected transmission format.
+        Use this as step 11 — always call immediately after generate_fattura_xml() before
+        storing or transmitting the document. Also use to verify third-party invoices received
+        from suppliers.
 
-        Args:
-            xml_string: Complete FatturaPA XML as a string.
+        Requires lxml to be installed and the bundled XSD schema file to be present (or
+        FATTURA_XSD_PATH env var to point to it). Validates namespace, element structure,
+        data types, and cardinality constraints.
 
-        Returns:
-            A dict with 'valid' (bool), 'errors' (list of str on failure),
-            and 'formato_trasmissione' (str on success).
+        On success returns {'valid': true, 'formato_trasmissione': 'FPR12'|'FPA12', 'errors': []}.
+        On failure returns {'valid': false, 'errors': ['<lxml error message>', ...]}.
+        On setup error (missing lxml or XSD file) returns {'error': '<reason>'}.
         """
         try:
             from lxml import etree
@@ -496,17 +492,19 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> dict:
-        """Parse an existing FatturaPA XML string and return a structured JSON dict.
+        """Parse a FatturaPA XML string into a structured Python dict.
 
-        Extracts key fields from the FatturaElettronicaHeader and FatturaElettronicaBody,
-        including transmission data, seller/buyer info, document type, line items,
-        VAT summary, and payment terms.
+        Use this to inspect or process invoices received from counterparties, or to
+        verify the output of generate_fattura_xml(). Accepts both FPR12 (B2B) and
+        FPA12 (PA) formats. The result can be passed directly to export_to_json().
 
-        Args:
-            xml_string: FatturaPA XML document as a string.
+        Extracts: versione, transmission data, seller/buyer identity and address,
+        document type/date/number/causale, all DettaglioLinee, DatiRiepilogo, and
+        DatiPagamento if present. Fields not found in the XML are returned as null.
 
-        Returns:
-            A dict with parsed fields structured as header/body sections, or an error dict.
+        On success returns {'versione': str, 'header': {...}, 'body': {...}}.
+        On XML parse error returns {'error': 'XML parse error: <detail>'}.
+        On missing lxml returns {'error': 'lxml is not installed...'}.
         """
         try:
             from lxml import etree
@@ -673,18 +671,16 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ] = False,
     ) -> dict:
-        """Export a parsed FatturaPA structure to a clean JSON format.
+        """Serialize a parsed FatturaPA dict to a clean, indented JSON string.
 
-        Serialises the dict returned by parse_fattura_xml() to a JSON string,
-        with optional filtering of null/empty values to reduce noise.
+        Call this after parse_fattura_xml() when you need a human-readable or
+        machine-transferable representation of the invoice. By default, null/empty
+        fields are omitted (include_empty=False) to reduce noise in the output.
 
-        Args:
-            parsed_fattura: Dict from parse_fattura_xml().
-            indent: JSON indentation (0–8 spaces).
-            include_empty: Whether to include null/empty fields.
+        indent controls JSON indentation (0 = compact, 2 = standard readable, 4 = wide).
+        include_empty=True retains all keys even when their value is null or empty string.
 
-        Returns:
-            A dict with 'json_string' (str) and 'size_chars' (int).
+        Always succeeds. Returns {'json_string': str, 'size_chars': int}.
         """
         data = filter_empty_values(parsed_fattura) if not include_empty else parsed_fattura
         json_str = json.dumps(data, indent=indent, ensure_ascii=False)
@@ -702,16 +698,17 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> dict:
-        """Validate an Italian Partita IVA: format (11 digits) and Luhn-like checksum.
+        """Validate an Italian Partita IVA for format (11 digits) and modulo-10 checksum.
 
-        Standalone validation tool usable without importing header_tools. Applies the
-        official Agenzia delle Entrate modulo-10 control algorithm to verify the check digit.
+        Use this as step 1 in the invoice generation workflow before any other tool.
+        Equivalent to validate_partita_iva() in header tools — use this standalone version
+        when you only need the validation result without importing header tools.
 
-        Args:
-            partita_iva: 11-digit Italian VAT number.
+        Strips whitespace, checks for exactly 11 digits, then applies the official
+        Agenzia delle Entrate control algorithm to verify the check digit.
 
-        Returns:
-            A dict with 'valid' (bool), 'value' (cleaned str), and optional 'error'.
+        On success returns {'valid': true, 'value': '<cleaned_piva>'}.
+        On failure returns {'valid': false, 'value': '<input>', 'error': '<reason>'}.
         """
         piva = partita_iva.strip()
 
@@ -764,18 +761,18 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> dict:
-        """Generate the official SDI filename for a FatturaPA document.
+        """Generate the canonical SDI filename for a FatturaPA document.
 
-        Constructs the canonical filename following the Agenzia delle Entrate specification:
-        IT{PartitaIVA}_{ProgressivoInvio}.xml (e.g. IT01234567890_00001.xml).
-        Validates both components before constructing the filename.
+        Use this when you need the official filename independently of generate_fattura_xml()
+        (which also produces the filename). The SDI specification requires the format:
+        IT{PartitaIVA}_{ProgressivoInvio}.xml, e.g. IT01234567890_00001.xml.
 
-        Args:
-            partita_iva_cedente: Sender's 11-digit Partita IVA.
-            progressivo_invio: Send sequence identifier (max 10 alphanumeric chars).
+        Validates: partita_iva_cedente must be exactly 11 digits; progressivo_invio must be
+        1–10 alphanumeric characters. Purely numeric progressivo shorter than 5 digits is
+        zero-padded to 5 digits (e.g. '1' → '00001').
 
-        Returns:
-            A dict with 'filename' (str) and validation details.
+        On success returns {'filename': str, 'partita_iva': str, 'progressivo_invio': str, 'length': int}.
+        On failure returns {'error': '<reason>'}.
         """
         piva = partita_iva_cedente.strip()
 
@@ -835,19 +832,22 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> dict:
-        """Check and compute ritenuta d'acconto (withholding tax) for professional invoices.
+        """Compute ritenuta d'acconto (withholding tax) for professional invoices.
 
-        Calculates the withholding tax amount based on the taxable base and the applicable
-        tipo_ritenuta rate. Returns the DatiRitenuta block ready to be included in the
-        DatiGeneraliDocumento of the FatturaPA body.
+        Use this when issuing professional service invoices (TD01 or TD06) that are subject
+        to withholding tax — typically for self-employed professionals, agents, or freelancers.
+        Also mark the relevant line items with ritenuta='SI' in add_linea_dettaglio(), and pass
+        the returned 'DatiRitenuta' dict to generate_fattura_xml() as dati_ritenuta.
 
-        Args:
-            imponibile: Taxable base subject to withholding tax.
-            tipo_ritenuta: Withholding tax type code (RT01–RT06).
-            causale_pagamento: Income category code for tax return (Mod. 770).
+        tipo_ritenuta determines the rate: RT01/RT02 = 20% (natural person, professional/occasional),
+        RT03/RT04 = 23.20% (agent commissions), RT05 = 4% (condominium), RT06 = 30% (employment).
+        causale_pagamento: income category code for Mod. 770 (e.g. 'A' professional fees, 'O' occasional).
 
-        Returns:
-            A dict with 'DatiRitenuta' block and computed 'importo_ritenuta'.
+        Validates: tipo_ritenuta must be in RT01–RT06. imponibile is typically the net invoice total.
+
+        On success returns {'DatiRitenuta': {...}, 'importo_ritenuta': str, 'aliquota_applicata': str,
+        'imponibile_ritenuta': str, 'description': str, 'legal_ref': str}.
+        On failure returns {'error': '<reason>'}.
         """
         if tipo_ritenuta not in TIPO_RITENUTA:
             return {

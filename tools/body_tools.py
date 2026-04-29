@@ -181,24 +181,21 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> dict:
-        """Build a DatiGenerali block for the FatturaElettronicaBody.
+        """Build the DatiGenerali block required in every FatturaElettronicaBody.
 
-        Constructs the general document data section required in every FatturaPA body,
-        including document type, currency, date, number, and optional reference to the
-        original document (for credit/debit notes).
+        Use this as step 6 in the invoice generation workflow, after validate_cessionario()
+        and before add_linea_dettaglio(). Call get_tipo_documento_codes() first to select
+        the correct TD code (most invoices use TD01; credit notes use TD04; professional
+        fee invoices use TD06).
 
-        Args:
-            tipo_documento: Document type code (TD01–TD28).
-            data: Invoice date (YYYY-MM-DD).
-            numero: Invoice number (max 20 chars).
-            divisa: Currency code (default EUR).
-            causale: Optional description/reason text.
-            rif_numero_linea: Line reference for credit/debit notes.
-            id_documento_riferimento: Number of referenced original invoice.
-            data_documento_riferimento: Date of referenced original invoice.
+        For credit notes (TD04) or debit notes (TD05), set id_documento_riferimento to the
+        original invoice number and data_documento_riferimento to its issue date.
 
-        Returns:
-            A dict representing the DatiGenerali block, or an error dict on failure.
+        Validates: tipo_documento must be a valid TD01–TD28 code; data must be YYYY-MM-DD;
+        numero must not exceed 20 characters.
+
+        On success returns {'DatiGenerali': {...}} ready for generate_fattura_xml().
+        On failure returns {'error': '<reason>'}.
         """
         if tipo_documento not in TIPO_DOCUMENTO:
             return {
@@ -238,14 +235,13 @@ def register_body_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def get_tipo_documento_codes() -> dict:
-        """Return all document type codes TD01–TD28 with descriptions and use cases.
+        """Return the complete list of document type codes (TD01–TD28) with descriptions and use cases.
 
-        Provides the complete FatturaPA reference table for TipoDocumento, including
-        self-invoicing types (TD16–TD27) for reverse charge and cross-border operations,
-        and the San Marino VAT type TD28 introduced in 2022.
+        Call this to choose the correct TipoDocumento before calling build_dati_generali().
+        Common codes: TD01 (standard invoice), TD04 (credit note), TD05 (debit note),
+        TD06 (professional fee), TD16–TD19 (reverse charge self-invoices), TD28 (San Marino).
 
-        Returns:
-            A dict with 'codes' (list of {code, description, use_case}) and 'total'.
+        Always succeeds. Returns {'codes': [{'code', 'description', 'use_case'}, ...], 'total': int}.
         """
         codes = [
             {"code": code, "description": info["description"], "use_case": info["use_case"]}
@@ -332,25 +328,20 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> dict:
-        """Add a DettaglioLinee entry to the FatturaElettronicaBody.
+        """Build a single DettaglioLinee (line item) entry for the FatturaElettronicaBody.
 
-        Constructs a single line item for an Italian electronic invoice. Validates
-        the Natura code requirement when VAT rate is zero. Returns the structured
-        DettaglioLinee dict ready to be included in the body lines array.
+        Use this as step 7 in the invoice generation workflow — call once per line item
+        after build_dati_generali(). Collect all returned dicts into a list and pass it
+        to compute_totali() (step 8) and then generate_fattura_xml() (step 10).
 
-        Args:
-            numero_linea: Sequential line number (1–9999).
-            descrizione: Good or service description (max 1000 chars).
-            quantita: Quantity (optional for lump-sum services).
-            unita_misura: Unit of measure.
-            prezzo_unitario: Unit price before VAT.
-            prezzo_totale: Total line amount before VAT.
-            aliquota_iva: VAT rate percentage (0.0–100.0).
-            natura: Natura exemption code, required when aliquota_iva is 0.0.
-            ritenuta: 'SI' if line is subject to withholding tax.
+        numero_linea must be sequential starting at 1; do not reuse numbers in the same invoice.
+        prezzo_totale must be provided explicitly (not computed); use negative values for credit notes.
+        When aliquota_iva is 0.0, natura is required — call get_natura_codes() to select the code.
+        Set ritenuta='SI' on lines subject to withholding tax and include the DatiRitenuta block
+        from check_ritenuta_acconto() when generating XML.
 
-        Returns:
-            A dict with the DettaglioLinee entry, or an error dict on failure.
+        On success returns {'DettaglioLinee': {...}}.
+        On failure returns {'error': '<reason>'}.
         """
         if aliquota_iva == 0.0 and not natura:
             return {
@@ -403,17 +394,20 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> dict:
-        """Compute DatiRiepilogo totals (taxable base and VAT) grouped by VAT rate.
+        """Compute DatiRiepilogo VAT summary totals grouped by AliquotaIVA and Natura.
 
-        Aggregates line items by AliquotaIVA and optional Natura code, computing
-        imponibile (taxable base) and imposta (VAT amount) for each group. Returns
-        the DatiRiepilogo array required in the FatturaElettronicaBody.
+        Use this as step 8 in the invoice generation workflow, after all add_linea_dettaglio()
+        calls and before generate_fattura_xml(). Pass the raw line values (not the
+        DettaglioLinee dicts): each item needs 'prezzo_totale' (float), 'aliquota_iva' (float),
+        and optionally 'natura' (str).
 
-        Args:
-            linee: List of dicts with 'prezzo_totale', 'aliquota_iva', and optional 'natura'.
+        Groups lines by (aliquota_iva, natura) pair, sums imponibile, and computes
+        imposta = imponibile × aliquota / 100 (rounded HALF_UP to 2 decimal places).
+        EsigibilitaIVA defaults to 'I' (immediata) for all groups.
 
-        Returns:
-            A dict with 'DatiRiepilogo' (list of summary entries) and 'totale_fattura'.
+        Always succeeds (empty list produces empty DatiRiepilogo). Returns:
+        {'DatiRiepilogo': [...], 'totale_imponibile': str, 'totale_imposta': str, 'totale_fattura': str}.
+        Pass 'DatiRiepilogo' directly to generate_fattura_xml() as dati_riepilogo.
         """
         groups: dict[tuple, dict] = {}
 
@@ -472,14 +466,14 @@ def register_body_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def get_natura_codes() -> dict:
-        """Return all Natura exemption codes (N1–N7 and sub-codes) with legal references.
+        """Return the complete list of Natura exemption codes (N1–N7 and sub-codes) with legal references.
 
-        Provides the complete reference table for VAT exemption/exclusion codes required
-        in DettaglioLinee when AliquotaIVA is 0.00. Includes reverse charge codes (N6.x),
-        intra-EU codes (N3.2), export codes (N3.1), and the OSS/IOSS code (N7).
+        Call this when add_linea_dettaglio() requires a Natura code (i.e. aliquota_iva is 0.0).
+        Common codes: N1 (excluded, art. 15), N2.1 (out-of-scope, territoriality),
+        N3.1 (exports), N3.2 (intra-EU supplies), N4 (VAT-exempt), N6.x (reverse charge),
+        N7 (OSS/IOSS — VAT paid in another EU state).
 
-        Returns:
-            A dict with 'codes' (list of {code, description, legal_ref}) and 'total'.
+        Always succeeds. Returns {'codes': [{'code', 'description', 'legal_ref'}, ...], 'total': int}.
         """
         codes = [
             {"code": code, "description": info["description"], "legal_ref": info["legal_ref"]}
@@ -537,22 +531,22 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> dict:
-        """Build a DatiPagamento block for the FatturaElettronicaBody.
+        """Build the DatiPagamento block for the FatturaElettronicaBody.
 
-        Constructs the payment terms and method section required in every FatturaPA body.
-        Validates CondizioniPagamento and ModalitaPagamento codes, IBAN format, and
-        due date format.
+        Use this as step 9 in the invoice generation workflow, after compute_totali() and
+        before generate_fattura_xml(). The block is optional in the XML but strongly
+        recommended for B2B invoices.
 
-        Args:
-            condizioni_pagamento: Payment terms code (TP01/TP02/TP03).
-            modalita_pagamento: Payment method code (MP01–MP23).
-            importo_pagamento: Payment amount.
-            data_scadenza_pagamento: Due date (YYYY-MM-DD).
-            iban: IBAN for bank transfers.
-            istituto_finanziario: Bank name.
+        condizioni_pagamento: TP01 = instalments, TP02 = single full payment, TP03 = advance.
+        modalita_pagamento: MP05 (bank transfer) is most common for B2B; include iban when using MP05.
+        importo_pagamento: for TP02 this should equal totale_fattura from compute_totali();
+        for TP01 (instalments) call this tool once per instalment tranche.
 
-        Returns:
-            A dict with the DatiPagamento block, or an error dict on failure.
+        Validates: condizioni_pagamento in {TP01, TP02, TP03}; modalita_pagamento in MP01–MP23;
+        IBAN format (letters + digits, max 34 chars); data_scadenza_pagamento is YYYY-MM-DD.
+
+        On success returns {'DatiPagamento': {...}} ready for generate_fattura_xml().
+        On failure returns {'error': '<reason>'}.
         """
         if condizioni_pagamento not in ("TP01", "TP02", "TP03"):
             return {
@@ -633,20 +627,19 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> dict:
-        """Attach a base64-encoded document to the Allegati block of a FatturaPA.
+        """Build an Allegati (attachment) entry to include in a FatturaPA document.
 
-        Validates the base64 encoding and constructs the Allegati entry with name,
-        content, format, and optional description. Multiple attachments can be added
-        by calling this tool once per file.
+        Use this when you need to attach supporting documents (e.g. DDT, contract, PDF)
+        to the invoice. Call once per file, collect results in a list, and pass it to
+        generate_fattura_xml() as the allegati parameter.
 
-        Args:
-            nome_allegato: File name of the attachment (max 60 chars).
-            attachment_base64: Base64-encoded binary content.
-            formato_allegato: MIME type/format code (max 10 chars).
-            descrizione_allegato: Optional description (max 100 chars).
+        attachment_base64 must be valid standard base64 (RFC 4648); the tool verifies
+        decodability. nome_allegato must include the file extension (e.g. 'contract.pdf').
+        formato_allegato (e.g. 'PDF', 'XML', 'ZIP') is optional but recommended for
+        recipients to identify the content without decoding.
 
-        Returns:
-            A dict with the Allegati entry (without decoded content), or an error dict.
+        On success returns {'Allegati': {'NomeAllegato', 'Attachment', 'size_bytes', ...}}.
+        On failure returns {'error': '<reason>'} (invalid base64 or name > 60 chars).
         """
         try:
             decoded = base64.b64decode(attachment_base64)

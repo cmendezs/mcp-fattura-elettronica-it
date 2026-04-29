@@ -9,7 +9,6 @@ from __future__ import annotations
 
 import random
 import re
-import string
 from typing import Annotated, Optional
 
 from fastmcp import FastMCP
@@ -110,22 +109,18 @@ def register_header_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> dict:
-        """Build a DatiTrasmissione block for the FatturaElettronicaHeader.
+        """Build the DatiTrasmissione block required in every FatturaPA header.
 
-        Constructs the transmission header dict that identifies sender, recipient,
-        and routing information for SDI delivery. Returns a structured dict ready
-        to be embedded in the full FatturaPA XML generation payload.
+        Use this as step 3 in the invoice generation workflow, after
+        generate_progressivo_invio() and before validate_cedente_prestatore().
+        Use lookup_codice_destinatario() first to confirm the recipient code format.
 
-        Args:
-            id_paese: ISO 3166-1 two-letter country code of the transmitter.
-            id_codice: Tax ID of the transmitter (Partita IVA or foreign tax ID).
-            progressivo_invio: Unique send sequence number (max 10 alphanumeric chars).
-            formato_trasmissione: 'FPA12' (Public Admin) or 'FPR12' (private parties).
-            codice_destinatario: 6-char SDI recipient code or '0000000' for PEC routing.
-            pec_destinatario: Recipient PEC email, required when codice is '0000000'.
+        Validates: formato_trasmissione must be 'FPA12' or 'FPR12'; progressivo_invio
+        must be 1–10 alphanumeric characters; pec_destinatario is required when
+        codice_destinatario is '0000000'.
 
-        Returns:
-            A dict representing the DatiTrasmissione block, or an error dict on failure.
+        On success returns {'DatiTrasmissione': {...}} ready to pass to generate_fattura_xml().
+        On failure returns {'error': '<reason>'} — do not proceed to XML generation.
         """
         if formato_trasmissione not in ("FPA12", "FPR12"):
             return {"error": f"Invalid formato_trasmissione '{formato_trasmissione}'. Must be 'FPA12' or 'FPR12'."}
@@ -203,26 +198,18 @@ def register_header_tools(mcp: FastMCP) -> None:
             Field(description="ISO 3166-1 two-letter country code of the registered office."),
         ] = "IT",
     ) -> dict:
-        """Validate a CedentePrestatore (seller) block for FatturaPA compliance.
+        """Validate and build the CedentePrestatore (seller) block for FatturaPA.
 
-        Checks required fields, mutual exclusivity of Denominazione vs Nome+Cognome,
-        and validates the RegimeFiscale code. Returns the structured block on success
-        or an error dict on validation failure.
+        Use this as step 4 in the invoice generation workflow, after
+        build_transmission_header() and before validate_cessionario().
+        Call get_regime_fiscale_codes() first if you need to look up the RF code.
 
-        Args:
-            id_paese: ISO country code of the seller.
-            id_codice: VAT number of the seller.
-            denominazione: Company name (use for legal entities).
-            nome: First name (use for natural persons).
-            cognome: Last name (use for natural persons).
-            regime_fiscale: Fiscal regime code (RF01–RF19).
-            indirizzo: Street address of the registered office.
-            cap: Postal code.
-            comune: City.
-            nazione: ISO country code of the registered office.
+        Validates: either denominazione or both nome+cognome must be provided (mutually
+        exclusive); regime_fiscale must be a valid RF01–RF19 code; Italian Partita IVA
+        (id_paese='IT') must be exactly 11 digits.
 
-        Returns:
-            A dict with the validated CedentePrestatore block, or an error dict.
+        On success returns {'CedentePrestatore': {...}} ready to pass to generate_fattura_xml().
+        On failure returns {'error': '<reason>'} listing all validation issues joined by '; '.
         """
         errors: list[str] = []
 
@@ -319,26 +306,20 @@ def register_header_tools(mcp: FastMCP) -> None:
         comune: Annotated[str, Field(description="City of the buyer.")] = "",
         nazione: Annotated[str, Field(description="ISO country code of the buyer.")] = "IT",
     ) -> dict:
-        """Validate a CessionarioCommittente (buyer) block for FatturaPA compliance.
+        """Validate and build the CessionarioCommittente (buyer) block for FatturaPA.
 
-        Checks that at least one tax identifier (IdFiscaleIVA or CodiceFiscale) is present,
-        validates mutual exclusivity of Denominazione vs Nome+Cognome, and returns the
-        structured buyer block or an error dict.
+        Use this as step 5 in the invoice generation workflow, after
+        validate_cedente_prestatore() and before build_dati_generali().
 
-        Args:
-            denominazione: Company name of the buyer.
-            nome: First name (natural person).
-            cognome: Last name (natural person).
-            id_paese: ISO country code for the VAT identifier.
-            id_codice: VAT number.
-            codice_fiscale: Italian fiscal code.
-            indirizzo: Street address.
-            cap: Postal code.
-            comune: City.
-            nazione: ISO country code.
+        Validates: either denominazione or both nome+cognome must be provided (mutually
+        exclusive); at least one tax identifier (id_codice with id_paese, or codice_fiscale)
+        is required; id_codice requires id_paese to be set.
 
-        Returns:
-            A dict with the validated CessionarioCommittente block, or an error dict.
+        Italian B2C buyers with only a CodiceFiscale: set codice_fiscale and leave
+        id_paese/id_codice empty. Foreign B2B buyers: set id_paese + id_codice.
+
+        On success returns {'CessionarioCommittente': {...}} ready for generate_fattura_xml().
+        On failure returns {'error': '<reason>'} listing all issues joined by '; '.
         """
         errors: list[str] = []
 
@@ -384,14 +365,14 @@ def register_header_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def get_regime_fiscale_codes() -> dict:
-        """Return all valid RegimeFiscale codes (RF01–RF19) with Italian descriptions.
+        """Return the complete list of RegimeFiscale codes (RF01–RF19) with descriptions.
 
-        Provides the complete reference table of fiscal regime codes required in the
-        CedentePrestatore/DatiAnagrafici/RegimeFiscale field of every FatturaPA document.
-        RF01 is the standard ordinary regime; RF19 is the flat-rate regime (forfettario).
+        Call this to look up the correct fiscal regime code before calling
+        validate_cedente_prestatore(). Every Italian seller must declare a regime:
+        RF01 (ordinary) covers most companies; RF19 (forfettario) covers flat-rate
+        sole traders; all other codes cover specialised VAT regimes.
 
-        Returns:
-            A dict with 'codes' (list of {code, description}) and 'total' count.
+        Always succeeds. Returns {'codes': [{'code': str, 'description': str}, ...], 'total': int}.
         """
         codes = [{"code": code, "description": desc} for code, desc in REGIME_FISCALE.items()]
         return {"codes": codes, "total": len(codes)}
@@ -408,16 +389,17 @@ def register_header_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> dict:
-        """Validate an Italian Partita IVA: format (11 digits) and modulo-10 checksum.
+        """Validate an Italian Partita IVA for format (11 digits) and modulo-10 checksum.
 
-        Applies the official Agenzia delle Entrate control algorithm to verify the check digit.
-        Use this in the header flow before calling validate_cedente_prestatore.
+        Call this as an early sanity check on the seller's VAT number before passing it to
+        validate_cedente_prestatore(). Strips whitespace before validation.
 
-        Args:
-            partita_iva: 11-digit Italian VAT number.
+        Applies the official Agenzia delle Entrate control algorithm: odd-position digits are
+        taken as-is; even-position digits are doubled (subtract 9 if > 9); the last digit must
+        equal (10 - sum % 10) % 10.
 
-        Returns:
-            A dict with 'valid' (bool), 'value' (cleaned str), and optional 'error'.
+        On success returns {'valid': true, 'value': '<cleaned_piva>'}.
+        On failure returns {'valid': false, 'value': '<input>', 'error': '<reason>'}.
         """
         piva = partita_iva.strip()
 
@@ -470,18 +452,19 @@ def register_header_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> dict:
-        """Generate a unique ProgressivoInvio identifier for FatturaPA transmission.
+        """Generate a ProgressivoInvio identifier for the DatiTrasmissione block.
 
-        Produces a max-10-char alphanumeric code suitable for the DatiTrasmissione block.
-        In production, callers must maintain their own monotonically increasing sequence
-        to guarantee uniqueness per transmitter Partita IVA.
+        Use this as step 2 in the invoice generation workflow, before
+        build_transmission_header(). The SDI requires each ProgressivoInvio to be unique
+        per transmitter Partita IVA — in production, pass an explicit monotonically
+        increasing sequence number; use the random default only for testing.
 
-        Args:
-            prefix: Optional alphabetic prefix (max 3 chars).
-            sequence: Explicit sequence number; random if omitted.
+        prefix (optional): alphabetic 1–3 char prefix, e.g. 'INV' → 'INV00001'.
+        sequence (optional): integer 1–9999999; random 5-digit value if omitted.
+        Total length must not exceed 10 characters.
 
-        Returns:
-            A dict with 'progressivo_invio' (str) and 'length' (int).
+        On success returns {'progressivo_invio': str, 'length': int}.
+        On failure (invalid prefix) returns {'error': '<reason>'}.
         """
         if prefix and not re.match(r"^[A-Za-z]{1,3}$", prefix):
             return {"error": "prefix must be 1–3 alphabetic characters."}
@@ -520,21 +503,24 @@ def register_header_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> dict:
-        """Return routing information for a CodiceDestinatario (SDI recipient code) or PEC.
+        """Validate the format of a CodiceDestinatario (SDI recipient code) or PEC address.
 
-        Validates the format of the provided code or PEC address and returns the
-        correct routing strategy. Note: live SDI directory lookup is out of scope for
-        v0.1.0 — this tool validates format only.
+        Call this before build_transmission_header() to confirm the recipient routing type
+        and that the code or PEC address is correctly formatted. At least one of codice
+        or pec must be provided.
 
-        Args:
-            codice: 6-character SDI code or '0000000' for PEC routing.
-            pec: PEC email address of the recipient.
+        Routing rules:
+        - codice is 6 alphanumeric chars (e.g. 'ABC123') → routing_type: 'SDI_CODE'
+        - codice is '0000000' (7 zeros) → routing_type: 'PEC'; pec_destinatario is then
+          mandatory in build_transmission_header()
+        - pec only (no codice) → validates email format, routing_type: 'PEC'
 
-        Returns:
-            A dict with routing_type, validated values, and usage instructions.
+        Limitation: performs format validation only — no live query against the SDI
+        SOAP directory service (planned for a future release).
 
-        Note:
-            # TODO v0.2: Integrate with the SDI SOAP directory service for live lookup.
+        On success returns a dict with 'routing_type', 'codice_destinatario' and/or
+        'pec_destinatario', and a 'note' with usage guidance.
+        On invalid input returns {'error': '<reason>'}.
         """
         if not codice and not pec:
             return {"error": "At least one of 'codice' or 'pec' must be provided."}

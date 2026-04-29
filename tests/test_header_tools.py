@@ -6,7 +6,6 @@ Covers happy path, validation errors, and edge cases for all 7 header tools.
 
 from __future__ import annotations
 
-import pytest
 
 import asyncio
 
