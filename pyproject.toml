@@ -7,20 +7,19 @@ name = "mcp-fattura-elettronica-it"
 version = "0.2.1"
 description = "MCP server for Italian e-invoicing — FatturaPA XML / SDI"
 readme = "README.md"
-requires-python = ">=3.10"
+requires-python = ">=3.11"
 license = { text = "Apache-2.0" }
 authors = [{ name = "Christophe Mendez", email = "christophe@mzconsultants.eu" }]
 keywords = ["mcp", "fattura-elettronica", "fatturapa", "sdi", "agenzia-entrate", "b2b", "b2g"]
 classifiers = [
     "Development Status :: 3 - Alpha",
-    "Programming Language :: Python :: 3.10",
     "Programming Language :: Python :: 3.11",
     "Programming Language :: Python :: 3.12",
     "License :: OSI Approved :: Apache Software License",
 ]
 
 dependencies = [
-    "mcp-einvoicing-core>=0.1.0",
+    "mcp-einvoicing-core>=0.1.0,<1.0.0",
     "fastmcp>=2.0.0",
     "lxml>=5.0.0",
     "python-dotenv>=1.0.0",
@@ -39,6 +38,9 @@ mcp-fattura-elettronica-it = "server:main"
 Homepage = "https://github.com/cmendezs/mcp-fattura-elettronica-it"
 Repository = "https://github.com/cmendezs/mcp-fattura-elettronica-it"
 
+[tool.uv.sources]
+mcp-einvoicing-core = { workspace = true }
+
 [tool.hatch.build.targets.wheel]
 packages = ["tools"]
 artifacts = ["server.py", "schemas/FatturaPA_v1.6.1.xsd"]
@@ -56,4 +58,4 @@ testpaths = ["tests"]
 
 [tool.ruff]
 line-length = 100
-target-version = "py310"
+target-version = "py311"
