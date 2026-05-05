@@ -38,9 +38,6 @@ mcp-fattura-elettronica-it = "server:main"
 Homepage = "https://github.com/cmendezs/mcp-fattura-elettronica-it"
 Repository = "https://github.com/cmendezs/mcp-fattura-elettronica-it"
 
-[tool.uv.sources]
-mcp-einvoicing-core = { workspace = true }
-
 [tool.hatch.build.targets.wheel]
 packages = ["tools"]
 artifacts = ["server.py", "schemas/FatturaPA_v1.6.1.xsd"]
