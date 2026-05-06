@@ -17,7 +17,15 @@
       "installationInstructions": "uvx mcp-fattura-elettronica-it",
       "transport": {
         "type": "stdio"
-      }
+      },
+      "environmentVariables": [
+        {
+          "name": "FATTURA_XSD_PATH",
+          "description": "Path to a local copy of the FatturaPA XSD schema file (optional — built-in schema is used if unset)",
+          "isRequired": false,
+          "format": "string"
+        }
+      ]
     }
   ],
   "license": "Apache-2.0",
