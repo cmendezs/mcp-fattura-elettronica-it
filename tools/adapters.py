@@ -8,7 +8,6 @@ enabling mcp-fattura-elettronica-it to participate in multi-country aggregators
 
 from __future__ import annotations
 
-import re
 from pathlib import Path
 from typing import Optional
 
@@ -22,6 +21,7 @@ from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.models import (
     DocumentValidationResult,
     InvoiceDocument,
+    TaxIdentifier,
 )
 
 logger = get_logger(__name__)
@@ -455,26 +455,8 @@ class ItalyPartyValidator(BasePartyValidator):
                 "valid": False,
                 "error": f"ItalyPartyValidator only validates IT tax IDs, got '{country_code}'.",
             }
-
         piva = tax_id.strip()
-        if not re.match(r"^\d{11}$", piva):
-            return {"valid": False, "value": piva, "error": "Partita IVA must be exactly 11 digits."}
-
-        total = 0
-        for i, digit in enumerate(piva[:10]):
-            d = int(digit)
-            if i % 2 == 1:
-                d *= 2
-                if d > 9:
-                    d -= 9
-            total += d
-
-        expected = (10 - (total % 10)) % 10
-        actual = int(piva[10])
-        if expected != actual:
-            return {
-                "valid": False,
-                "value": piva,
-                "error": f"Checksum mismatch: expected {expected}, got {actual}.",
-            }
+        valid, error = TaxIdentifier.validate_it_partita_iva(piva)
+        if not valid:
+            return {"valid": False, "value": piva, "error": error}
         return {"valid": True, "value": piva}

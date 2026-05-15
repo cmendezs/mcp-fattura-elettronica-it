@@ -16,6 +16,7 @@ from fastmcp import FastMCP
 from pydantic import Field
 
 from mcp_einvoicing_core.logging_utils import get_logger
+from mcp_einvoicing_core.models import TaxIdentifier
 from mcp_einvoicing_core.xml_utils import filter_empty_values
 
 logger = get_logger(__name__)
@@ -711,33 +712,9 @@ def register_global_tools(mcp: FastMCP) -> None:
         On failure returns {'valid': false, 'value': '<input>', 'error': '<reason>'}.
         """
         piva = partita_iva.strip()
-
-        if not re.match(r"^\d{11}$", piva):
-            return {
-                "valid": False,
-                "value": piva,
-                "error": "Partita IVA must be exactly 11 digits.",
-            }
-
-        total = 0
-        for i, digit in enumerate(piva[:10]):
-            d = int(digit)
-            if i % 2 == 1:
-                d *= 2
-                if d > 9:
-                    d -= 9
-            total += d
-
-        expected = (10 - (total % 10)) % 10
-        actual = int(piva[10])
-
-        if expected != actual:
-            return {
-                "valid": False,
-                "value": piva,
-                "error": f"Checksum mismatch: expected {expected}, got {actual}.",
-            }
-
+        valid, error = TaxIdentifier.validate_it_partita_iva(piva)
+        if not valid:
+            return {"valid": False, "value": piva, "error": error}
         return {"valid": True, "value": piva}
 
     @mcp.tool()
