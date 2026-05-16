@@ -17,7 +17,7 @@ from pydantic import Field
 
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.models import TaxIdentifier
-from mcp_einvoicing_core.xml_utils import filter_empty_values
+from mcp_einvoicing_core.xml_utils import filter_empty_values, safe_fromstring, safe_parser
 
 logger = get_logger(__name__)
 
@@ -449,7 +449,7 @@ def register_global_tools(mcp: FastMCP) -> None:
 
         try:
             xml_bytes = xml_string.encode("utf-8") if isinstance(xml_string, str) else xml_string
-            xml_doc = etree.fromstring(xml_bytes)
+            xml_doc = safe_fromstring(xml_bytes)
         except etree.XMLSyntaxError as exc:
             return {"valid": False, "errors": [f"XML parse error: {exc}"]}
 
@@ -459,7 +459,7 @@ def register_global_tools(mcp: FastMCP) -> None:
             schemas_dir = xsd_path.parent
             xmldsig_path = schemas_dir / "xmldsig-core-schema.xsd"
 
-            parser = etree.XMLParser()
+            parser = safe_parser()
             if xmldsig_path.exists():
                 class _LocalResolver(etree.Resolver):
                     def resolve(self, url, id, context):
@@ -514,7 +514,7 @@ def register_global_tools(mcp: FastMCP) -> None:
 
         try:
             xml_bytes = xml_string.encode("utf-8") if isinstance(xml_string, str) else xml_string
-            root = etree.fromstring(xml_bytes)
+            root = safe_fromstring(xml_bytes)
         except etree.XMLSyntaxError as exc:
             return {"error": f"XML parse error: {exc}"}
 
