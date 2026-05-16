@@ -18,6 +18,7 @@ from mcp_einvoicing_core.base_server import (
     BasePartyValidator,
 )
 from mcp_einvoicing_core.logging_utils import get_logger
+from mcp_einvoicing_core.xml_utils import safe_fromstring, safe_parser
 from mcp_einvoicing_core.models import (
     DocumentValidationResult,
     InvoiceDocument,
@@ -233,14 +234,14 @@ class FatturaValidator(BaseDocumentValidator):
 
         try:
             xml_bytes = document_content.encode("utf-8") if isinstance(document_content, str) else document_content
-            xml_doc = etree.fromstring(xml_bytes)
+            xml_doc = safe_fromstring(xml_bytes)
         except etree.XMLSyntaxError as exc:
             return DocumentValidationResult(
                 valid=False, errors=[f"XML parse error: {exc}"], warnings=[], metadata={}
             )
 
         try:
-            parser = etree.XMLParser()
+            parser = safe_parser()
             if xmldsig_path.exists():
                 class _LocalResolver(etree.Resolver):
                     def resolve(self, url, id, context):
@@ -286,7 +287,7 @@ class FatturaParser(BaseDocumentParser):
 
         xml_bytes = document_content.encode("utf-8") if isinstance(document_content, str) else document_content
         try:
-            root = etree.fromstring(xml_bytes)
+            root = safe_fromstring(xml_bytes)
         except etree.XMLSyntaxError as exc:
             return {"error": f"XML parse error: {exc}"}
 
