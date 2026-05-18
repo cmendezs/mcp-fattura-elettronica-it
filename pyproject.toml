@@ -19,7 +19,7 @@ classifiers = [
 ]
 
 dependencies = [
-    "mcp-einvoicing-core>=0.1.0,<1.0.0",
+    "mcp-einvoicing-core>=1.1.0,<2.0.0",
     "fastmcp>=2.0.0",
     "lxml>=5.0.0",
     "python-dotenv>=1.0.0",
