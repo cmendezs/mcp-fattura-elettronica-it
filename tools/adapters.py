@@ -22,9 +22,9 @@ from mcp_einvoicing_core.exceptions import DocumentGenerationError
 from mcp_einvoicing_core.xml_utils import safe_fromstring, safe_parser, xml_escape
 from mcp_einvoicing_core.models import (
     DocumentValidationResult,
-    InvoiceDocument,
     TaxIdentifier,
 )
+from mcp_fattura_elettronica_it.models import ItalianInvoice
 
 logger = get_logger(__name__)
 
@@ -38,7 +38,7 @@ _SCHEMAS_DIR = Path(__file__).parent.parent / "schemas"
 
 
 class FatturaGenerator(BaseDocumentGenerator):
-    """Generates FatturaPA v1.2.3 XML from a core InvoiceDocument."""
+    """Generates FatturaPA v1.2.3 XML from an ItalianInvoice (EN 16931 IT CIUS)."""
 
     def get_format_name(self) -> str:
         return "FatturaPA"
@@ -49,62 +49,57 @@ class FatturaGenerator(BaseDocumentGenerator):
     def get_namespace(self) -> Optional[str]:
         return _FATTURA_NS
 
-    def generate(self, document: InvoiceDocument) -> str:
-        """Convert an InvoiceDocument to a FatturaPA v1.2.3 XML string."""
-        formato = document.transmission_format or "FPR12"
+    def generate(self, document: ItalianInvoice) -> str:
+        """Convert an ItalianInvoice to a FatturaPA v1.2.3 XML string.
+
+        Parties must be EN16931Party instances with vat_id set to the full
+        country-prefixed identifier (e.g. 'IT01234567890'). Natural persons
+        are not yet supported via this adapter — use the global_tools
+        generate_fattura_xml tool for individual-person invoices until
+        IT-SC-6 (ItalianParty subclass with nome/cognome) is implemented.
+        """
+        formato = document.formato_trasmissione
         seller = document.seller
         buyer = document.buyer
 
-        seller_paese = seller.tax_id.country_code
-        seller_codice = seller.tax_id.identifier
-        seller_ana = (
-            f"<Denominazione>{xml_escape(seller.name)}</Denominazione>"
-            if seller.name
-            else (
-                f"<Nome>{xml_escape(seller.first_name or '')}</Nome>"
-                f"<Cognome>{xml_escape(seller.last_name or '')}</Cognome>"
-            )
-        )
+        seller_vat = seller.vat_id or ""
+        seller_paese = seller_vat[:2].upper() if len(seller_vat) >= 2 else "IT"
+        seller_codice = seller_vat[2:] if len(seller_vat) > 2 else seller_vat
+        seller_ana = f"<Denominazione>{xml_escape(seller.name)}</Denominazione>"
         s_addr = seller.address
         seller_sede = (
-            f"<Indirizzo>{xml_escape(s_addr.street)}</Indirizzo>"
-            f"<CAP>{s_addr.postal_code}</CAP>"
+            f"<Indirizzo>{xml_escape(s_addr.line_one)}</Indirizzo>"
+            f"<CAP>{xml_escape(s_addr.postcode)}</CAP>"
             f"<Comune>{xml_escape(s_addr.city)}</Comune>"
             f"<Nazione>{s_addr.country_code}</Nazione>"
             if s_addr
             else ""
         )
 
+        buyer_vat = buyer.vat_id or ""
+        buyer_paese = buyer_vat[:2].upper() if len(buyer_vat) >= 2 else ""
+        buyer_codice = buyer_vat[2:] if len(buyer_vat) > 2 else buyer_vat
         buyer_id_xml = ""
-        if buyer.tax_id:
+        if buyer_vat:
             buyer_id_xml = (
                 f"<IdFiscaleIVA>"
-                f"<IdPaese>{buyer.tax_id.country_code}</IdPaese>"
-                f"<IdCodice>{buyer.tax_id.identifier}</IdCodice>"
+                f"<IdPaese>{buyer_paese}</IdPaese>"
+                f"<IdCodice>{buyer_codice}</IdCodice>"
                 f"</IdFiscaleIVA>"
             )
-        if buyer.alt_tax_id:
-            buyer_id_xml += f"<CodiceFiscale>{buyer.alt_tax_id}</CodiceFiscale>"
-        buyer_ana = (
-            f"<Denominazione>{xml_escape(buyer.name)}</Denominazione>"
-            if buyer.name
-            else (
-                f"<Nome>{xml_escape(buyer.first_name or '')}</Nome>"
-                f"<Cognome>{xml_escape(buyer.last_name or '')}</Cognome>"
-            )
-        )
+        buyer_ana = f"<Denominazione>{xml_escape(buyer.name)}</Denominazione>"
         b_addr = buyer.address
         buyer_sede = (
-            f"<Indirizzo>{xml_escape(b_addr.street)}</Indirizzo>"
-            f"<CAP>{b_addr.postal_code}</CAP>"
+            f"<Indirizzo>{xml_escape(b_addr.line_one)}</Indirizzo>"
+            f"<CAP>{xml_escape(b_addr.postcode)}</CAP>"
             f"<Comune>{xml_escape(b_addr.city)}</Comune>"
             f"<Nazione>{b_addr.country_code}</Nazione>"
             if b_addr
             else ""
         )
 
-        codice_dest = getattr(document, "codice_destinatario", "0000000")
-        pec_dest = getattr(document, "pec_destinatario", None)
+        codice_dest = document.codice_destinatario
+        pec_dest = document.pec_destinatario
         if codice_dest == "0000000" and not pec_dest:
             raise DocumentGenerationError(
                 "CodiceDestinatario is '0000000' (PEC routing) but pec_destinatario is absent. "
@@ -113,50 +108,62 @@ class FatturaGenerator(BaseDocumentGenerator):
         pec_xml = f"<PECDestinatario>{xml_escape(pec_dest)}</PECDestinatario>" if pec_dest else ""
 
         linee_xml = ""
-        for line in document.lines:
+        for line in document.line_items:
             qta = f"<Quantita>{line.quantity}</Quantita>" if line.quantity is not None else ""
-            um = f"<UnitaMisura>{line.unit_of_measure}</UnitaMisura>" if line.unit_of_measure else ""
-            nat = f"<Natura>{line.vat_exemption_code}</Natura>" if line.vat_exemption_code else ""
+            um = f"<UnitaMisura>{line.unit_code}</UnitaMisura>" if line.unit_code else ""
+            # Emit Natura only for non-standard-rated lines (category != S)
+            nat = (
+                f"<Natura>{xml_escape(line.tax_category)}</Natura>"
+                if line.tax_category not in ("S",)
+                else ""
+            )
             linee_xml += (
                 f"<DettaglioLinee>"
-                f"<NumeroLinea>{line.line_number}</NumeroLinea>"
-                f"<Descrizione>{xml_escape(line.description)}</Descrizione>"
+                f"<NumeroLinea>{line.line_id}</NumeroLinea>"
+                f"<Descrizione>{xml_escape(line.name)}</Descrizione>"
                 f"{qta}{um}"
                 f"<PrezzoUnitario>{line.unit_price:.8f}</PrezzoUnitario>"
-                f"<PrezzoTotale>{line.total_price:.2f}</PrezzoTotale>"
-                f"<AliquotaIVA>{line.vat_rate:.2f}</AliquotaIVA>"
+                f"<PrezzoTotale>{line.line_net_amount:.2f}</PrezzoTotale>"
+                f"<AliquotaIVA>{line.tax_rate:.2f}</AliquotaIVA>"
                 f"{nat}"
                 f"</DettaglioLinee>"
             )
 
         riepilogo_xml = ""
-        for vat in document.vat_summary:
-            nat = f"<Natura>{vat.vat_exemption_code}</Natura>" if vat.vat_exemption_code else ""
+        for tax in document.tax_lines:
+            nat = (
+                f"<Natura>{xml_escape(tax.category)}</Natura>"
+                if tax.category not in ("S",)
+                else ""
+            )
             riepilogo_xml += (
                 f"<DatiRiepilogo>"
-                f"<AliquotaIVA>{vat.vat_rate:.2f}</AliquotaIVA>"
+                f"<AliquotaIVA>{tax.rate:.2f}</AliquotaIVA>"
                 f"{nat}"
-                f"<Imponibile>{vat.taxable_base:.2f}</Imponibile>"
-                f"<Imposta>{vat.vat_amount:.2f}</Imposta>"
+                f"<Imponibile>{tax.taxable_amount:.2f}</Imponibile>"
+                f"<Imposta>{tax.tax_amount:.2f}</Imposta>"
                 f"<EsigibilitaIVA>I</EsigibilitaIVA>"
                 f"</DatiRiepilogo>"
             )
 
         pagamento_xml = ""
-        if document.payment:
-            p = document.payment
-            tp = p.payment_terms_code or "TP02"
-            scad = f"<DataScadenzaPagamento>{p.due_date}</DataScadenzaPagamento>" if p.due_date else ""
-            iban = f"<IBAN>{p.iban}</IBAN>" if p.iban else ""
-            banca = f"<IstitutoFinanziario>{xml_escape(p.bank_name)}</IstitutoFinanziario>" if p.bank_name else ""
+        if document.payment_means:
+            pm = document.payment_means
+            tp = "TP02"  # default: deferred payment
+            due = document.due_date
+            scad = (
+                f"<DataScadenzaPagamento>{due}</DataScadenzaPagamento>"
+                if due else ""
+            )
+            iban = f"<IBAN>{xml_escape(pm.iban)}</IBAN>" if pm.iban else ""
             pagamento_xml = (
                 f"<DatiPagamento>"
                 f"<CondizioniPagamento>{tp}</CondizioniPagamento>"
                 f"<DettaglioPagamento>"
-                f"<ModalitaPagamento>{p.payment_method_code}</ModalitaPagamento>"
+                f"<ModalitaPagamento>{xml_escape(pm.type_code)}</ModalitaPagamento>"
                 f"{scad}"
-                f"<ImportoPagamento>{p.amount:.2f}</ImportoPagamento>"
-                f"{iban}{banca}"
+                f"<ImportoPagamento>{document.amount_due:.2f}</ImportoPagamento>"
+                f"{iban}"
                 f"</DettaglioPagamento>"
                 f"</DatiPagamento>"
             )
@@ -173,12 +180,9 @@ class FatturaGenerator(BaseDocumentGenerator):
             f"<IdPaese>{seller_paese}</IdPaese>"
             f"<IdCodice>{seller_codice}</IdCodice>"
             f"</IdTrasmittente>"
-            # [GAP id=core.it.transmission_fields description="InvoiceDocument lacks IT-specific
-            # DatiTrasmissione fields (progressivo_invio, codice_destinatario, regime_fiscale,
-            # codice_ufficio); getattr fallbacks used until core provides these via IT subclass"]
-            f"<ProgressivoInvio>{getattr(document, 'progressivo_invio', '00001')}</ProgressivoInvio>"
+            f"<ProgressivoInvio>{xml_escape(document.progressivo_invio)}</ProgressivoInvio>"
             f"<FormatoTrasmissione>{formato}</FormatoTrasmissione>"
-            f"<CodiceDestinatario>{codice_dest}</CodiceDestinatario>"
+            f"<CodiceDestinatario>{xml_escape(codice_dest)}</CodiceDestinatario>"
             f"{pec_xml}"
             f"</DatiTrasmissione>"
             f"<CedentePrestatore>"
@@ -188,7 +192,7 @@ class FatturaGenerator(BaseDocumentGenerator):
             f"<IdCodice>{seller_codice}</IdCodice>"
             f"</IdFiscaleIVA>"
             f"<Anagrafica>{seller_ana}</Anagrafica>"
-            f"<RegimeFiscale>{getattr(document, 'regime_fiscale', 'RF01')}</RegimeFiscale>"
+            f"<RegimeFiscale>{xml_escape(document.regime_fiscale)}</RegimeFiscale>"
             f"</DatiAnagrafici>"
             f"<Sede>{seller_sede}</Sede>"
             f"</CedentePrestatore>"
@@ -203,10 +207,10 @@ class FatturaGenerator(BaseDocumentGenerator):
             f"<FatturaElettronicaBody>"
             f"<DatiGenerali>"
             f"<DatiGeneraliDocumento>"
-            f"<TipoDocumento>{document.document_type}</TipoDocumento>"
-            f"<Divisa>{document.currency}</Divisa>"
-            f"<Data>{document.date}</Data>"
-            f"<Numero>{document.number}</Numero>"
+            f"<TipoDocumento>{xml_escape(document.invoice_type_code)}</TipoDocumento>"
+            f"<Divisa>{xml_escape(document.currency_code)}</Divisa>"
+            f"<Data>{document.invoice_date}</Data>"
+            f"<Numero>{xml_escape(document.invoice_number)}</Numero>"
             f"</DatiGeneraliDocumento>"
             f"</DatiGenerali>"
             f"<DatiBeniServizi>"

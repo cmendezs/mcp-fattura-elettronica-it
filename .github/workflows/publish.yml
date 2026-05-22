@@ -47,13 +47,31 @@ jobs:
       - name: Run tests
         run: pytest --tb=short
 
-  # ── 2. Build distribution ──────────────────────────────────────────────────
-  # NOTE: audit job is not yet wired — audit/audit_vs_core.py has not been
-  # scaffolded for mcp-fattura-elettronica-it. Add it and insert an audit job
-  # between test and build before the next release.
+  # ── 2. Core compliance audit ───────────────────────────────────────────────
+  audit:
+    name: Core compliance audit
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+
+      - name: Install package + audit extra
+        run: pip install -e ".[dev]" "mcp-einvoicing-core[audit]"
+
+      - name: Run core compliance audit
+        run: python audit/audit_vs_core.py
+
+  # ── 3. Build distribution ──────────────────────────────────────────────────
   build:
     name: Build distribution packages
-    needs: test
+    needs: audit
     runs-on: ubuntu-latest
     # Only build on tag pushes
     if: startsWith(github.ref, 'refs/tags/v')
@@ -79,7 +97,7 @@ jobs:
           name: dist-packages
           path: dist/
 
-  # ── 3. Publish to PyPI ─────────────────────────────────────────────────────
+  # ── 4. Publish to PyPI ─────────────────────────────────────────────────────
   publish:
     name: Publish to PyPI
     needs: build
@@ -104,7 +122,7 @@ jobs:
         # Configure the trusted publisher at:
         # https://pypi.org/manage/project/mcp-fattura-elettronica-it/settings/publishing/
 
-  # ── 4. Create GitHub Release ───────────────────────────────────────────────
+  # ── 5. Create GitHub Release ───────────────────────────────────────────────
   release:
     name: Create GitHub Release
     needs: publish
