@@ -393,14 +393,15 @@ class TestCheckRitenutaAcconto:
         )
         assert result["importo_ritenuta"] == "500.00"
 
-    def test_rt05_condominium_4_percent(self):
+    def test_rt05_enpam_10_percent(self):
+        # RT05 = Contributo ENPAM, indicative rate 10% (was incorrectly set to 4% condominium)
         result = call(
             "check_ritenuta_acconto",
             imponibile=5000.0,
             tipo_ritenuta="RT05",
             causale_pagamento="A",
         )
-        assert result["importo_ritenuta"] == "200.00"
+        assert result["importo_ritenuta"] == "500.00"
 
     def test_dati_ritenuta_block_structure(self):
         result = call(

@@ -2,7 +2,7 @@
 Entry point for the MCP server mcp-fattura-elettronica-it.
 
 Exposes 21 tools for generating, validating, and analysing Italian electronic
-invoices in FatturaPA XML format (SDI / Agenzia delle Entrate standard v1.6.1).
+invoices in FatturaPA XML format (SDI / Agenzia delle Entrate standard v1.2.3).
 
 Usage:
     python server.py                    # stdio mode (Claude Desktop / claude.ai/code)
@@ -33,7 +33,7 @@ logger = get_logger(__name__)
 _server = EInvoicingMCPServer(
     name="mcp-fattura-elettronica-it",
     instructions=(
-        "MCP server for Italian electronic invoicing (FatturaPA v1.6.1 / SDI). "
+        "MCP server for Italian electronic invoicing (FatturaPA v1.2.3 / SDI). "
         "Generates, validates, and analyses e-invoices for B2B, B2G, and cross-border "
         "transactions compliant with Agenzia delle Entrate specifications.\n\n"
         "**Header tools** — FatturaElettronicaHeader (6 tools):\n"
@@ -53,7 +53,7 @@ _server = EInvoicingMCPServer(
         "  • add_allegato: Attach a base64-encoded file to the invoice\n\n"
         "**Global tools** — generation and validation (7 tools):\n"
         "  • generate_fattura_xml: Assemble a complete FatturaPA XML document\n"
-        "  • validate_fattura_xsd: Validate XML against the official XSD v1.6.1\n"
+        "  • validate_fattura_xsd: Validate XML against the official XSD v1.2.3\n"
         "  • parse_fattura_xml: Parse an existing FatturaPA XML into structured JSON\n"
         "  • export_to_json: Export parsed invoice to clean JSON format\n"
         "  • validate_partita_iva_format: Standalone Partita IVA format + checksum check\n"
@@ -72,7 +72,7 @@ _server = EInvoicingMCPServer(
         "10. generate_fattura_xml(...) → XML string + SDI filename\n"
         "11. validate_fattura_xsd(xml) → XSD conformance check\n\n"
         "Out of scope v0.1.0: digital signature (CAdES/XAdES), direct SDI transmission.\n"
-        "XSD: FatturaPA v1.6.1 — namespace http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"
+        "XSD: FatturaPA v1.2.3 — namespace http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"
     ),
 )
 mcp = _server.mcp

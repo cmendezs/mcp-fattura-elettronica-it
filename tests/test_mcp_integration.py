@@ -273,7 +273,8 @@ class TestBodyToolCalls:
             result = await client.call_tool("get_natura_codes", {})
         data = _parse(result)
         codes = {c["code"] for c in data["codes"]}
-        assert "N6" in codes
+        # Parent code N6 removed from XSD enumeration Jan 2021; only sub-codes are valid
+        assert "N6" not in codes
         assert "N6.1" in codes
 
     @pytest.mark.asyncio

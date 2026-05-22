@@ -18,7 +18,8 @@ from mcp_einvoicing_core.base_server import (
     BasePartyValidator,
 )
 from mcp_einvoicing_core.logging_utils import get_logger
-from mcp_einvoicing_core.xml_utils import safe_fromstring, safe_parser
+from mcp_einvoicing_core.exceptions import DocumentGenerationError
+from mcp_einvoicing_core.xml_utils import safe_fromstring, safe_parser, xml_escape
 from mcp_einvoicing_core.models import (
     DocumentValidationResult,
     InvoiceDocument,
@@ -37,7 +38,7 @@ _SCHEMAS_DIR = Path(__file__).parent.parent / "schemas"
 
 
 class FatturaGenerator(BaseDocumentGenerator):
-    """Generates FatturaPA v1.6.1 XML from a core InvoiceDocument."""
+    """Generates FatturaPA v1.2.3 XML from a core InvoiceDocument."""
 
     def get_format_name(self) -> str:
         return "FatturaPA"
@@ -49,7 +50,7 @@ class FatturaGenerator(BaseDocumentGenerator):
         return _FATTURA_NS
 
     def generate(self, document: InvoiceDocument) -> str:
-        """Convert an InvoiceDocument to a FatturaPA v1.6.1 XML string."""
+        """Convert an InvoiceDocument to a FatturaPA v1.2.3 XML string."""
         formato = document.transmission_format or "FPR12"
         seller = document.seller
         buyer = document.buyer
@@ -57,15 +58,18 @@ class FatturaGenerator(BaseDocumentGenerator):
         seller_paese = seller.tax_id.country_code
         seller_codice = seller.tax_id.identifier
         seller_ana = (
-            f"<Denominazione>{seller.name}</Denominazione>"
+            f"<Denominazione>{xml_escape(seller.name)}</Denominazione>"
             if seller.name
-            else f"<Nome>{seller.first_name or ''}</Nome><Cognome>{seller.last_name or ''}</Cognome>"
+            else (
+                f"<Nome>{xml_escape(seller.first_name or '')}</Nome>"
+                f"<Cognome>{xml_escape(seller.last_name or '')}</Cognome>"
+            )
         )
         s_addr = seller.address
         seller_sede = (
-            f"<Indirizzo>{s_addr.street}</Indirizzo>"
+            f"<Indirizzo>{xml_escape(s_addr.street)}</Indirizzo>"
             f"<CAP>{s_addr.postal_code}</CAP>"
-            f"<Comune>{s_addr.city}</Comune>"
+            f"<Comune>{xml_escape(s_addr.city)}</Comune>"
             f"<Nazione>{s_addr.country_code}</Nazione>"
             if s_addr
             else ""
@@ -82,19 +86,31 @@ class FatturaGenerator(BaseDocumentGenerator):
         if buyer.alt_tax_id:
             buyer_id_xml += f"<CodiceFiscale>{buyer.alt_tax_id}</CodiceFiscale>"
         buyer_ana = (
-            f"<Denominazione>{buyer.name}</Denominazione>"
+            f"<Denominazione>{xml_escape(buyer.name)}</Denominazione>"
             if buyer.name
-            else f"<Nome>{buyer.first_name or ''}</Nome><Cognome>{buyer.last_name or ''}</Cognome>"
+            else (
+                f"<Nome>{xml_escape(buyer.first_name or '')}</Nome>"
+                f"<Cognome>{xml_escape(buyer.last_name or '')}</Cognome>"
+            )
         )
         b_addr = buyer.address
         buyer_sede = (
-            f"<Indirizzo>{b_addr.street}</Indirizzo>"
+            f"<Indirizzo>{xml_escape(b_addr.street)}</Indirizzo>"
             f"<CAP>{b_addr.postal_code}</CAP>"
-            f"<Comune>{b_addr.city}</Comune>"
+            f"<Comune>{xml_escape(b_addr.city)}</Comune>"
             f"<Nazione>{b_addr.country_code}</Nazione>"
             if b_addr
             else ""
         )
+
+        codice_dest = getattr(document, "codice_destinatario", "0000000")
+        pec_dest = getattr(document, "pec_destinatario", None)
+        if codice_dest == "0000000" and not pec_dest:
+            raise DocumentGenerationError(
+                "CodiceDestinatario is '0000000' (PEC routing) but pec_destinatario is absent. "
+                "Set pec_destinatario on the document or use a 6/7-char SDI routing code."
+            )
+        pec_xml = f"<PECDestinatario>{xml_escape(pec_dest)}</PECDestinatario>" if pec_dest else ""
 
         linee_xml = ""
         for line in document.lines:
@@ -104,7 +120,7 @@ class FatturaGenerator(BaseDocumentGenerator):
             linee_xml += (
                 f"<DettaglioLinee>"
                 f"<NumeroLinea>{line.line_number}</NumeroLinea>"
-                f"<Descrizione>{line.description}</Descrizione>"
+                f"<Descrizione>{xml_escape(line.description)}</Descrizione>"
                 f"{qta}{um}"
                 f"<PrezzoUnitario>{line.unit_price:.8f}</PrezzoUnitario>"
                 f"<PrezzoTotale>{line.total_price:.2f}</PrezzoTotale>"
@@ -132,7 +148,7 @@ class FatturaGenerator(BaseDocumentGenerator):
             tp = p.payment_terms_code or "TP02"
             scad = f"<DataScadenzaPagamento>{p.due_date}</DataScadenzaPagamento>" if p.due_date else ""
             iban = f"<IBAN>{p.iban}</IBAN>" if p.iban else ""
-            banca = f"<IstitutoFinanziario>{p.bank_name}</IstitutoFinanziario>" if p.bank_name else ""
+            banca = f"<IstitutoFinanziario>{xml_escape(p.bank_name)}</IstitutoFinanziario>" if p.bank_name else ""
             pagamento_xml = (
                 f"<DatiPagamento>"
                 f"<CondizioniPagamento>{tp}</CondizioniPagamento>"
@@ -157,9 +173,13 @@ class FatturaGenerator(BaseDocumentGenerator):
             f"<IdPaese>{seller_paese}</IdPaese>"
             f"<IdCodice>{seller_codice}</IdCodice>"
             f"</IdTrasmittente>"
-            f"<ProgressivoInvio>00001</ProgressivoInvio>"
+            # [GAP id=core.it.transmission_fields description="InvoiceDocument lacks IT-specific
+            # DatiTrasmissione fields (progressivo_invio, codice_destinatario, regime_fiscale,
+            # codice_ufficio); getattr fallbacks used until core provides these via IT subclass"]
+            f"<ProgressivoInvio>{getattr(document, 'progressivo_invio', '00001')}</ProgressivoInvio>"
             f"<FormatoTrasmissione>{formato}</FormatoTrasmissione>"
-            f"<CodiceDestinatario>0000000</CodiceDestinatario>"
+            f"<CodiceDestinatario>{codice_dest}</CodiceDestinatario>"
+            f"{pec_xml}"
             f"</DatiTrasmissione>"
             f"<CedentePrestatore>"
             f"<DatiAnagrafici>"
@@ -168,7 +188,7 @@ class FatturaGenerator(BaseDocumentGenerator):
             f"<IdCodice>{seller_codice}</IdCodice>"
             f"</IdFiscaleIVA>"
             f"<Anagrafica>{seller_ana}</Anagrafica>"
-            f"<RegimeFiscale>RF01</RegimeFiscale>"
+            f"<RegimeFiscale>{getattr(document, 'regime_fiscale', 'RF01')}</RegimeFiscale>"
             f"</DatiAnagrafici>"
             f"<Sede>{seller_sede}</Sede>"
             f"</CedentePrestatore>"
@@ -205,32 +225,31 @@ class FatturaGenerator(BaseDocumentGenerator):
 
 
 class FatturaValidator(BaseDocumentValidator):
-    """Validates FatturaPA XML against the official XSD schema v1.6.1."""
+    """Validates FatturaPA XML against the official AdE XSD schemas v1.2.3.
+
+    Selects FPR12 or FPA12 schema based on the document's `versione` attribute.
+    """
 
     def get_schema_version(self) -> str:
-        return "FatturaPA v1.6.1"
+        return "FatturaPA v1.2.3"
 
     def get_schema_path(self) -> Optional[str]:
-        path = _SCHEMAS_DIR / "FatturaPA_v1.6.1.xsd"
+        path = _SCHEMAS_DIR / "FatturaPA_FPR12_v1.2.3.xsd"
+        return str(path) if path.exists() else None
+
+    def _get_schema_path_for_format(self, formato: str) -> Optional[str]:
+        filename = "FatturaPA_FPA12_v1.2.3.xsd" if formato == "FPA12" else "FatturaPA_FPR12_v1.2.3.xsd"
+        path = _SCHEMAS_DIR / filename
         return str(path) if path.exists() else None
 
     def validate(self, document_content: str | bytes) -> DocumentValidationResult:
-        """Validate FatturaPA XML against XSD schema using lxml."""
+        """Validate FatturaPA XML against the format-appropriate XSD schema using lxml."""
         try:
             from lxml import etree
         except ImportError:
             return DocumentValidationResult(
                 valid=False, errors=["lxml is not installed"], warnings=[], metadata={}
             )
-
-        xsd_path_str = self.get_schema_path()
-        if not xsd_path_str:
-            return DocumentValidationResult(
-                valid=False, errors=["XSD schema not found"], warnings=[], metadata={}
-            )
-
-        xsd_path = Path(xsd_path_str)
-        xmldsig_path = xsd_path.parent / "xmldsig-core-schema.xsd"
 
         try:
             xml_bytes = document_content.encode("utf-8") if isinstance(document_content, str) else document_content
@@ -239,6 +258,16 @@ class FatturaValidator(BaseDocumentValidator):
             return DocumentValidationResult(
                 valid=False, errors=[f"XML parse error: {exc}"], warnings=[], metadata={}
             )
+
+        versione = xml_doc.get("versione", "FPR12")
+        xsd_path_str = self._get_schema_path_for_format(versione)
+        if not xsd_path_str:
+            return DocumentValidationResult(
+                valid=False, errors=[f"XSD schema not found for format '{versione}'"], warnings=[], metadata={}
+            )
+
+        xsd_path = Path(xsd_path_str)
+        xmldsig_path = xsd_path.parent / "xmldsig-core-schema.xsd"
 
         try:
             parser = safe_parser()
@@ -257,7 +286,6 @@ class FatturaValidator(BaseDocumentValidator):
             )
 
         if schema.validate(xml_doc):
-            versione = xml_doc.get("versione", "unknown")
             return DocumentValidationResult(
                 valid=True, errors=[], warnings=[],
                 metadata={"formato_trasmissione": versione, "schema": self.get_schema_version()},

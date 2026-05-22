@@ -17,7 +17,7 @@ from pydantic import Field
 
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.models import TaxIdentifier
-from mcp_einvoicing_core.xml_utils import filter_empty_values, safe_fromstring, safe_parser
+from mcp_einvoicing_core.xml_utils import filter_empty_values, safe_fromstring, safe_parser, xml_escape
 
 logger = get_logger(__name__)
 
@@ -25,19 +25,27 @@ logger = get_logger(__name__)
 # XSD schema path resolution
 # ---------------------------------------------------------------------------
 
-_XSD_PATH: Optional[Path] = None
+_XSD_CACHE: dict[str, Path] = {}
 
 
-def _get_xsd_path() -> Path:
-    """Resolve the XSD schema path from env var or default location."""
-    global _XSD_PATH
-    if _XSD_PATH is None:
-        env_path = os.getenv("FATTURA_XSD_PATH")
-        if env_path:
-            _XSD_PATH = Path(env_path)
-        else:
-            _XSD_PATH = Path(__file__).parent.parent / "schemas" / "FatturaPA_v1.6.1.xsd"
-    return _XSD_PATH
+def _get_xsd_path(formato: str = "FPR12") -> Path:
+    """Resolve the XSD schema path for the given FormatoTrasmissione.
+
+    FPR12 (B2B/B2C) and FPA12 (B2G) each have their own AdE XSD file since v1.2.3.
+    FATTURA_XSD_PATH env var overrides for both formats (single custom schema path).
+    """
+    global _XSD_CACHE
+    if formato in _XSD_CACHE:
+        return _XSD_CACHE[formato]
+    env_path = os.getenv("FATTURA_XSD_PATH")
+    if env_path:
+        path = Path(env_path)
+    elif formato == "FPA12":
+        path = Path(__file__).parent.parent / "schemas" / "FatturaPA_FPA12_v1.2.3.xsd"
+    else:
+        path = Path(__file__).parent.parent / "schemas" / "FatturaPA_FPR12_v1.2.3.xsd"
+    _XSD_CACHE[formato] = path
+    return path
 
 
 # ---------------------------------------------------------------------------
@@ -52,34 +60,34 @@ FATTURA_NS = "http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"
 
 TIPO_RITENUTA: dict[str, dict] = {
     "RT01": {
-        "description": "Persone fisiche — lavoro autonomo occasionale",
+        "description": "Persone fisiche",
         "rate": Decimal("0.20"),
-        "legal_ref": "Art. 25 DPR 600/73",
+        "legal_ref": "Art. 25 DPR 600/73 — ritenuta d'acconto 20%",
     },
     "RT02": {
-        "description": "Persone fisiche — lavoro autonomo professionale",
+        "description": "Persone giuridiche",
         "rate": Decimal("0.20"),
-        "legal_ref": "Art. 25 DPR 600/73",
+        "legal_ref": "Art. 25 DPR 600/73 — ritenuta d'acconto 20%",
     },
     "RT03": {
-        "description": "Persone giuridiche — provvigioni agenti",
-        "rate": Decimal("0.2320"),
-        "legal_ref": "Art. 25-bis DPR 600/73",
+        "description": "Contributo INPS",
+        "rate": Decimal("0.2623"),
+        "legal_ref": "Legge 335/95 art. 2 c. 26 — gestione separata (26.23% in 2025; verify current year)",
     },
     "RT04": {
-        "description": "Persone fisiche — provvigioni agenti",
-        "rate": Decimal("0.2320"),
-        "legal_ref": "Art. 25-bis DPR 600/73",
+        "description": "Contributo ENASARCO",
+        "rate": Decimal("0.0850"),
+        "legal_ref": "Accordo FNAARC/Confcommercio — quota a carico del mandante 8.50% (verify current rates)",
     },
     "RT05": {
-        "description": "Condominio — corrispettivi lavori di cui all'art. 25-ter",
-        "rate": Decimal("0.04"),
-        "legal_ref": "Art. 25-ter DPR 600/73",
+        "description": "Contributo ENPAM",
+        "rate": Decimal("0.10"),
+        "legal_ref": "Regolamento ENPAM — aliquota variabile per categoria (10% indicativo; verify current rates)",
     },
     "RT06": {
-        "description": "Persone fisiche — redditi di lavoro dipendente",
-        "rate": Decimal("0.30"),
-        "legal_ref": "Art. 23 DPR 600/73",
+        "description": "Altro contributo previdenziale",
+        "rate": Decimal("0.00"),
+        "legal_ref": "Aliquota variabile — impostare AliquotaRitenuta e ImportoRitenuta direttamente",
     },
 }
 
@@ -170,7 +178,7 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
     ) -> dict:
-        """Assemble a complete FatturaPA v1.6.1 XML document from all prepared blocks.
+        """Assemble a complete FatturaPA v1.2.3 XML document from all prepared blocks.
 
         Use this as step 10 in the invoice generation workflow — the final assembly step.
         All required blocks must come from their respective builder/validator tools;
@@ -211,6 +219,7 @@ def register_global_tools(mcp: FastMCP) -> None:
             cc_cf = cc_dati.get("CodiceFiscale", "")
             cc_anagrafica = cc_dati.get("Anagrafica", {})
             cc_sede = cc.get("Sede", {})
+            cc_codice_ufficio = cc.get("CodiceUfficio", "")
 
             dg_doc = dg.get("DatiGeneraliDocumento", dg)
             tipo_doc = dg_doc.get("TipoDocumento", "TD01")
@@ -221,10 +230,10 @@ def register_global_tools(mcp: FastMCP) -> None:
 
             def _seller_name(anagrafica: dict) -> str:
                 if "Denominazione" in anagrafica:
-                    return f"<Denominazione>{anagrafica['Denominazione']}</Denominazione>"
+                    return f"<Denominazione>{xml_escape(anagrafica['Denominazione'])}</Denominazione>"
                 return (
-                    f"<Nome>{anagrafica.get('Nome', '')}</Nome>"
-                    f"<Cognome>{anagrafica.get('Cognome', '')}</Cognome>"
+                    f"<Nome>{xml_escape(anagrafica.get('Nome', ''))}</Nome>"
+                    f"<Cognome>{xml_escape(anagrafica.get('Cognome', ''))}</Cognome>"
                 )
 
             def _buyer_id(cc_id: dict, cc_cf: str) -> str:
@@ -251,7 +260,7 @@ def register_global_tools(mcp: FastMCP) -> None:
                     parts.append(
                         f"<DettaglioLinee>"
                         f"<NumeroLinea>{ld['NumeroLinea']}</NumeroLinea>"
-                        f"<Descrizione>{ld['Descrizione']}</Descrizione>"
+                        f"<Descrizione>{xml_escape(ld['Descrizione'])}</Descrizione>"
                         f"{qta}{um}"
                         f"<PrezzoUnitario>{ld['PrezzoUnitario']}</PrezzoUnitario>"
                         f"<PrezzoTotale>{ld['PrezzoTotale']}</PrezzoTotale>"
@@ -283,7 +292,7 @@ def register_global_tools(mcp: FastMCP) -> None:
                 dp = p.get("DettaglioPagamento", {})
                 scad = f"<DataScadenzaPagamento>{dp['DataScadenzaPagamento']}</DataScadenzaPagamento>" if "DataScadenzaPagamento" in dp else ""
                 iban = f"<IBAN>{dp['IBAN']}</IBAN>" if "IBAN" in dp else ""
-                banca = f"<IstitutoFinanziario>{dp['IstitutoFinanziario']}</IstitutoFinanziario>" if "IstitutoFinanziario" in dp else ""
+                banca = f"<IstitutoFinanziario>{xml_escape(dp['IstitutoFinanziario'])}</IstitutoFinanziario>" if "IstitutoFinanziario" in dp else ""
                 return (
                     f"<DatiPagamento>"
                     f"<CondizioniPagamento>{p['CondizioniPagamento']}</CondizioniPagamento>"
@@ -302,11 +311,11 @@ def register_global_tools(mcp: FastMCP) -> None:
                 parts = []
                 for a in allegati_list:
                     entry = a.get("Allegati", a)
-                    fmt = f"<FormatoAllegato>{entry['FormatoAllegato']}</FormatoAllegato>" if "FormatoAllegato" in entry else ""
-                    desc = f"<DescrizioneAllegato>{entry['DescrizioneAllegato']}</DescrizioneAllegato>" if "DescrizioneAllegato" in entry else ""
+                    fmt = f"<FormatoAllegato>{xml_escape(entry['FormatoAllegato'])}</FormatoAllegato>" if "FormatoAllegato" in entry else ""
+                    desc = f"<DescrizioneAllegato>{xml_escape(entry['DescrizioneAllegato'])}</DescrizioneAllegato>" if "DescrizioneAllegato" in entry else ""
                     parts.append(
                         f"<Allegati>"
-                        f"<NomeAllegato>{entry['NomeAllegato']}</NomeAllegato>"
+                        f"<NomeAllegato>{xml_escape(entry['NomeAllegato'])}</NomeAllegato>"
                         f"{fmt}{desc}"
                         f"<Attachment>{entry['Attachment']}</Attachment>"
                         f"</Allegati>"
@@ -326,8 +335,8 @@ def register_global_tools(mcp: FastMCP) -> None:
                     f"</DatiRitenuta>"
                 )
 
-            pec_xml = f"<PECDestinatario>{pec_dest}</PECDestinatario>" if pec_dest else ""
-            causale_xml = f"<Causale>{causale}</Causale>" if causale else ""
+            pec_xml = f"<PECDestinatario>{xml_escape(pec_dest)}</PECDestinatario>" if pec_dest else ""
+            causale_xml = f"<Causale>{xml_escape(causale)}</Causale>" if causale else ""
 
             xml = (
                 f'<?xml version="1.0" encoding="UTF-8"?>'
@@ -356,9 +365,9 @@ def register_global_tools(mcp: FastMCP) -> None:
                 f"<RegimeFiscale>{cp_regime}</RegimeFiscale>"
                 f"</DatiAnagrafici>"
                 f"<Sede>"
-                f"<Indirizzo>{cp_sede.get('Indirizzo', '')}</Indirizzo>"
+                f"<Indirizzo>{xml_escape(cp_sede.get('Indirizzo', ''))}</Indirizzo>"
                 f"<CAP>{cp_sede.get('CAP', '')}</CAP>"
-                f"<Comune>{cp_sede.get('Comune', '')}</Comune>"
+                f"<Comune>{xml_escape(cp_sede.get('Comune', ''))}</Comune>"
                 f"<Nazione>{cp_sede.get('Nazione', 'IT')}</Nazione>"
                 f"</Sede>"
                 f"</CedentePrestatore>"
@@ -368,11 +377,12 @@ def register_global_tools(mcp: FastMCP) -> None:
                 f"<Anagrafica>{_seller_name(cc_anagrafica)}</Anagrafica>"
                 f"</DatiAnagrafici>"
                 f"<Sede>"
-                f"<Indirizzo>{cc_sede.get('Indirizzo', '')}</Indirizzo>"
+                f"<Indirizzo>{xml_escape(cc_sede.get('Indirizzo', ''))}</Indirizzo>"
                 f"<CAP>{cc_sede.get('CAP', '')}</CAP>"
-                f"<Comune>{cc_sede.get('Comune', '')}</Comune>"
+                f"<Comune>{xml_escape(cc_sede.get('Comune', ''))}</Comune>"
                 f"<Nazione>{cc_sede.get('Nazione', 'IT')}</Nazione>"
                 f"</Sede>"
+                f"{'<CodiceUfficio>' + cc_codice_ufficio + '</CodiceUfficio>' if cc_codice_ufficio else ''}"
                 f"</CessionarioCommittente>"
                 f"</FatturaElettronicaHeader>"
                 f"<FatturaElettronicaBody>"
@@ -382,8 +392,8 @@ def register_global_tools(mcp: FastMCP) -> None:
                 f"<Divisa>{divisa}</Divisa>"
                 f"<Data>{data_doc}</Data>"
                 f"<Numero>{numero_doc}</Numero>"
-                f"{causale_xml}"
                 f"{_ritenuta_xml(dati_ritenuta)}"
+                f"{causale_xml}"
                 f"</DatiGeneraliDocumento>"
                 f"</DatiGenerali>"
                 f"<DatiBeniServizi>"
@@ -424,15 +434,17 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ],
     ) -> dict:
-        """Validate a FatturaPA XML string against the official Agenzia delle Entrate XSD v1.6.1.
+        """Validate a FatturaPA XML string against the official Agenzia delle Entrate XSD v1.2.3.
 
         Use this as step 11 — always call immediately after generate_fattura_xml() before
         storing or transmitting the document. Also use to verify third-party invoices received
         from suppliers.
 
-        Requires lxml to be installed and the bundled XSD schema file to be present (or
-        FATTURA_XSD_PATH env var to point to it). Validates namespace, element structure,
-        data types, and cardinality constraints.
+        Automatically selects the correct XSD based on the document's `versione` attribute:
+        FPR12 (B2B/B2C) uses `FatturaPA_FPR12_v1.2.3.xsd`; FPA12 (B2G) uses
+        `FatturaPA_FPA12_v1.2.3.xsd`. FATTURA_XSD_PATH env var overrides both.
+
+        Requires lxml. Validates namespace, element structure, data types, and cardinality.
 
         On success returns {'valid': true, 'formato_trasmissione': 'FPR12'|'FPA12', 'errors': []}.
         On failure returns {'valid': false, 'errors': ['<lxml error message>', ...]}.
@@ -443,15 +455,16 @@ def register_global_tools(mcp: FastMCP) -> None:
         except ImportError:
             return {"error": "lxml is not installed. Run: pip install lxml"}
 
-        xsd_path = _get_xsd_path()
-        if not xsd_path.exists():
-            return {"error": f"XSD schema not found at '{xsd_path}'. Check FATTURA_XSD_PATH."}
-
         try:
             xml_bytes = xml_string.encode("utf-8") if isinstance(xml_string, str) else xml_string
             xml_doc = safe_fromstring(xml_bytes)
         except etree.XMLSyntaxError as exc:
             return {"valid": False, "errors": [f"XML parse error: {exc}"]}
+
+        versione = xml_doc.get("versione", "FPR12")
+        xsd_path = _get_xsd_path(versione)
+        if not xsd_path.exists():
+            return {"error": f"XSD schema not found at '{xsd_path}'. Check FATTURA_XSD_PATH."}
 
         try:
             # Build a resolver that maps the xmldsig namespace to the local schema file
@@ -787,13 +800,13 @@ def register_global_tools(mcp: FastMCP) -> None:
             str,
             Field(
                 description=(
-                    "Withholding tax type code: "
-                    "RT01 (natural person, occasional work, 20%), "
-                    "RT02 (natural person, professional, 20%), "
-                    "RT03 (legal entity, agent commissions, 23.20%), "
-                    "RT04 (natural person, agent commissions, 23.20%), "
-                    "RT05 (condominium, 4%), "
-                    "RT06 (employment income, 30%)."
+                    "Ritenuta/contributo type code: "
+                    "RT01 (persone fisiche, 20%), "
+                    "RT02 (persone giuridiche, 20%), "
+                    "RT03 (contributo INPS gestione separata, ~26.23%), "
+                    "RT04 (contributo ENASARCO, ~8.50% seller portion), "
+                    "RT05 (contributo ENPAM, ~10% indicative), "
+                    "RT06 (altro contributo previdenziale, rate=0 — compute amount directly)."
                 )
             ),
         ],
@@ -808,6 +821,34 @@ def register_global_tools(mcp: FastMCP) -> None:
                 )
             ),
         ],
+        aliquota_override: Annotated[
+            Optional[float],
+            Field(
+                default=None,
+                description=(
+                    "Override the withholding rate as a percentage (e.g. 4.0 for 4%). "
+                    "Required for RT06 (variable rate). "
+                    "Optional override for RT01–RT05 when the statutory rate differs from "
+                    "the indicative table value. When provided, the table rate is ignored."
+                ),
+                ge=0.0,
+                le=100.0,
+            ),
+        ] = None,
+        importo_override: Annotated[
+            Optional[float],
+            Field(
+                default=None,
+                description=(
+                    "Override the withholding amount directly (e.g. 200.00). "
+                    "Use when the exact amount is known rather than computing from the rate. "
+                    "When both aliquota_override and importo_override are provided, "
+                    "importo_override takes precedence for the amount; aliquota_override "
+                    "is used for the AliquotaRitenuta field."
+                ),
+                ge=0.0,
+            ),
+        ] = None,
     ) -> dict:
         """Compute ritenuta d'acconto (withholding tax) for professional invoices.
 
@@ -816,11 +857,16 @@ def register_global_tools(mcp: FastMCP) -> None:
         Also mark the relevant line items with ritenuta='SI' in add_linea_dettaglio(), and pass
         the returned 'DatiRitenuta' dict to generate_fattura_xml() as dati_ritenuta.
 
-        tipo_ritenuta determines the rate: RT01/RT02 = 20% (natural person, professional/occasional),
-        RT03/RT04 = 23.20% (agent commissions), RT05 = 4% (condominium), RT06 = 30% (employment).
+        tipo_ritenuta determines the rate: RT01/RT02 = 20% (ritenuta d'acconto, natural/legal persons),
+        RT03 = 26.23% indicative (INPS gestione separata; verify current year),
+        RT04 = 8.50% indicative (ENASARCO seller portion; verify current rates),
+        RT05 = 10.00% indicative (ENPAM; rate varies by category),
+        RT06 = variable rate — aliquota_override or importo_override is required.
         causale_pagamento: income category code for Mod. 770 (e.g. 'A' professional fees, 'O' occasional).
+        aliquota_override: supply the actual rate (%) for RT06 or to override indicative rates for RT03–RT05.
+        importo_override: supply the exact withholding amount when rate-based computation is imprecise.
 
-        Validates: tipo_ritenuta must be in RT01–RT06. imponibile is typically the net invoice total.
+        Validates: tipo_ritenuta must be in RT01–RT06. RT06 requires aliquota_override or importo_override.
 
         On success returns {'DatiRitenuta': {...}, 'importo_ritenuta': str, 'aliquota_applicata': str,
         'imponibile_ritenuta': str, 'description': str, 'legal_ref': str}.
@@ -834,11 +880,31 @@ def register_global_tools(mcp: FastMCP) -> None:
                 )
             }
 
+        if tipo_ritenuta == "RT06" and importo_override is None and aliquota_override is None:
+            return {
+                "error": (
+                    "RT06 (altro contributo previdenziale) has no fixed rate. "
+                    "Provide aliquota_override (rate as %) or importo_override (exact amount)."
+                )
+            }
+
         ritenuta_info = TIPO_RITENUTA[tipo_ritenuta]
         base = Decimal(str(imponibile))
-        rate = ritenuta_info["rate"]
-        importo = (base * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
-        aliquota_pct = (rate * 100).quantize(Decimal("0.01"))
+
+        if importo_override is not None:
+            importo = Decimal(str(importo_override)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            if aliquota_override is not None:
+                aliquota_pct = Decimal(str(aliquota_override)).quantize(Decimal("0.01"))
+            else:
+                aliquota_pct = (importo / base * 100).quantize(Decimal("0.01")) if base else Decimal("0.00")
+        elif aliquota_override is not None:
+            rate = Decimal(str(aliquota_override)) / 100
+            importo = (base * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            aliquota_pct = Decimal(str(aliquota_override)).quantize(Decimal("0.01"))
+        else:
+            rate = ritenuta_info["rate"]
+            importo = (base * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            aliquota_pct = (rate * 100).quantize(Decimal("0.01"))
 
         return {
             "DatiRitenuta": {

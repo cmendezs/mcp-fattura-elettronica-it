@@ -285,7 +285,8 @@ class TestGetNaturaCodes:
     def test_contains_reverse_charge(self):
         result = call("get_natura_codes")
         codes = {c["code"] for c in result["codes"]}
-        assert "N6" in codes
+        # Parent code N6 removed from XSD enumeration Jan 2021; only sub-codes are valid
+        assert "N6" not in codes
         assert "N6.1" in codes
         assert "N6.9" in codes
 

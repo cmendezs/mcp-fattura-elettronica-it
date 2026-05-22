@@ -30,9 +30,9 @@ TIPO_DOCUMENTO: dict[str, dict] = {
     "TD04": {"description": "Nota di credito", "use_case": "Credit note (reversal of TD01)"},
     "TD05": {"description": "Nota di debito", "use_case": "Debit note"},
     "TD06": {"description": "Parcella", "use_case": "Professional fee invoice (avvocati, medici, etc.)"},
-    "TD07": {"description": "Fattura semplificata", "use_case": "Simplified invoice ≤400 EUR — TODO v0.2"},
-    "TD08": {"description": "Nota di credito semplificata", "use_case": "Simplified credit note — TODO v0.2"},
-    "TD09": {"description": "Nota di debito semplificata", "use_case": "Simplified debit note — TODO v0.2"},
+    "TD07": {"description": "Fattura semplificata", "use_case": "Simplified invoice ≤400 EUR — uses FatturaSemplificata format (namespace v1.0, separate XSD); not supported by generate_fattura_xml"},
+    "TD08": {"description": "Nota di credito semplificata", "use_case": "Simplified credit note — uses FatturaSemplificata format (namespace v1.0); not supported by generate_fattura_xml"},
+    "TD09": {"description": "Nota di debito semplificata", "use_case": "Simplified debit note — uses FatturaSemplificata format (namespace v1.0); not supported by generate_fattura_xml"},
     "TD16": {"description": "Integrazione fattura reverse charge interno", "use_case": "Domestic reverse charge self-invoice"},
     "TD17": {"description": "Integrazione/autofattura acquisto servizi dall'estero", "use_case": "Self-invoice for services purchased abroad"},
     "TD18": {"description": "Integrazione acquisto beni intracomunitari", "use_case": "Self-invoice for intra-EU goods purchase"},
@@ -46,6 +46,7 @@ TIPO_DOCUMENTO: dict[str, dict] = {
     "TD26": {"description": "Cessione di beni ammortizzabili e per passaggi interni", "use_case": "Transfer of depreciable assets"},
     "TD27": {"description": "Fattura per autoconsumo o per cessioni gratuite senza rivalsa", "use_case": "Invoice for self-consumption or free transfers"},
     "TD28": {"description": "Acquisti da San Marino con IVA (art. 16, c. 11, D.Lgs. 175/2014)", "use_case": "Purchases from San Marino with VAT (cross-border since 2022)"},
+    "TD29": {"description": "Comunicazione per omessa o irregolare fatturazione", "use_case": "Communication for omitted or irregular invoicing by Italian supplier (art. 6, c. 8, D.Lgs. 471/97) — added in FatturaPA XSD v1.2.3"},
 }
 
 # ---------------------------------------------------------------------------
@@ -53,11 +54,11 @@ TIPO_DOCUMENTO: dict[str, dict] = {
 # ---------------------------------------------------------------------------
 
 NATURA_CODES: dict[str, dict] = {
+    # Parent codes N2, N3, N6 removed — retired from FatturaPA NaturaType XSD enumeration
+    # effective 1 January 2021 (AdE Circular 14/E 2019). Use sub-codes only.
     "N1": {"description": "Escluse ex art. 15", "legal_ref": "Art. 15 DPR 633/72"},
-    "N2": {"description": "Non soggette", "legal_ref": "Various exclusions from VAT scope"},
     "N2.1": {"description": "Non soggette ad IVA ai sensi degli artt. da 7 a 7-septies del DPR 633/72", "legal_ref": "Art. 7–7-septies DPR 633/72 (territoriality)"},
     "N2.2": {"description": "Non soggette — altri casi", "legal_ref": "Other out-of-scope cases"},
-    "N3": {"description": "Non imponibili", "legal_ref": "Zero-rated supplies"},
     "N3.1": {"description": "Non imponibili — esportazioni", "legal_ref": "Art. 8 DPR 633/72 (exports)"},
     "N3.2": {"description": "Non imponibili — cessioni intracomunitarie", "legal_ref": "Art. 41 DL 331/93 (intra-EU)"},
     "N3.3": {"description": "Non imponibili — cessioni verso San Marino", "legal_ref": "Art. 71 DPR 633/72"},
@@ -66,7 +67,6 @@ NATURA_CODES: dict[str, dict] = {
     "N3.6": {"description": "Non imponibili — altre operazioni che non concorrono alla formazione del plafond", "legal_ref": "Other zero-rated not forming VAT ceiling"},
     "N4": {"description": "Esenti", "legal_ref": "Art. 10 DPR 633/72 (VAT-exempt supplies)"},
     "N5": {"description": "Regime del margine / IVA non esposta in fattura", "legal_ref": "Art. 36 DL 41/95 (margin scheme)"},
-    "N6": {"description": "Inversione contabile (reverse charge)", "legal_ref": "Various reverse charge provisions"},
     "N6.1": {"description": "Inversione contabile — cessione di rottami e altri materiali di recupero", "legal_ref": "Art. 74 c. 7-8 DPR 633/72"},
     "N6.2": {"description": "Inversione contabile — cessione di oro e argento puro", "legal_ref": "Art. 17 c. 5 DPR 633/72"},
     "N6.3": {"description": "Inversione contabile — subappalto nel settore edile", "legal_ref": "Art. 17 c. 6 lett. a DPR 633/72"},
@@ -312,7 +312,8 @@ def register_body_tools(mcp: FastMCP) -> None:
             Field(
                 default=None,
                 description=(
-                    "Natura exemption code (N1–N7, N2.1, N2.2, N3.1–N3.6, N6.1–N6.9, N7). "
+                    "Natura exemption code: N1, N2.1, N2.2, N3.1–N3.6, N4, N5, N6.1–N6.9, N7. "
+                    "Parent codes N2, N3, N6 are invalid since Jan 2021 and are not accepted. "
                     "Required when aliquota_iva is 0.0. Use get_natura_codes() for the full list."
                 ),
             ),
@@ -466,12 +467,14 @@ def register_body_tools(mcp: FastMCP) -> None:
 
     @mcp.tool()
     def get_natura_codes() -> dict:
-        """Return the complete list of Natura exemption codes (N1–N7 and sub-codes) with legal references.
+        """Return the complete list of valid Natura exemption codes with legal references.
 
         Call this when add_linea_dettaglio() requires a Natura code (i.e. aliquota_iva is 0.0).
         Common codes: N1 (excluded, art. 15), N2.1 (out-of-scope, territoriality),
         N3.1 (exports), N3.2 (intra-EU supplies), N4 (VAT-exempt), N6.x (reverse charge),
         N7 (OSS/IOSS — VAT paid in another EU state).
+        Note: parent codes N2, N3, N6 were removed from the FatturaPA XSD enumeration
+        effective 1 January 2021. Use sub-codes (N2.1, N2.2, N3.1–N3.6, N6.1–N6.9) instead.
 
         Always succeeds. Returns {'codes': [{'code', 'description', 'legal_ref'}, ...], 'total': int}.
         """

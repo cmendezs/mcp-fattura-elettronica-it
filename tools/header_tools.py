@@ -1,5 +1,5 @@
 """
-MCP tools for the FatturaElettronicaHeader section of FatturaPA v1.6.1.
+MCP tools for the FatturaElettronicaHeader section of FatturaPA v1.2.3.
 
 Covers transmission data, seller/buyer validation, fiscal regime codes,
 Partita IVA validation, ProgressivoInvio generation, and SDI recipient lookup.
@@ -94,8 +94,9 @@ def register_header_tools(mcp: FastMCP) -> None:
             str,
             Field(
                 description=(
-                    "6-character alphanumeric SDI recipient code assigned to the buyer's "
-                    "intermediary. Use '0000000' (7 zeros) when routing via PEC email instead."
+                    "SDI recipient code: 6-char for PA offices (IPA code, FPA12), "
+                    "7-char for B2B intermediaries (FPR12), or '0000000' (7 zeros) for PEC routing. "
+                    "Use lookup_codice_destinatario() to validate the code first."
                 )
             ),
         ],
@@ -306,6 +307,18 @@ def register_header_tools(mcp: FastMCP) -> None:
         cap: Annotated[str, Field(description="Postal code of the buyer.")] = "",
         comune: Annotated[str, Field(description="City of the buyer.")] = "",
         nazione: Annotated[str, Field(description="ISO country code of the buyer.")] = "IT",
+        codice_ufficio: Annotated[
+            Optional[str],
+            Field(
+                default=None,
+                description=(
+                    "IPA office code (CodiceUfficio) for B2G invoices (FPA12 format). "
+                    "Required for all invoices addressed to a Public Administration (PA). "
+                    "6-character code from the IPA registry (https://www.indicepa.gov.it). "
+                    "Absence causes SdI routing rejection for FPA12 invoices."
+                ),
+            ),
+        ] = None,
     ) -> dict:
         """Validate and build the CessionarioCommittente (buyer) block for FatturaPA.
 
@@ -318,6 +331,8 @@ def register_header_tools(mcp: FastMCP) -> None:
 
         Italian B2C buyers with only a CodiceFiscale: set codice_fiscale and leave
         id_paese/id_codice empty. Foreign B2B buyers: set id_paese + id_codice.
+        For B2G invoices (FPA12): codice_ufficio is required — the 6-char IPA office code
+        from https://www.indicepa.gov.it. Absence causes SdI routing rejection.
 
         On success returns {'CessionarioCommittente': {...}} ready for generate_fattura_xml().
         On failure returns {'error': '<reason>'} listing all issues joined by '; '.
@@ -352,7 +367,7 @@ def register_header_tools(mcp: FastMCP) -> None:
         if codice_fiscale:
             dati_anagrafici["CodiceFiscale"] = codice_fiscale
 
-        return {
+        result: dict = {
             "CessionarioCommittente": {
                 "DatiAnagrafici": dati_anagrafici,
                 "Sede": {
@@ -363,6 +378,9 @@ def register_header_tools(mcp: FastMCP) -> None:
                 },
             }
         }
+        if codice_ufficio:
+            result["CessionarioCommittente"]["CodiceUfficio"] = codice_ufficio.upper()
+        return result
 
     @mcp.tool()
     def get_regime_fiscale_codes() -> dict:
@@ -468,8 +486,10 @@ def register_header_tools(mcp: FastMCP) -> None:
             Field(
                 default=None,
                 description=(
-                    "6-character alphanumeric SDI CodiceDestinatario to look up. "
-                    "Special value '0000000' (7 zeros) indicates PEC routing."
+                    "SDI CodiceDestinatario to look up: 6-char alphanumeric for PA offices "
+                    "(IPA code, FPA12 B2G invoices), 7-char alphanumeric for B2B intermediaries "
+                    "(FPR12), or '0000000' (7 zeros) for PEC routing. "
+                    "IPA codes can be verified at https://www.indicepa.gov.it."
                 ),
             ),
         ] = None,
@@ -491,13 +511,15 @@ def register_header_tools(mcp: FastMCP) -> None:
         or pec must be provided.
 
         Routing rules:
-        - codice is 6 alphanumeric chars (e.g. 'ABC123') → routing_type: 'SDI_CODE'
+        - codice is 6 alphanumeric chars (e.g. 'A1B2C3') → routing_type: 'SDI_CODE' (PA/IPA, FPA12)
+        - codice is 7 alphanumeric chars (e.g. 'X1Y2Z3W') → routing_type: 'SDI_CODE' (B2B intermediary, FPR12)
         - codice is '0000000' (7 zeros) → routing_type: 'PEC'; pec_destinatario is then
           mandatory in build_transmission_header()
         - pec only (no codice) → validates email format, routing_type: 'PEC'
 
-        Limitation: performs format validation only — no live query against the SDI
-        SOAP directory service (planned for a future release).
+        IPA note: 6-char PA office codes can be looked up at https://www.indicepa.gov.it.
+        This tool performs format validation only — no live query against the SDI SOAP
+        directory service or the IPA registry (planned for a future release).
 
         On success returns a dict with 'routing_type', 'codice_destinatario' and/or
         'pec_destinatario', and a 'note' with usage guidance.
@@ -514,19 +536,21 @@ def register_header_tools(mcp: FastMCP) -> None:
                 result["routing_type"] = "PEC"
                 result["codice_destinatario"] = "0000000"
                 result["note"] = "Use pec_destinatario field in DatiTrasmissione for PEC routing."
-            elif re.match(r"^[A-Z0-9]{6}$", codice_upper):
+            elif re.match(r"^[A-Z0-9]{6,7}$", codice_upper):
                 result["routing_type"] = "SDI_CODE"
                 result["codice_destinatario"] = codice_upper
+                code_len = len(codice_upper)
                 result["note"] = (
-                    "Valid 6-character SDI code. "
-                    "Live directory lookup via SDI SOAP is not available in v0.1.0."
+                    f"Valid {code_len}-character SDI code "
+                    f"({'PA/IPA office (FPA12)' if code_len == 6 else 'B2B intermediary (FPR12)'})."
+                    " Live directory lookup via SDI SOAP is not available in v0.2.2."
                 )
-                # TODO v0.2: Live lookup via SDI SOAP directory service.
             else:
                 return {
                     "error": (
                         f"Invalid CodiceDestinatario '{codice}'. "
-                        "Must be 6 alphanumeric chars or '0000000' for PEC routing."
+                        "Must be 6 alphanumeric chars (PA/IPA), 7 alphanumeric chars (B2B intermediary), "
+                        "or '0000000' for PEC routing."
                     )
                 }
 
