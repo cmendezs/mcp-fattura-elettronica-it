@@ -3,7 +3,7 @@
   "name": "io.github.cmendezs/mcp-fattura-elettronica-it",
   "version": "0.2.5",
   "title": "Fattura Elettronica IT",
-  "description": "Italian e-invoicing: FatturaPA XML/SDI v1.2.3, 27 MCP tools for B2B and B2G. UBL 2.1 and CII wire formats.",
+  "description": "Italian e-invoicing: FatturaPA XML/SDI v1.2.3, 27 tools. UBL 2.1 and CII wire formats.",
   "repository": {
     "url": "https://github.com/cmendezs/mcp-fattura-elettronica-it",
     "source": "github"
