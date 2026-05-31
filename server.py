@@ -18,6 +18,7 @@ from mcp_einvoicing_core.logging_utils import get_logger, setup_logging
 from tools.body_tools import register_body_tools
 from tools.global_tools import register_global_tools
 from tools.header_tools import register_header_tools
+from tools.wire_format_tools import register_wire_format_tools
 
 # ---------------------------------------------------------------------------
 # Logging
@@ -71,6 +72,13 @@ _server = EInvoicingMCPServer(
         "9. build_dati_pagamento(...) → DatiPagamento\n"
         "10. generate_fattura_xml(...) → XML string + SDI filename\n"
         "11. validate_fattura_xsd(xml) → XSD conformance check\n\n"
+        "**Wire-format tools** — EN 16931 UBL 2.1 and CII (6 tools):\n"
+        "  • generate_ubl_invoice: ItalianInvoice → UBL 2.1 Invoice XML (cross-border / Peppol)\n"
+        "  • generate_cii_invoice: ItalianInvoice → CII CrossIndustryInvoice XML (Factur-X / ZUGFeRD)\n"
+        "  • validate_ubl_invoice: Structural validation of UBL 2.1 XML\n"
+        "  • parse_ubl_invoice: UBL 2.1 XML → EN 16931 field dict\n"
+        "  • validate_cii_invoice: Structural validation of CII XML\n"
+        "  • parse_cii_invoice: CII XML → EN 16931 field dict\n\n"
         "Out of scope v0.1.0: digital signature (CAdES/XAdES), direct SDI transmission.\n"
         "XSD: FatturaPA v1.2.3 — namespace http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"
     ),
@@ -84,10 +92,11 @@ mcp = _server.mcp
 register_header_tools(mcp)
 register_body_tools(mcp)
 register_global_tools(mcp)
+register_wire_format_tools(mcp)
 
 logger.info(
     "MCP server 'mcp-fattura-elettronica-it' initialised — "
-    "7 Header tools + 7 Body tools + 7 Global tools = 21 tools"
+    "7 Header tools + 7 Body tools + 7 Global tools + 6 Wire-format tools = 27 tools"
 )
 
 # ---------------------------------------------------------------------------

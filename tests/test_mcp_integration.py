@@ -1,7 +1,7 @@
 """
 MCP protocol integration tests for mcp-fattura-elettronica-it.
 
-Verifies that all 21 tools are correctly registered via the MCP protocol,
+Verifies that all 27 tools are correctly registered via the MCP protocol,
 that their schemas are valid, and that representative tools work end-to-end
 via the in-process FastMCP client — no external dependencies required.
 """
@@ -64,11 +64,11 @@ def _parse(result) -> dict | list:
 
 class TestToolRegistration:
     @pytest.mark.asyncio
-    async def test_total_tool_count_is_21(self):
-        """The server exposes exactly 21 tools."""
+    async def test_total_tool_count_is_27(self):
+        """The server exposes exactly 27 tools."""
         async with Client(mcp) as client:
             tools = await client.list_tools()
-        assert len(tools) == 21
+        assert len(tools) == 27
 
     @pytest.mark.asyncio
     async def test_all_header_tools_registered(self):
