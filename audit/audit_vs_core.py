@@ -72,6 +72,11 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         "BaseDocumentSigner",
         "XAdESEPESSigner",
         "XAdESSignerConfig",
+        # OVERRIDE-REASON: XMLDSigSigner/XMLDSigSignerConfig (core v1.4.0) is
+        # the BR NF-e plain enveloped XML-DSig signer; not applicable to
+        # FatturaPA, which is signed via CAdES (PKCS#7) before SDI submission
+        "XMLDSigSigner",
+        "XMLDSigSignerConfig",
     },
     # FatturaPA artefacts (XSD schemas) are bundled in schemas/ and do not
     # use the download_rules framework.
