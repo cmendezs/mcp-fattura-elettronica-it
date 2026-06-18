@@ -51,6 +51,38 @@ mcp-publisher publish
 
 ## Changelog
 
+### v0.2.5 — 2026-05-31
+#### Added
+- `generate_ubl_invoice` tool — serialises an `ItalianInvoice` dict to UBL 2.1
+  Invoice/CreditNote XML using `EN16931UBLSerializer` from core v1.3.0.
+  **[IT-SC-15] resolved.**
+- `generate_cii_invoice` tool — serialises an `ItalianInvoice` dict to CII
+  CrossIndustryInvoice XML using `EN16931CIISerializer`. Suitable for Factur-X
+  and ZUGFeRD-compatible output. **[IT-SC-16] resolved.**
+- `validate_ubl_invoice` and `parse_ubl_invoice` tools. **[IT-SC-17] resolved.**
+- `validate_cii_invoice` and `parse_cii_invoice` tools. **[IT-SC-18] resolved.**
+- Server now exposes 27 tools (was 21).
+#### Fixed
+- CI: retagged `v0.2.5` to include `publish.yml` YAML fix (bare `python -c` →
+  `run: |` heredoc).
+- `server.json` description shortened to 86 chars (registry 100-char limit).
+
+### v0.3.0
+#### Changed
+- `ItalianInvoice(EN16931Invoice)` subclass scaffolded in `models.py`; `FatturaGenerator`
+  updated to use EN 16931 field names throughout. **[IT-SC-7] resolved.**
+
+### v0.2.3
+#### Fixed
+- XML escaping via `xml_escape` applied to all free-text fields in
+  `generate_fattura_xml` and `FatturaGenerator.generate()`. **[IT-SH-1] resolved.**
+- Obsolete Natura codes N2, N3, N6 removed from `NATURA_CODES`
+  (invalid since Jan 2021 XSD update). **[IT-TL-2] resolved.**
+- `aliquota_override` / `importo_override` optional params added to
+  `check_ritenuta_acconto` for RT06. **[IT-TL-1] resolved.**
+- `PECDestinatario` emitted when `codice_destinatario='0000000'`; error raised
+  if `pec_destinatario` is absent. **[IT-LC-1] resolved.**
+
 ### v0.2.0 — 2026-04-19
 
 #### Changed
