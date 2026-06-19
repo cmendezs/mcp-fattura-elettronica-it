@@ -37,7 +37,7 @@ _SCHEMAS_DIR = Path(__file__).parent.parent / "schemas"
 # ---------------------------------------------------------------------------
 
 
-class FatturaGenerator(BaseDocumentGenerator):
+class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
     """Generates FatturaPA v1.2.3 XML from an ItalianInvoice (EN 16931 IT CIUS)."""
 
     def get_format_name(self) -> str:
