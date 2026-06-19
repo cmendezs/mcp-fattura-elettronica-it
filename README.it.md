@@ -23,7 +23,7 @@ pip install mcp-fattura-elettronica-it
 ```
 
 `mcp-einvoicing-core` viene installato automaticamente come dipendenza.
-Anche `lxml` e' richiesto e incluso, nessun passaggio aggiuntivo necessario.
+Anche `lxml` è richiesto e incluso, nessun passaggio aggiuntivo necessario.
 
 Senza installazione previa con `uvx`:
 
@@ -264,7 +264,7 @@ pytest tests/test_mcp_integration.py -v
 
 ## Roadmap
 
-| Versione | Funzionalita' |
+| Versione | Funzionalità |
 |----------|---------------|
 | **v0.1.0** (attuale) | Generazione XML, validazione XSD, parsing, 21 strumenti MCP, ritenuta d'acconto |
 | **v0.2** | Firma digitale CAdES-BES e XAdES (smart card, HSM, P12) |
@@ -274,24 +274,24 @@ pytest tests/test_mcp_integration.py -v
 
 ---
 
-## Other e-invoicing MCP servers
+## Altri server MCP per la fatturazione elettronica
 
-| Country | Server |
-|---------|--------|
-| 🌍 Global | [mcp-einvoicing-core](https://github.com/cmendezs/mcp-einvoicing-core) |
-| 🇧🇪 Belgium | [mcp-einvoicing-be](https://github.com/cmendezs/mcp-einvoicing-be) |
-| 🇧🇷 Brazil | [mcp-nfe-br](https://github.com/cmendezs/mcp-nfe-br) |
-| 🇫🇷 France | [mcp-facture-electronique-fr](https://github.com/cmendezs/mcp-facture-electronique-fr) |
-| 🇩🇪 Germany | [mcp-einvoicing-de](https://github.com/cmendezs/mcp-einvoicing-de) |
-| 🇮🇹 Italy | [mcp-fattura-elettronica-it](https://github.com/cmendezs/mcp-fattura-elettronica-it) |
-| 🇵🇱 Poland | [mcp-ksef-pl](https://github.com/cmendezs/mcp-ksef-pl) |
-| 🇪🇸 Spain | [mcp-facturacion-electronica-es](https://github.com/cmendezs/mcp-facturacion-electronica-es) |
+| Paese | Server |
+|-------|--------|
+| 🌍 Globale | [mcp-einvoicing-core](https://github.com/cmendezs/mcp-einvoicing-core) |
+| 🇧🇪 Belgio | [mcp-einvoicing-be](https://github.com/cmendezs/mcp-einvoicing-be) |
+| 🇧🇷 Brasile | [mcp-nfe-br](https://github.com/cmendezs/mcp-nfe-br) |
+| 🇫🇷 Francia | [mcp-facture-electronique-fr](https://github.com/cmendezs/mcp-facture-electronique-fr) |
+| 🇩🇪 Germania | [mcp-einvoicing-de](https://github.com/cmendezs/mcp-einvoicing-de) |
+| 🇮🇹 Italia | [mcp-fattura-elettronica-it](https://github.com/cmendezs/mcp-fattura-elettronica-it) |
+| 🇵🇱 Polonia | [mcp-ksef-pl](https://github.com/cmendezs/mcp-ksef-pl) |
+| 🇪🇸 Spagna | [mcp-facturacion-electronica-es](https://github.com/cmendezs/mcp-facturacion-electronica-es) |
 
 ---
 
 ## 📄 Licenza
 
-Questo progetto e' distribuito sotto licenza **Apache 2.0**.
+Questo progetto è distribuito sotto licenza **Apache 2.0**.
 Vedere il file [LICENSE](LICENSE) per i dettagli completi.
 
 Copyright 2026 cmendezs
