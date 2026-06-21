@@ -29,7 +29,7 @@ from mcp_einvoicing_core.wire_formats import (
     EN16931UBLParser,
     EN16931UBLSerializer,
 )
-from models import ItalianInvoice
+from mcp_fattura_elettronica_it.models import ItalianInvoice
 
 logger = get_logger(__name__)
 

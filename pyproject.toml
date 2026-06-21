@@ -36,15 +36,14 @@ dev = [
 ]
 
 [project.scripts]
-mcp-fattura-elettronica-it = "server:main"
+mcp-fattura-elettronica-it = "mcp_fattura_elettronica_it.server:main"
 
 [project.urls]
 Homepage = "https://github.com/cmendezs/mcp-fattura-elettronica-it"
 Repository = "https://github.com/cmendezs/mcp-fattura-elettronica-it"
 
 [tool.hatch.build.targets.wheel]
-packages = ["tools"]
-artifacts = ["server.py", "models.py", "schemas/FatturaPA_FPR12_v1.2.3.xsd", "schemas/FatturaPA_FPA12_v1.2.3.xsd", "schemas/FatturaSemplificata_VFSM10_v1.0.2.xsd"]
+packages = ["src/mcp_fattura_elettronica_it"]
 
 [tool.hatch.build.targets.sdist]
 exclude = [
@@ -56,6 +55,11 @@ exclude = [
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+addopts = "--cov=mcp_fattura_elettronica_it --cov-report=term-missing"
+
+[tool.coverage.run]
+source = ["mcp_fattura_elettronica_it"]
+omit = ["tests/*"]
 
 [tool.mypy]
 python_version = "3.11"

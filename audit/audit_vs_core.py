@@ -25,13 +25,9 @@ import json
 import sys
 from pathlib import Path
 
-# Flat-layout packages (tools/, server.py, models.py) share generic names across
-# the workspace.  Prepend the IT package directory so `import tools`, `import server`,
-# and `import models` all resolve to this package, not to FR/DE/BE siblings.
 _PKG_DIR = Path(__file__).parent.parent
-sys.path.insert(0, str(_PKG_DIR))
 
-from mcp_einvoicing_core.audit import (  # noqa: E402
+from mcp_einvoicing_core.audit import (
     SEVERITY_BLOCKING,
     SEVERITY_OK,
     SEVERITY_WARNING,
@@ -55,7 +51,7 @@ from mcp_einvoicing_core.audit import (  # noqa: E402
 # IT-SC-7 scaffolded ItalianInvoice(EN16931Invoice) in models.py; FatturaGenerator
 # still accepts InvoiceDocument during the migration period.
 _IS_EN16931_FAMILY: bool = True
-_PRIMARY_INVOICE_CLASS: tuple[str, str] = ("models", "ItalianInvoice")
+_PRIMARY_INVOICE_CLASS: tuple[str, str] = ("mcp_fattura_elettronica_it.models", "ItalianInvoice")
 
 _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
     # IT uses EInvoicingMCPServer; the following are internal helpers or lifecycle
@@ -225,9 +221,9 @@ def _collect_registered_tools() -> set[str]:
     registered: set[str] = set()
     try:
         from fastmcp import FastMCP as _FastMCP
-        from tools.body_tools import register_body_tools
-        from tools.global_tools import register_global_tools
-        from tools.header_tools import register_header_tools
+        from mcp_fattura_elettronica_it.tools.body_tools import register_body_tools
+        from mcp_fattura_elettronica_it.tools.global_tools import register_global_tools
+        from mcp_fattura_elettronica_it.tools.header_tools import register_header_tools
 
         test_mcp = _FastMCP("it-audit-test")
         register_header_tools(test_mcp)
@@ -379,7 +375,7 @@ def run_check_5() -> CheckResult:
             ))
 
     # 5b: FPR12 and FPA12 XSD schema files
-    schemas_dir = _PKG_DIR / "schemas"
+    schemas_dir = _PKG_DIR / "src" / "mcp_fattura_elettronica_it" / "schemas"
     required_schemas = {
         "FatturaPA_FPR12_v1.2.3.xsd": "FatturaPA B2B/B2C (FPR12) schema — AdE v1.2.3",
         "FatturaPA_FPA12_v1.2.3.xsd": "FatturaPA B2G/PA (FPA12) schema — AdE v1.2.3",

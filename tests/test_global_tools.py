@@ -11,7 +11,7 @@ import asyncio
 
 
 from fastmcp import FastMCP
-from tools.global_tools import FATTURA_NS, register_global_tools
+from mcp_fattura_elettronica_it.tools.global_tools import FATTURA_NS, register_global_tools
 
 # ---------------------------------------------------------------------------
 # Setup

@@ -9,7 +9,7 @@ from __future__ import annotations
 import asyncio
 
 from fastmcp import FastMCP
-from tools.wire_format_tools import register_wire_format_tools
+from mcp_fattura_elettronica_it.tools.wire_format_tools import register_wire_format_tools
 
 # ---------------------------------------------------------------------------
 # Setup

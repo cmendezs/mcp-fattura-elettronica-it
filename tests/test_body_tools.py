@@ -12,7 +12,7 @@ import asyncio
 
 
 from fastmcp import FastMCP
-from tools.body_tools import NATURA_CODES, TIPO_DOCUMENTO, register_body_tools
+from mcp_fattura_elettronica_it.tools.body_tools import NATURA_CODES, TIPO_DOCUMENTO, register_body_tools
 
 # ---------------------------------------------------------------------------
 # Helper setup

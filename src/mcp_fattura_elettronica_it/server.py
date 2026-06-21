@@ -15,10 +15,10 @@ from __future__ import annotations
 from mcp_einvoicing_core import EInvoicingMCPServer
 from mcp_einvoicing_core.logging_utils import get_logger, setup_logging
 
-from tools.body_tools import register_body_tools
-from tools.global_tools import register_global_tools
-from tools.header_tools import register_header_tools
-from tools.wire_format_tools import register_wire_format_tools
+from mcp_fattura_elettronica_it.tools.body_tools import register_body_tools
+from mcp_fattura_elettronica_it.tools.global_tools import register_global_tools
+from mcp_fattura_elettronica_it.tools.header_tools import register_header_tools
+from mcp_fattura_elettronica_it.tools.wire_format_tools import register_wire_format_tools
 
 # ---------------------------------------------------------------------------
 # Logging

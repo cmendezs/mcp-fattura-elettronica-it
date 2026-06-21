@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import asyncio
 
-from tools.header_tools import (
+from mcp_fattura_elettronica_it.tools.header_tools import (
     REGIME_FISCALE,
     register_header_tools,
 )

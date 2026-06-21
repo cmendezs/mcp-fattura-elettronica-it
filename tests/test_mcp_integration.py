@@ -13,7 +13,7 @@ import json
 import pytest
 from fastmcp import Client
 
-from server import mcp
+from mcp_fattura_elettronica_it.server import mcp
 
 # ---------------------------------------------------------------------------
 # Expected tool names
