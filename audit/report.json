@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-06-15T08:07:59.107999+00:00",
+  "generated_at": "2026-06-25T13:44:09.772955+00:00",
   "pkg_name": "mcp-fattura-elettronica-it",
   "pkg_version": "0.2.5",
-  "core_version": "1.5.0",
+  "core_version": "1.9.0",
   "core_version_compatible": true,
-  "exit_code": 1,
-  "total_blocking": 0,
-  "total_warnings": 63,
+  "exit_code": 2,
+  "total_blocking": 1,
+  "total_warnings": 80,
   "checks": [
     {
       "check_id": "CHECK_1",
@@ -15,7 +15,7 @@
       "skipped": false,
       "skip_reason": "",
       "blocking_count": 0,
-      "warning_count": 63,
+      "warning_count": 79,
       "findings": [
         {
           "check_id": "CHECK_1",
@@ -82,10 +82,10 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.base_server.EInvoicingMCPServer",
-          "message": "Imported and used."
+          "message": "Core symbol 'EInvoicingMCPServer' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -100,6 +100,13 @@
           "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.base_server.Field",
           "message": "Core symbol 'Field' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
+        },
+        {
+          "check_id": "CHECK_1",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
+          "symbol": "mcp_einvoicing_core.base_server.Generic",
+          "message": "Core symbol 'Generic' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -128,6 +135,13 @@
           "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.base_server.TaxIdValidationResult",
           "message": "Core symbol 'TaxIdValidationResult' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
+        },
+        {
+          "check_id": "CHECK_1",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
+          "symbol": "mcp_einvoicing_core.base_server.TypeVar",
+          "message": "Core symbol 'TypeVar' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -222,10 +236,10 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.digital_signature.safe_fromstring",
-          "message": "Imported and used."
+          "message": "Core symbol 'safe_fromstring' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -313,10 +327,10 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.en16931.EN16931Invoice",
-          "message": "Imported and used."
+          "message": "Core symbol 'EN16931Invoice' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -621,10 +635,10 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.models.TaxIdentifier",
-          "message": "Imported and used."
+          "message": "Core symbol 'TaxIdentifier' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -719,10 +733,10 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.peppol.safe_fromstring",
-          "message": "Imported and used."
+          "message": "Core symbol 'safe_fromstring' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -838,17 +852,17 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.schematron.safe_fromstring",
-          "message": "Imported and used."
+          "message": "Core symbol 'safe_fromstring' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.schematron.safe_parser",
-          "message": "Imported and used."
+          "message": "Core symbol 'safe_parser' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -866,17 +880,17 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.xml_utils.filter_empty_values",
-          "message": "Imported and used."
+          "message": "Core symbol 'filter_empty_values' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.xml_utils.format_amount",
-          "message": "Imported and used."
+          "message": "Core symbol 'format_amount' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -887,10 +901,10 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.xml_utils.format_quantity",
-          "message": "Imported and used."
+          "message": "Core symbol 'format_quantity' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -915,31 +929,31 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.xml_utils.safe_fromstring",
-          "message": "Imported and used."
+          "message": "Core symbol 'safe_fromstring' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.xml_utils.safe_parser",
-          "message": "Imported and used."
+          "message": "Core symbol 'safe_parser' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.xml_utils.validate_date_iso",
-          "message": "Imported and used."
+          "message": "Core symbol 'validate_date_iso' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OK]",
-          "severity": "OK",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
           "symbol": "mcp_einvoicing_core.xml_utils.validate_iban",
-          "message": "Imported and used."
+          "message": "Core symbol 'validate_iban' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -1210,39 +1224,25 @@
           "tag": "[OK]",
           "severity": "OK",
           "symbol": "mcp-einvoicing-core",
-          "message": "Installed: 1.5.0 | Declared range: >=1.1.0,<2.0.0 | Compatible: True"
+          "message": "Installed: 1.9.0 | Declared range: >=1.1.0,<2.0.0 | Compatible: True"
         }
       ]
     },
     {
       "check_id": "CHECK_5",
       "name": "FatturaPA-specific structural checks",
-      "passed": true,
+      "passed": false,
       "skipped": false,
       "skip_reason": "",
-      "blocking_count": 0,
-      "warning_count": 0,
+      "blocking_count": 1,
+      "warning_count": 1,
       "findings": [
         {
           "check_id": "CHECK_5",
-          "tag": "[OK]",
-          "severity": "OK",
-          "symbol": "server.main",
-          "message": "server.main is present."
-        },
-        {
-          "check_id": "CHECK_5",
-          "tag": "[OK]",
-          "severity": "OK",
-          "symbol": "server.mcp",
-          "message": "server.mcp is present."
-        },
-        {
-          "check_id": "CHECK_5",
-          "tag": "[OK]",
-          "severity": "OK",
-          "symbol": "server.mcp",
-          "message": "server.mcp is a FastMCP instance."
+          "tag": "[MISSING]",
+          "severity": "BLOCKING",
+          "symbol": "server",
+          "message": "Could not import server module: No module named 'server'"
         },
         {
           "check_id": "CHECK_5",
@@ -1260,10 +1260,28 @@
         },
         {
           "check_id": "CHECK_5",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
+          "symbol": "models.ItalianInvoice",
+          "message": "Could not import models module: No module named 'models'. ItalianInvoice(EN16931Invoice) scaffold (IT-SC-7) not importable."
+        }
+      ]
+    },
+    {
+      "check_id": "CHECK_6",
+      "name": "Parallel-implementation detector",
+      "passed": true,
+      "skipped": false,
+      "skip_reason": "",
+      "blocking_count": 0,
+      "warning_count": 0,
+      "findings": [
+        {
+          "check_id": "CHECK_6",
           "tag": "[OK]",
           "severity": "OK",
-          "symbol": "models.ItalianInvoice",
-          "message": "ItalianInvoice(EN16931Invoice) is correctly scaffolded."
+          "symbol": "*",
+          "message": "No parallel implementations of core capabilities detected."
         }
       ]
     }
