@@ -336,7 +336,7 @@ def run_check_5() -> CheckResult:
     result = CheckResult(check_id="CHECK_5", name="FatturaPA-specific structural checks")
 
     # 5a: server module exports main and mcp
-    server_mod, err = _try_import("server")
+    server_mod, err = _try_import("mcp_fattura_elettronica_it.server")
     if server_mod is None:
         result.findings.append(CheckFinding(
             check_id="CHECK_5", tag="[MISSING]", severity=SEVERITY_BLOCKING,
@@ -408,7 +408,7 @@ def run_check_5() -> CheckResult:
         ))
 
     # 5c: ItalianInvoice(EN16931Invoice) scaffold check (IT-SC-7)
-    models_mod, err = _try_import("models")
+    models_mod, err = _try_import("mcp_fattura_elettronica_it.models")
     if models_mod is None:
         result.findings.append(CheckFinding(
             check_id="CHECK_5", tag="[MISSING]", severity=SEVERITY_WARNING,
