@@ -42,7 +42,7 @@ jobs:
         run: pip install -e ".[dev]"
 
       - name: Lint with ruff
-        run: ruff check tools/ tests/
+        run: ruff check src/ tests/
 
       - name: Run tests
         run: pytest --tb=short
