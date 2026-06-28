@@ -1,5 +1,5 @@
 """
-MCP tools for the FatturaElettronicaBody section of FatturaPA v1.6.1.
+MCP tools for the FatturaElettronicaBody section of FatturaPA v1.2.3.
 
 Covers general document data, line items, VAT summary, payment terms,
 Natura exemption codes, and attachments.
@@ -30,9 +30,9 @@ TIPO_DOCUMENTO: dict[str, dict] = {
     "TD04": {"description": "Nota di credito", "use_case": "Credit note (reversal of TD01)"},
     "TD05": {"description": "Nota di debito", "use_case": "Debit note"},
     "TD06": {"description": "Parcella", "use_case": "Professional fee invoice (avvocati, medici, etc.)"},
-    "TD07": {"description": "Fattura semplificata", "use_case": "Simplified invoice ≤400 EUR — uses FatturaSemplificata format (namespace v1.0, separate XSD); not supported by generate_fattura_xml"},
-    "TD08": {"description": "Nota di credito semplificata", "use_case": "Simplified credit note — uses FatturaSemplificata format (namespace v1.0); not supported by generate_fattura_xml"},
-    "TD09": {"description": "Nota di debito semplificata", "use_case": "Simplified debit note — uses FatturaSemplificata format (namespace v1.0); not supported by generate_fattura_xml"},
+    "TD07": {"description": "Fattura semplificata", "use_case": "Simplified invoice ≤400 EUR — use generate_fattura_semplificata() (VFSM10 format, namespace v1.0)"},
+    "TD08": {"description": "Nota di credito semplificata", "use_case": "Simplified credit note — use generate_fattura_semplificata() (VFSM10 format, namespace v1.0)"},
+    "TD09": {"description": "Nota di debito semplificata", "use_case": "Simplified debit note — use generate_fattura_semplificata() (VFSM10 format, namespace v1.0)"},
     "TD16": {"description": "Integrazione fattura reverse charge interno", "use_case": "Domestic reverse charge self-invoice"},
     "TD17": {"description": "Integrazione/autofattura acquisto servizi dall'estero", "use_case": "Self-invoice for services purchased abroad"},
     "TD18": {"description": "Integrazione acquisto beni intracomunitari", "use_case": "Self-invoice for intra-EU goods purchase"},
@@ -150,12 +150,13 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = "EUR",
         causale: Annotated[
-            Optional[str],
+            Optional[str | list[str]],
             Field(
                 default=None,
                 description=(
-                    "Optional free-text description/reason for the invoice (Causale), "
-                    "max 200 chars. Can appear multiple times — pass a single string here."
+                    "Free-text description/reason for the invoice (Causale), max 200 chars each. "
+                    "Pass a single string or a list of strings for multiple Causale elements. "
+                    "The XSD allows maxOccurs='unbounded'."
                 ),
             ),
         ] = None,
@@ -219,7 +220,9 @@ def register_body_tools(mcp: FastMCP) -> None:
         }
 
         if causale:
-            dati_generali_documento["Causale"] = causale[:200]
+            if isinstance(causale, str):
+                causale = [causale]
+            dati_generali_documento["Causale"] = [c[:200] for c in causale]
 
         dati_generali: dict = {"DatiGeneraliDocumento": dati_generali_documento}
 

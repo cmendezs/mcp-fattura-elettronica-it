@@ -133,12 +133,26 @@ Configuration file (`~/.cursor/mcp.json` or `.cursor/mcp.json` in the project fo
 | Tool | Description |
 |------|-------------|
 | `generate_fattura_xml` | Generate a complete FatturaPA XML file from structured input data |
-| `validate_fattura_xsd` | Validate a FatturaPA XML string against the official XSD schema v1.6.1 |
+| `validate_fattura_xsd` | Validate a FatturaPA XML string against the official XSD schema v1.2.3 |
 | `parse_fattura_xml` | Parse an existing FatturaPA XML string and return a structured JSON dict |
 | `export_to_json` | Export a parsed FatturaPA structure to clean JSON format |
 | `validate_partita_iva_format` | Validate Partita IVA format and Luhn-like checksum (11-digit Italian VAT) |
 | `get_sdi_filename` | Generate the official SDI filename: IT{PartitaIVA}_{ProgressivoInvio}.xml |
 | `check_ritenuta_acconto` | Check and compute ritenuta d'acconto (withholding tax) for professional invoices |
+
+### Simplified invoices: FatturaSemplificata VFSM10 (3 tools)
+
+| Tool | Description |
+|------|-------------|
+| `generate_fattura_semplificata` | Generate a simplified invoice XML (TD07/TD08/TD09) using VFSM10 format |
+| `validate_fattura_semplificata_xsd` | Validate a simplified invoice XML against the VFSM10 XSD v1.0.2 |
+| `parse_fattura_semplificata_xml` | Parse a simplified invoice XML into a structured dict |
+
+Simplified invoices (art. 21-bis DPR 633/72) are valid for transactions up to EUR 400
+(tax-inclusive). They use a flatter structure than ordinary FatturaPA: no per-line VAT
+breakdown, no DatiRiepilogo. Each `DatiBeniServizi` entry carries its own `Descrizione`,
+`Importo`, and `DatiIVA`. The VFSM10 format uses namespace `v1.0` and is separate from
+the EN 16931 CIUS used by ordinary invoices.
 
 ---
 
@@ -269,7 +283,7 @@ pytest tests/test_mcp_integration.py -v
 | **v0.1.0** (current) | XML generation, XSD validation, parsing, 21 MCP tools, withholding tax |
 | **v0.2** | CAdES-BES and XAdES digital signatures (smart card, HSM, P12) |
 | **v0.3** | Direct SDI integration via SDICoop SOAP and SFTP, sending and receiving |
-| **v0.4** | Simplified invoice (TD07/TD08/TD09), amounts up to 400 EUR |
+| **v0.2** | Simplified invoice (TD07/TD08/TD09), amounts up to 400 EUR |
 | **v0.5** | Legally compliant archiving, integration with AgID-accredited providers |
 
 ---

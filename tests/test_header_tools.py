@@ -363,3 +363,17 @@ class TestLookupCodiceDestinatario:
         result = call("lookup_codice_destinatario", pec="info@legalmail.it")
         assert result["routing_type"] == "PEC"
         assert "pec_destinatario" in result
+
+    def test_6_char_ipa_code(self):
+        """IT-SC-3: 6-char IPA code accepted for PA (FPA12)."""
+        result = call("lookup_codice_destinatario", codice="A1B2C3")
+        assert result["routing_type"] == "SDI_CODE"
+        assert result["codice_destinatario"] == "A1B2C3"
+        assert "PA/IPA" in result["note"]
+
+    def test_7_char_b2b_intermediary_code(self):
+        """IT-SC-3: 7-char B2B intermediary code accepted for FPR12."""
+        result = call("lookup_codice_destinatario", codice="X1Y2Z3W")
+        assert result["routing_type"] == "SDI_CODE"
+        assert result["codice_destinatario"] == "X1Y2Z3W"
+        assert "B2B" in result["note"]

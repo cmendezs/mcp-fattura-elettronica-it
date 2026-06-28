@@ -71,23 +71,19 @@ TIPO_RITENUTA: dict[str, dict] = {
     },
     "RT03": {
         "description": "Contributo INPS",
-        "rate": Decimal("0.2623"),
-        "legal_ref": "Legge 335/95 art. 2 c. 26 — gestione separata (26.23% in 2025; verify current year)",
+        "legal_ref": "Legge 335/95 art. 2 c. 26 — gestione separata (aliquota variabile per anno; provide aliquota_override or importo_override)",
     },
     "RT04": {
         "description": "Contributo ENASARCO",
-        "rate": Decimal("0.0850"),
-        "legal_ref": "Accordo FNAARC/Confcommercio — quota a carico del mandante 8.50% (verify current rates)",
+        "legal_ref": "Accordo FNAARC/Confcommercio — aliquota variabile per anno e fascia (provide aliquota_override or importo_override)",
     },
     "RT05": {
         "description": "Contributo ENPAM",
-        "rate": Decimal("0.10"),
-        "legal_ref": "Regolamento ENPAM — aliquota variabile per categoria (10% indicativo; verify current rates)",
+        "legal_ref": "Regolamento ENPAM — aliquota variabile per categoria (provide aliquota_override or importo_override)",
     },
     "RT06": {
         "description": "Altro contributo previdenziale",
-        "rate": Decimal("0.00"),
-        "legal_ref": "Aliquota variabile — impostare AliquotaRitenuta e ImportoRitenuta direttamente",
+        "legal_ref": "Aliquota variabile — provide aliquota_override or importo_override",
     },
 }
 
@@ -221,12 +217,30 @@ def register_global_tools(mcp: FastMCP) -> None:
             cc_sede = cc.get("Sede", {})
             cc_codice_ufficio = cc.get("CodiceUfficio", "")
 
+            if formato == "FPA12" and not cc_codice_ufficio:
+                return {
+                    "error": (
+                        "CodiceUfficio is required for FPA12 (Public Administration) invoices. "
+                        "Set codice_ufficio in validate_cessionario() with the 6-char IPA office code."
+                    )
+                }
+
             dg_doc = dg.get("DatiGeneraliDocumento", dg)
             tipo_doc = dg_doc.get("TipoDocumento", "TD01")
+
+            _SIMPLIFIED_TYPES = {"TD07", "TD08", "TD09"}
+            if tipo_doc in _SIMPLIFIED_TYPES:
+                return {
+                    "error": (
+                        f"TipoDocumento '{tipo_doc}' is a simplified invoice type. "
+                        "Use generate_fattura_semplificata() instead of generate_fattura_xml()."
+                    )
+                }
+
             divisa = dg_doc.get("Divisa", "EUR")
             data_doc = dg_doc.get("Data", "")
             numero_doc = dg_doc.get("Numero", "")
-            causale = dg_doc.get("Causale", "")
+            causale = dg_doc.get("Causale", [])
 
             def _seller_name(anagrafica: dict) -> str:
                 if "Denominazione" in anagrafica:
@@ -336,7 +350,11 @@ def register_global_tools(mcp: FastMCP) -> None:
                 )
 
             pec_xml = f"<PECDestinatario>{xml_escape(pec_dest)}</PECDestinatario>" if pec_dest else ""
-            causale_xml = f"<Causale>{xml_escape(causale)}</Causale>" if causale else ""
+            if isinstance(causale, str):
+                causale = [causale] if causale else []
+            causale_xml = "".join(
+                f"<Causale>{xml_escape(c[:200])}</Causale>" for c in causale
+            )
 
             xml = (
                 f'<?xml version="1.0" encoding="UTF-8"?>'
@@ -612,12 +630,17 @@ def register_global_tools(mcp: FastMCP) -> None:
 
         if body is not None:
             dg = body.find("DatiGenerali/DatiGeneraliDocumento")
+            causale_list = []
+            if dg is not None:
+                for causale_el in dg.findall("Causale"):
+                    if causale_el.text:
+                        causale_list.append(causale_el.text)
             result["body"]["dati_generali"] = {
                 "tipo_documento": _txt(dg, "TipoDocumento") if dg is not None else None,
                 "divisa": _txt(dg, "Divisa") if dg is not None else None,
                 "data": _txt(dg, "Data") if dg is not None else None,
                 "numero": _txt(dg, "Numero") if dg is not None else None,
-                "causale": _txt(dg, "Causale") if dg is not None else None,
+                "causale": causale_list if causale_list else None,
             }
 
             linee = []
@@ -801,12 +824,12 @@ def register_global_tools(mcp: FastMCP) -> None:
             Field(
                 description=(
                     "Ritenuta/contributo type code: "
-                    "RT01 (persone fisiche, 20%), "
-                    "RT02 (persone giuridiche, 20%), "
-                    "RT03 (contributo INPS gestione separata, ~26.23%), "
-                    "RT04 (contributo ENASARCO, ~8.50% seller portion), "
-                    "RT05 (contributo ENPAM, ~10% indicative), "
-                    "RT06 (altro contributo previdenziale, rate=0 — compute amount directly)."
+                    "RT01 (persone fisiche, 20% default), "
+                    "RT02 (persone giuridiche, 20% default), "
+                    "RT03 (contributo INPS, variable rate, override required), "
+                    "RT04 (contributo ENASARCO, variable rate, override required), "
+                    "RT05 (contributo ENPAM, variable rate, override required), "
+                    "RT06 (altro contributo previdenziale, override required)."
                 )
             ),
         ],
@@ -857,16 +880,14 @@ def register_global_tools(mcp: FastMCP) -> None:
         Also mark the relevant line items with ritenuta='SI' in add_linea_dettaglio(), and pass
         the returned 'DatiRitenuta' dict to generate_fattura_xml() as dati_ritenuta.
 
-        tipo_ritenuta determines the rate: RT01/RT02 = 20% (ritenuta d'acconto, natural/legal persons),
-        RT03 = 26.23% indicative (INPS gestione separata; verify current year),
-        RT04 = 8.50% indicative (ENASARCO seller portion; verify current rates),
-        RT05 = 10.00% indicative (ENPAM; rate varies by category),
-        RT06 = variable rate — aliquota_override or importo_override is required.
+        tipo_ritenuta determines the rate: RT01/RT02 = 20% (ritenuta d'acconto, statutory default).
+        RT03 (INPS), RT04 (ENASARCO), RT05 (ENPAM), RT06 (other) have variable rates:
+        aliquota_override or importo_override is required for all of them.
         causale_pagamento: income category code for Mod. 770 (e.g. 'A' professional fees, 'O' occasional).
-        aliquota_override: supply the actual rate (%) for RT06 or to override indicative rates for RT03–RT05.
+        aliquota_override: supply the actual rate (%) for RT03-RT06, or to override the 20% default for RT01/RT02.
         importo_override: supply the exact withholding amount when rate-based computation is imprecise.
 
-        Validates: tipo_ritenuta must be in RT01–RT06. RT06 requires aliquota_override or importo_override.
+        Validates: tipo_ritenuta must be in RT01-RT06. RT03-RT06 require aliquota_override or importo_override.
 
         On success returns {'DatiRitenuta': {...}, 'importo_ritenuta': str, 'aliquota_applicata': str,
         'imponibile_ritenuta': str, 'description': str, 'legal_ref': str}.
@@ -880,10 +901,11 @@ def register_global_tools(mcp: FastMCP) -> None:
                 )
             }
 
-        if tipo_ritenuta == "RT06" and importo_override is None and aliquota_override is None:
+        _REQUIRES_OVERRIDE = {"RT03", "RT04", "RT05", "RT06"}
+        if tipo_ritenuta in _REQUIRES_OVERRIDE and importo_override is None and aliquota_override is None:
             return {
                 "error": (
-                    "RT06 (altro contributo previdenziale) has no fixed rate. "
+                    f"{tipo_ritenuta} ({TIPO_RITENUTA[tipo_ritenuta]['description']}) has no statutory default rate. "
                     "Provide aliquota_override (rate as %) or importo_override (exact amount)."
                 )
             }

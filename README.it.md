@@ -10,7 +10,7 @@
 
 Server MCP Python per la **fatturazione elettronica italiana** in formato **FatturaPA XML** (standard SDI / Agenzia delle Entrate, versione 1.6.1). Permette agli agenti IA (Claude, IDE) di generare, validare e analizzare fatture elettroniche B2B, B2G e transfrontaliere direttamente conformi alle specifiche tecniche del Sistema di Interscambio (SDI).
 
-Si tratta di un server **Model Context Protocol (MCP)** che espone **21 strumenti** per l'intero ciclo di vita di un documento FatturaPA XML: costruzione dell'header di trasmissione, validazione cedente/cessionario, codici tipo documento (TD01-TD28), righe dettaglio, calcolo riepilogo IVA, condizioni di pagamento, validazione XSD contro lo schema ufficiale dell'Agenzia delle Entrate (v1.6.1), generazione XML, parsing, esportazione JSON, generazione del nome file SDI e calcolo della ritenuta d'acconto. Il server non richiede chiamate API esterne: tutta la logica viene eseguita localmente. Licenza **Apache 2.0**.
+Si tratta di un server **Model Context Protocol (MCP)** che espone **21 strumenti** per l'intero ciclo di vita di un documento FatturaPA XML: costruzione dell'header di trasmissione, validazione cedente/cessionario, codici tipo documento (TD01-TD28), righe dettaglio, calcolo riepilogo IVA, condizioni di pagamento, validazione XSD contro lo schema ufficiale dell'Agenzia delle Entrate (v1.2.3), generazione XML, parsing, esportazione JSON, generazione del nome file SDI e calcolo della ritenuta d'acconto. Il server non richiede chiamate API esterne: tutta la logica viene eseguita localmente. Licenza **Apache 2.0**.
 
 ---
 
@@ -53,7 +53,7 @@ Il server non richiede credenziali esterne in v0.1.0. Le variabili d'ambiente di
 | Variabile | Descrizione | Default |
 |-----------|-------------|---------|
 | `LOG_LEVEL` | Livello di log (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
-| `FATTURA_XSD_PATH` | Percorso del file XSD FatturaPA | `schemas/FatturaPA_v1.6.1.xsd` |
+| `FATTURA_XSD_PATH` | Percorso del file XSD FatturaPA | `schemas/FatturaPA_v1.2.3.xsd` |
 
 ### 🤖 Integrazione Claude Desktop
 
@@ -133,7 +133,7 @@ File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella car
 | Strumento | Descrizione |
 |-----------|-------------|
 | `generate_fattura_xml` | Generate a complete FatturaPA XML file from structured input data |
-| `validate_fattura_xsd` | Validate a FatturaPA XML string against the official XSD schema v1.6.1 |
+| `validate_fattura_xsd` | Validate a FatturaPA XML string against the official XSD schema v1.2.3 |
 | `parse_fattura_xml` | Parse an existing FatturaPA XML string and return a structured JSON dict |
 | `export_to_json` | Export a parsed FatturaPA structure to clean JSON format |
 | `validate_partita_iva_format` | Validate Partita IVA format and Luhn-like checksum (11-digit Italian VAT) |
@@ -221,8 +221,8 @@ get_natura_codes()
 ```
 mcp-fattura-elettronica-it (questo pacchetto, server MCP standalone)
 ├── ItalyPartyValidator(BasePartyValidator)   ← Partita IVA modulo-10
-├── FatturaGenerator(BaseDocumentGenerator)   ← FatturaPA XML v1.6.1
-├── FatturaValidator(BaseDocumentValidator)   ← lxml XSD v1.6.1
+├── FatturaGenerator(BaseDocumentGenerator)   ← FatturaPA XML v1.2.3
+├── FatturaValidator(BaseDocumentValidator)   ← lxml XSD v1.2.3
 └── FatturaParser(BaseDocumentParser)         ← lxml xpath
 
         ↑ estende
@@ -240,7 +240,7 @@ mcp-einvoicing-core (base condivisa, installata come dipendenza)
 | Risorsa | Link |
 |---------|------|
 | Specifiche FatturaPA | [fatturapa.gov.it](https://www.fatturapa.gov.it) |
-| XSD ufficiale v1.6.1 | [Schema v1.2.2, Agenzia delle Entrate](https://www.fatturapa.gov.it/it/norme-e-aggiornamenti/documentazione-fatturapa/) |
+| XSD ufficiale v1.2.3 | [Schema v1.2.2, Agenzia delle Entrate](https://www.fatturapa.gov.it/it/norme-e-aggiornamenti/documentazione-fatturapa/) |
 | Namespace XML | `http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2` |
 | SDI, Sistema di Interscambio | [Agenzia delle Entrate](https://www.agenziaentrate.gov.it/portale/web/guest/aree-tematiche/fatturazione-elettronica) |
 | Ritenuta d'acconto | Art. 25 DPR 600/73, Modello 770 |

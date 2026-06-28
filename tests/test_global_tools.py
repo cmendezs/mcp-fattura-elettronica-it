@@ -160,6 +160,145 @@ class TestGenerateFatturaXml:
         result = _generate_xml()
         assert "2026/001" in result["xml"]
 
+    def test_fpa12_requires_codice_ufficio(self):
+        """IT-SC-12: FPA12 without codice_ufficio returns error."""
+        dt = {
+            "DatiTrasmissione": {
+                "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "ProgressivoInvio": "00001",
+                "FormatoTrasmissione": "FPA12",
+                "CodiceDestinatario": "A1B2C3",
+            }
+        }
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=dt,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+        )
+        assert "error" in result
+        assert "CodiceUfficio" in result["error"]
+
+    def test_fpa12_with_codice_ufficio_succeeds(self):
+        """IT-SC-12: FPA12 with codice_ufficio succeeds."""
+        dt = {
+            "DatiTrasmissione": {
+                "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "ProgressivoInvio": "00001",
+                "FormatoTrasmissione": "FPA12",
+                "CodiceDestinatario": "A1B2C3",
+            }
+        }
+        cc_with_ufficio = {
+            "CessionarioCommittente": {
+                "DatiAnagrafici": {
+                    "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
+                    "Anagrafica": {"Denominazione": "PA Entity"},
+                },
+                "Sede": {"Indirizzo": "Via Roma 1", "CAP": "00100", "Comune": "Roma", "Nazione": "IT"},
+                "CodiceUfficio": "UFAB12",
+            }
+        }
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=dt,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=cc_with_ufficio,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+        )
+        assert "error" not in result
+        assert "UFAB12" in result["xml"]
+
+    def test_ritenuta_before_causale_in_xml(self):
+        """IT-SC-5: DatiRitenuta must appear before Causale in the XML."""
+        dg_with_causale = {
+            "DatiGenerali": {
+                "DatiGeneraliDocumento": {
+                    "TipoDocumento": "TD06",
+                    "Divisa": "EUR",
+                    "Data": "2026-01-15",
+                    "Numero": "P001",
+                    "Causale": ["Parcella professionale"],
+                }
+            }
+        }
+        ritenuta = {
+            "DatiRitenuta": {
+                "TipoRitenuta": "RT01",
+                "ImportoRitenuta": "200.00",
+                "AliquotaRitenuta": "20.00",
+                "CausalePagamento": "A",
+            }
+        }
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=VALID_DATI_TRASMISSIONE,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=dg_with_causale,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+            dati_ritenuta=ritenuta,
+        )
+        assert "error" not in result
+        xml = result["xml"]
+        assert xml.index("<DatiRitenuta>") < xml.index("<Causale>")
+
+    def test_multiple_causale_in_xml(self):
+        """IT-SC-8: Multiple Causale entries produce multiple XML elements."""
+        dg = {
+            "DatiGenerali": {
+                "DatiGeneraliDocumento": {
+                    "TipoDocumento": "TD01",
+                    "Divisa": "EUR",
+                    "Data": "2026-01-15",
+                    "Numero": "001",
+                    "Causale": ["First reason", "Second reason", "Third reason"],
+                }
+            }
+        }
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=VALID_DATI_TRASMISSIONE,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=dg,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+        )
+        assert "error" not in result
+        assert result["xml"].count("<Causale>") == 3
+
+    def test_single_causale_backward_compat(self):
+        """IT-SC-8: Single string causale still works (backward compat via old dict format)."""
+        dg = {
+            "DatiGenerali": {
+                "DatiGeneraliDocumento": {
+                    "TipoDocumento": "TD01",
+                    "Divisa": "EUR",
+                    "Data": "2026-01-15",
+                    "Numero": "001",
+                    "Causale": "Single reason",
+                }
+            }
+        }
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=VALID_DATI_TRASMISSIONE,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=dg,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+        )
+        assert "error" not in result
+        assert result["xml"].count("<Causale>") == 1
+
     def test_with_allegato(self):
         import base64
         allegato = {
@@ -393,14 +532,68 @@ class TestCheckRitenutaAcconto:
         )
         assert result["importo_ritenuta"] == "500.00"
 
-    def test_rt05_enpam_10_percent(self):
-        # RT05 = Contributo ENPAM, indicative rate 10% (was incorrectly set to 4% condominium)
+    def test_rt03_requires_override(self):
+        """IT-SC-2: RT03 without override returns error."""
+        result = call(
+            "check_ritenuta_acconto",
+            imponibile=1000.0,
+            tipo_ritenuta="RT03",
+            causale_pagamento="A",
+        )
+        assert "error" in result
+
+    def test_rt04_requires_override(self):
+        """IT-SC-2: RT04 without override returns error."""
+        result = call(
+            "check_ritenuta_acconto",
+            imponibile=1000.0,
+            tipo_ritenuta="RT04",
+            causale_pagamento="A",
+        )
+        assert "error" in result
+
+    def test_rt05_requires_override(self):
+        """IT-SC-2: RT05 without override returns error."""
+        result = call(
+            "check_ritenuta_acconto",
+            imponibile=1000.0,
+            tipo_ritenuta="RT05",
+            causale_pagamento="A",
+        )
+        assert "error" in result
+
+    def test_rt06_requires_override(self):
+        """IT-SC-2: RT06 without override returns error."""
+        result = call(
+            "check_ritenuta_acconto",
+            imponibile=1000.0,
+            tipo_ritenuta="RT06",
+            causale_pagamento="A",
+        )
+        assert "error" in result
+
+    def test_rt03_with_aliquota_override(self):
+        """IT-SC-2: RT03 with explicit rate succeeds."""
+        result = call(
+            "check_ritenuta_acconto",
+            imponibile=5000.0,
+            tipo_ritenuta="RT03",
+            causale_pagamento="A",
+            aliquota_override=26.23,
+        )
+        assert "error" not in result
+        assert result["importo_ritenuta"] == "1311.50"
+
+    def test_rt05_with_importo_override(self):
+        """IT-SC-2: RT05 with explicit amount succeeds."""
         result = call(
             "check_ritenuta_acconto",
             imponibile=5000.0,
             tipo_ritenuta="RT05",
             causale_pagamento="A",
+            importo_override=500.0,
         )
+        assert "error" not in result
         assert result["importo_ritenuta"] == "500.00"
 
     def test_dati_ritenuta_block_structure(self):

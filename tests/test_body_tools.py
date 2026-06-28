@@ -54,7 +54,7 @@ class TestBuildDatiGenerali:
         assert dg["Numero"] == "2026/001"
         assert dg["Divisa"] == "EUR"
 
-    def test_with_causale(self):
+    def test_with_causale_string(self):
         result = call(
             "build_dati_generali",
             tipo_documento="TD01",
@@ -63,7 +63,19 @@ class TestBuildDatiGenerali:
             causale="Consulenza gennaio 2026",
         )
         dg = result["DatiGenerali"]["DatiGeneraliDocumento"]
-        assert dg["Causale"] == "Consulenza gennaio 2026"
+        assert dg["Causale"] == ["Consulenza gennaio 2026"]
+
+    def test_with_causale_list(self):
+        result = call(
+            "build_dati_generali",
+            tipo_documento="TD01",
+            data="2026-01-15",
+            numero="001",
+            causale=["Riga 1", "Riga 2", "Riga 3"],
+        )
+        dg = result["DatiGenerali"]["DatiGeneraliDocumento"]
+        assert dg["Causale"] == ["Riga 1", "Riga 2", "Riga 3"]
+        assert len(dg["Causale"]) == 3
 
     def test_with_documento_riferimento(self):
         result = call(
@@ -114,7 +126,7 @@ class TestBuildDatiGenerali:
             causale=long_causale,
         )
         dg = result["DatiGenerali"]["DatiGeneraliDocumento"]
-        assert len(dg["Causale"]) == 200
+        assert len(dg["Causale"][0]) == 200
 
 
 # ---------------------------------------------------------------------------

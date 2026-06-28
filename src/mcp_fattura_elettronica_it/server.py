@@ -18,6 +18,7 @@ from mcp_einvoicing_core.logging_utils import get_logger, setup_logging
 from mcp_fattura_elettronica_it.tools.body_tools import register_body_tools
 from mcp_fattura_elettronica_it.tools.global_tools import register_global_tools
 from mcp_fattura_elettronica_it.tools.header_tools import register_header_tools
+from mcp_fattura_elettronica_it.tools.simplified_tools import register_simplified_tools
 from mcp_fattura_elettronica_it.tools.wire_format_tools import register_wire_format_tools
 
 # ---------------------------------------------------------------------------
@@ -72,6 +73,10 @@ _server = EInvoicingMCPServer(
         "9. build_dati_pagamento(...) → DatiPagamento\n"
         "10. generate_fattura_xml(...) → XML string + SDI filename\n"
         "11. validate_fattura_xsd(xml) → XSD conformance check\n\n"
+        "**Simplified invoice tools** — FatturaSemplificata VFSM10 (3 tools):\n"
+        "  • generate_fattura_semplificata: Assemble TD07/TD08/TD09 simplified invoice XML\n"
+        "  • validate_fattura_semplificata_xsd: Validate against VFSM10 XSD v1.0.2\n"
+        "  • parse_fattura_semplificata_xml: Parse a simplified invoice XML into structured dict\n\n"
         "**Wire-format tools** — EN 16931 UBL 2.1 and CII (6 tools):\n"
         "  • generate_ubl_invoice: ItalianInvoice → UBL 2.1 Invoice XML (cross-border / Peppol)\n"
         "  • generate_cii_invoice: ItalianInvoice → CII CrossIndustryInvoice XML (Factur-X / ZUGFeRD)\n"
@@ -79,7 +84,7 @@ _server = EInvoicingMCPServer(
         "  • parse_ubl_invoice: UBL 2.1 XML → EN 16931 field dict\n"
         "  • validate_cii_invoice: Structural validation of CII XML\n"
         "  • parse_cii_invoice: CII XML → EN 16931 field dict\n\n"
-        "Out of scope v0.1.0: digital signature (CAdES/XAdES), direct SDI transmission.\n"
+        "Out of scope v0.2.x: digital signature (CAdES/XAdES), direct SDI transmission.\n"
         "XSD: FatturaPA v1.2.3 — namespace http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"
     ),
 )
@@ -92,11 +97,12 @@ mcp = _server.mcp
 register_header_tools(mcp)
 register_body_tools(mcp)
 register_global_tools(mcp)
+register_simplified_tools(mcp)
 register_wire_format_tools(mcp)
 
 logger.info(
     "MCP server 'mcp-fattura-elettronica-it' initialised — "
-    "7 Header tools + 7 Body tools + 7 Global tools + 6 Wire-format tools = 27 tools"
+    "7 Header + 7 Body + 7 Global + 3 Simplified + 6 Wire-format = 30 tools"
 )
 
 # ---------------------------------------------------------------------------

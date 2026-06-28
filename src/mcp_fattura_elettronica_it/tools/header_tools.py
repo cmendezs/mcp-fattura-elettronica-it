@@ -517,8 +517,9 @@ def register_header_tools(mcp: FastMCP) -> None:
           mandatory in build_transmission_header()
         - pec only (no codice) → validates email format, routing_type: 'PEC'
 
-        IPA note: 6-char PA office codes can be looked up at https://www.indicepa.gov.it.
-        This tool performs format validation only — no live query against the SDI SOAP
+        IPA note: 6-char = IPA code (PA), 7-char = B2B intermediary code (FPR12 routing).
+        PA office codes can be looked up at https://www.indicepa.gov.it.
+        This tool performs format validation only, no live query against the SDI SOAP
         directory service or the IPA registry (planned for a future release).
 
         On success returns a dict with 'routing_type', 'codice_destinatario' and/or
