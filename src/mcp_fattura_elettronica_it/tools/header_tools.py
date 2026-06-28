@@ -351,6 +351,22 @@ def register_header_tools(mcp: FastMCP) -> None:
         if id_paese and not id_codice:
             errors.append("'id_codice' is required when 'id_paese' is provided.")
 
+        if codice_fiscale:
+            cf = codice_fiscale.strip()
+            if len(cf) == 16:
+                valid_cf, cf_err = TaxIdentifier.validate_it_codice_fiscale(cf)
+                if not valid_cf:
+                    errors.append(f"Invalid Codice Fiscale: {cf_err}")
+            elif len(cf) == 11 and cf.isdigit():
+                valid_piva, piva_err = TaxIdentifier.validate_it_partita_iva(cf)
+                if not valid_piva:
+                    errors.append(f"Invalid Codice Fiscale (numeric/company format): {piva_err}")
+            else:
+                errors.append(
+                    "Codice Fiscale must be 16 alphanumeric characters (individuals) "
+                    "or 11 digits (companies)."
+                )
+
         if errors:
             return {"error": "; ".join(errors)}
 

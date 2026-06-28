@@ -366,6 +366,14 @@ def register_body_tools(mcp: FastMCP) -> None:
         if ritenuta and ritenuta not in ("SI",):
             return {"error": "ritenuta must be 'SI' or omitted."}
 
+        _STANDARD_IT_RATES = {4.0, 5.0, 10.0, 22.0}
+        if aliquota_iva != 0.0 and aliquota_iva not in _STANDARD_IT_RATES:
+            logger.warning(
+                "Unusual IT VAT rate %.2f%% on linea %d; standard rates are 4, 5, 10, 22",
+                aliquota_iva,
+                numero_linea,
+            )
+
         linea: dict = {
             "NumeroLinea": numero_linea,
             "Descrizione": descrizione[:1000],

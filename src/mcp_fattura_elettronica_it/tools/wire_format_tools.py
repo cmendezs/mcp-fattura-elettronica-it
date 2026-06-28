@@ -53,12 +53,19 @@ class _ITCIISerializer(EN16931CIISerializer):
     """CII serialiser for ItalianInvoice. Same policy as _ITUBLSerializer."""
 
 
+_WIRE_FORMAT_DEFAULTS = {
+    "progressivo_invio": "00000",
+    "codice_destinatario": "0000000",
+    "formato_trasmissione": "FPR12",
+}
+
+
 class _ITUBLParser(EN16931UBLParser):
     """UBL 2.1 parser that returns an ItalianInvoice (IT defaults applied)."""
 
     def parse(self, xml_bytes: bytes) -> ItalianInvoice:  # type: ignore[override]
         base = super().parse(xml_bytes)
-        return ItalianInvoice(**base.model_dump())
+        return ItalianInvoice(**{**_WIRE_FORMAT_DEFAULTS, **base.model_dump()})
 
 
 class _ITCIIParser(EN16931CIIParser):
@@ -66,7 +73,7 @@ class _ITCIIParser(EN16931CIIParser):
 
     def parse(self, xml_bytes: bytes) -> ItalianInvoice:  # type: ignore[override]
         base = super().parse(xml_bytes)
-        return ItalianInvoice(**base.model_dump())
+        return ItalianInvoice(**{**_WIRE_FORMAT_DEFAULTS, **base.model_dump()})
 
 
 # ---------------------------------------------------------------------------

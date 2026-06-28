@@ -84,7 +84,10 @@ _server = EInvoicingMCPServer(
         "  • parse_ubl_invoice: UBL 2.1 XML → EN 16931 field dict\n"
         "  • validate_cii_invoice: Structural validation of CII XML\n"
         "  • parse_cii_invoice: CII XML → EN 16931 field dict\n\n"
-        "Out of scope v0.2.x: digital signature (CAdES/XAdES), direct SDI transmission.\n"
+        "**Scope boundary:** This server covers FatturaPA XML generation, XSD validation, "
+        "and parsing. SdI submission and notification handling are out of scope for v0.3.x. "
+        "Direct SDI integration (SDICoop SOAP + SFTP) is planned for v0.4.0 under IT-SDI-1.\n\n"
+        "Out of scope v0.3.x: digital signature (CAdES/XAdES), direct SDI transmission.\n"
         "XSD: FatturaPA v1.2.3 — namespace http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"
     ),
 )

@@ -8,9 +8,9 @@
 [![PyPI version](https://img.shields.io/pypi/v/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/)
 [![Python](https://img.shields.io/pypi/pyversions/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/) [![mcp-fattura-elettronica-it MCP server](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it/badges/score.svg)](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it)
 
-Server MCP Python per la **fatturazione elettronica italiana** in formato **FatturaPA XML** (standard SDI / Agenzia delle Entrate, versione 1.6.1). Permette agli agenti IA (Claude, IDE) di generare, validare e analizzare fatture elettroniche B2B, B2G e transfrontaliere direttamente conformi alle specifiche tecniche del Sistema di Interscambio (SDI).
+Server MCP Python per la **fatturazione elettronica italiana** in formato **FatturaPA XML** (standard SDI / Agenzia delle Entrate, versione 1.2.3). Permette agli agenti IA (Claude, IDE) di generare, validare e analizzare fatture elettroniche B2B, B2G e transfrontaliere direttamente conformi alle specifiche tecniche del Sistema di Interscambio (SDI).
 
-Si tratta di un server **Model Context Protocol (MCP)** che espone **21 strumenti** per l'intero ciclo di vita di un documento FatturaPA XML: costruzione dell'header di trasmissione, validazione cedente/cessionario, codici tipo documento (TD01-TD28), righe dettaglio, calcolo riepilogo IVA, condizioni di pagamento, validazione XSD contro lo schema ufficiale dell'Agenzia delle Entrate (v1.2.3), generazione XML, parsing, esportazione JSON, generazione del nome file SDI e calcolo della ritenuta d'acconto. Il server non richiede chiamate API esterne: tutta la logica viene eseguita localmente. Licenza **Apache 2.0**.
+Si tratta di un server **Model Context Protocol (MCP)** che espone **30 strumenti** per l'intero ciclo di vita di un documento FatturaPA XML: costruzione dell'header di trasmissione, validazione cedente/cessionario, codici tipo documento (TD01-TD28), righe dettaglio, calcolo riepilogo IVA, condizioni di pagamento, validazione XSD contro lo schema ufficiale dell'Agenzia delle Entrate (v1.2.3), generazione XML, parsing, esportazione JSON, generazione del nome file SDI e calcolo della ritenuta d'acconto. Il server non richiede chiamate API esterne: tutta la logica viene eseguita localmente. Licenza **Apache 2.0**.
 
 ---
 
@@ -266,11 +266,11 @@ pytest tests/test_mcp_integration.py -v
 
 | Versione | Funzionalità |
 |----------|---------------|
-| **v0.1.0** (attuale) | Generazione XML, validazione XSD, parsing, 21 strumenti MCP, ritenuta d'acconto |
-| **v0.2** | Firma digitale CAdES-BES e XAdES (smart card, HSM, P12) |
-| **v0.3** | Integrazione diretta SDI via SDICoop SOAP e SFTP, invio e ricezione |
-| **v0.4** | Fattura Semplificata (TD07/TD08/TD09), importi fino a 400 EUR |
-| **v0.5** | Conservazione a norma, integrazione con provider accreditati AgID |
+| **v0.1.0** | Generazione XML, validazione XSD, parsing, 21 strumenti MCP, ritenuta d'acconto |
+| **v0.2.0** | Fattura Semplificata (TD07/TD08/TD09), lotti FPA12, validazione Codice Fiscale, avvisi aliquota IVA, 30 strumenti MCP |
+| **v0.3.0** (attuale) | Documentazione scope SdI, rimozione default campi trasmissione |
+| **v0.4.0** | Firma digitale CAdES-BES e XAdES (smart card, HSM, P12), integrazione diretta SDI (SDICoop SOAP + SFTP) |
+| **v0.5.0** | Conservazione a norma, integrazione con provider accreditati AgID |
 
 ---
 

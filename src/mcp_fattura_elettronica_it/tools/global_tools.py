@@ -173,6 +173,18 @@ def register_global_tools(mcp: FastMCP) -> None:
                 ),
             ),
         ] = None,
+        additional_bodies: Annotated[
+            Optional[list],
+            Field(
+                default=None,
+                description=(
+                    "Additional FatturaElettronicaBody blocks for FPA12 batch invoicing. "
+                    "Each entry is a dict with keys: dati_generali, dettaglio_linee, "
+                    "dati_riepilogo, and optionally dati_pagamento, allegati, dati_ritenuta. "
+                    "Only valid for FPA12 (B2G) transmissions; FPR12 does not support batching."
+                ),
+            ),
+        ] = None,
     ) -> dict:
         """Assemble a complete FatturaPA v1.2.3 XML document from all prepared blocks.
 
@@ -217,6 +229,14 @@ def register_global_tools(mcp: FastMCP) -> None:
             cc_sede = cc.get("Sede", {})
             cc_codice_ufficio = cc.get("CodiceUfficio", "")
 
+            if additional_bodies and formato != "FPA12":
+                return {
+                    "error": (
+                        "additional_bodies is only valid for FPA12 (B2G) transmissions. "
+                        "FPR12 (B2B/B2C) does not support multiple bodies per envelope."
+                    )
+                }
+
             if formato == "FPA12" and not cc_codice_ufficio:
                 return {
                     "error": (
@@ -236,11 +256,6 @@ def register_global_tools(mcp: FastMCP) -> None:
                         "Use generate_fattura_semplificata() instead of generate_fattura_xml()."
                     )
                 }
-
-            divisa = dg_doc.get("Divisa", "EUR")
-            data_doc = dg_doc.get("Data", "")
-            numero_doc = dg_doc.get("Numero", "")
-            causale = dg_doc.get("Causale", [])
 
             def _seller_name(anagrafica: dict) -> str:
                 if "Denominazione" in anagrafica:
@@ -350,11 +365,66 @@ def register_global_tools(mcp: FastMCP) -> None:
                 )
 
             pec_xml = f"<PECDestinatario>{xml_escape(pec_dest)}</PECDestinatario>" if pec_dest else ""
-            if isinstance(causale, str):
-                causale = [causale] if causale else []
-            causale_xml = "".join(
-                f"<Causale>{xml_escape(c[:200])}</Causale>" for c in causale
+
+            def _build_body(
+                body_dg: dict,
+                body_linee: list,
+                body_riepilogo: list,
+                body_pagamento: Optional[dict],
+                body_allegati: Optional[list],
+                body_ritenuta: Optional[dict],
+            ) -> str:
+                dg_inner = body_dg.get("DatiGenerali", body_dg)
+                dg_doc_inner = dg_inner.get("DatiGeneraliDocumento", dg_inner)
+                td = dg_doc_inner.get("TipoDocumento", "TD01")
+                div = dg_doc_inner.get("Divisa", "EUR")
+                dat = dg_doc_inner.get("Data", "")
+                num = dg_doc_inner.get("Numero", "")
+                caus = dg_doc_inner.get("Causale", [])
+                if isinstance(caus, str):
+                    caus = [caus] if caus else []
+                caus_xml = "".join(
+                    f"<Causale>{xml_escape(c[:200])}</Causale>" for c in caus
+                )
+                return (
+                    f"<FatturaElettronicaBody>"
+                    f"<DatiGenerali>"
+                    f"<DatiGeneraliDocumento>"
+                    f"<TipoDocumento>{td}</TipoDocumento>"
+                    f"<Divisa>{div}</Divisa>"
+                    f"<Data>{dat}</Data>"
+                    f"<Numero>{num}</Numero>"
+                    f"{_ritenuta_xml(body_ritenuta)}"
+                    f"{caus_xml}"
+                    f"</DatiGeneraliDocumento>"
+                    f"</DatiGenerali>"
+                    f"<DatiBeniServizi>"
+                    f"{_linee_xml(body_linee)}"
+                    f"{_riepilogo_xml(body_riepilogo)}"
+                    f"</DatiBeniServizi>"
+                    f"{_pagamento_xml(body_pagamento)}"
+                    f"{_allegati_xml(body_allegati)}"
+                    f"</FatturaElettronicaBody>"
+                )
+
+            primary_body = _build_body(
+                dg, dettaglio_linee, dati_riepilogo,
+                dati_pagamento, allegati, dati_ritenuta,
             )
+
+            extra_bodies = ""
+            if additional_bodies:
+                for ab in additional_bodies:
+                    ab_dg = ab.get("dati_generali", {})
+                    ab_linee = ab.get("dettaglio_linee", [])
+                    ab_riepilogo = ab.get("dati_riepilogo", [])
+                    ab_pagamento = ab.get("dati_pagamento")
+                    ab_allegati = ab.get("allegati")
+                    ab_ritenuta = ab.get("dati_ritenuta")
+                    extra_bodies += _build_body(
+                        ab_dg, ab_linee, ab_riepilogo,
+                        ab_pagamento, ab_allegati, ab_ritenuta,
+                    )
 
             xml = (
                 f'<?xml version="1.0" encoding="UTF-8"?>'
@@ -403,24 +473,8 @@ def register_global_tools(mcp: FastMCP) -> None:
                 f"{'<CodiceUfficio>' + cc_codice_ufficio + '</CodiceUfficio>' if cc_codice_ufficio else ''}"
                 f"</CessionarioCommittente>"
                 f"</FatturaElettronicaHeader>"
-                f"<FatturaElettronicaBody>"
-                f"<DatiGenerali>"
-                f"<DatiGeneraliDocumento>"
-                f"<TipoDocumento>{tipo_doc}</TipoDocumento>"
-                f"<Divisa>{divisa}</Divisa>"
-                f"<Data>{data_doc}</Data>"
-                f"<Numero>{numero_doc}</Numero>"
-                f"{_ritenuta_xml(dati_ritenuta)}"
-                f"{causale_xml}"
-                f"</DatiGeneraliDocumento>"
-                f"</DatiGenerali>"
-                f"<DatiBeniServizi>"
-                f"{_linee_xml(dettaglio_linee)}"
-                f"{_riepilogo_xml(dati_riepilogo)}"
-                f"</DatiBeniServizi>"
-                f"{_pagamento_xml(dati_pagamento)}"
-                f"{_allegati_xml(allegati)}"
-                f"</FatturaElettronicaBody>"
+                f"{primary_body}"
+                f"{extra_bodies}"
                 f"</p:FatturaElettronica>"
             )
 

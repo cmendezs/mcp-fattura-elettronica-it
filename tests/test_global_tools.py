@@ -636,3 +636,147 @@ class TestCheckRitenutaAcconto:
         )
         # 333.33 × 0.20 = 66.666 → rounds to 66.67
         assert result["importo_ritenuta"] == "66.67"
+
+
+# ---------------------------------------------------------------------------
+# IT-SC-14: additional_bodies for FPA12 batch invoicing
+# ---------------------------------------------------------------------------
+
+
+class TestAdditionalBodies:
+    def test_fpr12_rejects_additional_bodies(self):
+        """FPR12 does not support batch invoicing."""
+        extra = [
+            {
+                "dati_generali": {
+                    "DatiGeneraliDocumento": {
+                        "TipoDocumento": "TD01",
+                        "Divisa": "EUR",
+                        "Data": "2026-01-16",
+                        "Numero": "2026/002",
+                    }
+                },
+                "dettaglio_linee": VALID_LINEE,
+                "dati_riepilogo": VALID_RIEPILOGO,
+            }
+        ]
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=VALID_DATI_TRASMISSIONE,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+            additional_bodies=extra,
+        )
+        assert "error" in result
+        assert "FPA12" in result["error"]
+
+    def test_fpa12_accepts_additional_bodies(self):
+        """FPA12 supports multiple bodies per envelope."""
+        dt_fpa12 = {
+            "DatiTrasmissione": {
+                "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "ProgressivoInvio": "00001",
+                "FormatoTrasmissione": "FPA12",
+                "CodiceDestinatario": "ABC123",
+            }
+        }
+        cc_with_ufficio = {
+            "CessionarioCommittente": {
+                "DatiAnagrafici": {
+                    "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
+                    "Anagrafica": {"Denominazione": "Ente PA"},
+                },
+                "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
+                "CodiceUfficio": "UFF001",
+            }
+        }
+        extra = [
+            {
+                "dati_generali": {
+                    "DatiGeneraliDocumento": {
+                        "TipoDocumento": "TD01",
+                        "Divisa": "EUR",
+                        "Data": "2026-01-16",
+                        "Numero": "2026/002",
+                    }
+                },
+                "dettaglio_linee": VALID_LINEE,
+                "dati_riepilogo": VALID_RIEPILOGO,
+            }
+        ]
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=dt_fpa12,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=cc_with_ufficio,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+            additional_bodies=extra,
+        )
+        assert "error" not in result
+        assert result["xml"].count("<FatturaElettronicaBody>") == 2
+
+    def test_fpa12_without_additional_bodies_single_body(self):
+        """FPA12 without additional_bodies produces a single body."""
+        dt_fpa12 = {
+            "DatiTrasmissione": {
+                "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "ProgressivoInvio": "00001",
+                "FormatoTrasmissione": "FPA12",
+                "CodiceDestinatario": "ABC123",
+            }
+        }
+        cc_with_ufficio = {
+            "CessionarioCommittente": {
+                "DatiAnagrafici": {
+                    "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
+                    "Anagrafica": {"Denominazione": "Ente PA"},
+                },
+                "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
+                "CodiceUfficio": "UFF001",
+            }
+        }
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=dt_fpa12,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=cc_with_ufficio,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+        )
+        assert "error" not in result
+        assert result["xml"].count("<FatturaElettronicaBody>") == 1
+
+
+# ---------------------------------------------------------------------------
+# IT-SC-6: ItalianInvoice requires transmission fields explicitly
+# ---------------------------------------------------------------------------
+
+
+class TestItalianInvoiceTransmissionFields:
+    """IT-SC-6: transmission fields no longer have defaults on ItalianInvoice."""
+
+    def test_progressivo_invio_is_required(self):
+        from mcp_fattura_elettronica_it.models import ItalianInvoice
+        fields = ItalianInvoice.model_fields
+        assert fields["progressivo_invio"].is_required()
+
+    def test_codice_destinatario_is_required(self):
+        from mcp_fattura_elettronica_it.models import ItalianInvoice
+        fields = ItalianInvoice.model_fields
+        assert fields["codice_destinatario"].is_required()
+
+    def test_formato_trasmissione_is_required(self):
+        from mcp_fattura_elettronica_it.models import ItalianInvoice
+        fields = ItalianInvoice.model_fields
+        assert fields["formato_trasmissione"].is_required()
+
+    def test_pec_destinatario_still_optional(self):
+        from mcp_fattura_elettronica_it.models import ItalianInvoice
+        fields = ItalianInvoice.model_fields
+        assert not fields["pec_destinatario"].is_required()

@@ -222,13 +222,13 @@ class TestValidateCessionario:
             "validate_cessionario",
             nome="Luigi",
             cognome="Bianchi",
-            codice_fiscale="BNCLGI80A01H501T",
+            codice_fiscale="BNCLGI80A01H501O",
             indirizzo="Via Dante 10",
             cap="50100",
             comune="Firenze",
         )
         cc = result["CessionarioCommittente"]
-        assert cc["DatiAnagrafici"]["CodiceFiscale"] == "BNCLGI80A01H501T"
+        assert cc["DatiAnagrafici"]["CodiceFiscale"] == "BNCLGI80A01H501O"
 
     def test_no_tax_identifier_returns_error(self):
         result = call(
@@ -377,3 +377,72 @@ class TestLookupCodiceDestinatario:
         assert result["routing_type"] == "SDI_CODE"
         assert result["codice_destinatario"] == "X1Y2Z3W"
         assert "B2B" in result["note"]
+
+
+# ---------------------------------------------------------------------------
+# IT-TL-3: Codice Fiscale format validation in validate_cessionario
+# ---------------------------------------------------------------------------
+
+
+class TestCodiceFiscaleValidation:
+    def test_valid_16_char_cf_accepted(self):
+        """Valid 16-char Codice Fiscale passes validation."""
+        result = call(
+            "validate_cessionario",
+            denominazione="Mario Rossi",
+            codice_fiscale="RSSMRA80A01H501U",
+            indirizzo="Via Roma 1",
+            cap="00100",
+            comune="Roma",
+        )
+        assert "error" not in result
+
+    def test_valid_11_digit_company_cf_accepted(self):
+        """Valid 11-digit company Codice Fiscale (same as PIVA) passes."""
+        result = call(
+            "validate_cessionario",
+            denominazione="ACME Srl",
+            codice_fiscale="01234567897",
+            indirizzo="Via Roma 1",
+            cap="00100",
+            comune="Roma",
+        )
+        assert "error" not in result
+
+    def test_invalid_length_cf_rejected(self):
+        """CF with wrong length is rejected."""
+        result = call(
+            "validate_cessionario",
+            denominazione="Test",
+            codice_fiscale="ABC123",
+            indirizzo="Via Roma 1",
+            cap="00100",
+            comune="Roma",
+        )
+        assert "error" in result
+        assert "16 alphanumeric" in result["error"] or "Codice Fiscale" in result["error"]
+
+    def test_invalid_checksum_cf_rejected(self):
+        """16-char CF with bad check letter is rejected."""
+        result = call(
+            "validate_cessionario",
+            denominazione="Test",
+            codice_fiscale="RSSMRA80A01H501X",
+            indirizzo="Via Roma 1",
+            cap="00100",
+            comune="Roma",
+        )
+        assert "error" in result
+        assert "Codice Fiscale" in result["error"]
+
+    def test_invalid_11_digit_cf_rejected(self):
+        """11-digit numeric CF with bad checksum is rejected."""
+        result = call(
+            "validate_cessionario",
+            denominazione="Test",
+            codice_fiscale="12345678901",
+            indirizzo="Via Roma 1",
+            cap="00100",
+            comune="Roma",
+        )
+        assert "error" in result

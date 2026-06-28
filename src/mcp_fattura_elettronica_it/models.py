@@ -3,8 +3,8 @@ Italian invoice model — FatturaPA v1.2.3 / SdI.
 
 ItalianInvoice subclasses EN16931Invoice (the correct root for any format that is a
 CIUS or extension of EN 16931-1:2017).  FatturaPA is the Italian CIUS of EN 16931,
-confirmed by its conformance statement and the profile URN
-  urn:cen.eu:en16931:2017#conformant#urn:UBL.BE:1.0.0.20180214
+identified by its BR-IT business rules (CIUS-IT). No profile URN is published by AdE;
+the XSD namespace serves as the format identifier.
 
 Italian-specific fields (DatiTrasmissione, regime fiscale, IPA office code) are added
 as optional Field() declarations on this subclass.  Core fields are never duplicated.
@@ -36,7 +36,6 @@ class ItalianInvoice(EN16931Invoice):
     # ── DatiTrasmissione — SdI routing ───────────────────────────────────────
 
     progressivo_invio: str = Field(
-        default="00001",
         max_length=10,
         description=(
             "Unique sequential SDI send identifier (ProgressivoInvio), max 10 alphanumeric chars. "
@@ -46,7 +45,6 @@ class ItalianInvoice(EN16931Invoice):
     )
 
     codice_destinatario: str = Field(
-        default="0000000",
         description=(
             "SDI recipient code (CodiceDestinatario): 6-char IPA office code (FPA12/B2G), "
             "7-char B2B intermediary code (FPR12), or '0000000' for PEC routing."
@@ -59,7 +57,6 @@ class ItalianInvoice(EN16931Invoice):
     )
 
     formato_trasmissione: str = Field(
-        default="FPR12",
         description="Transmission format: 'FPR12' (B2B/B2C) or 'FPA12' (B2G/PA).",
     )
 

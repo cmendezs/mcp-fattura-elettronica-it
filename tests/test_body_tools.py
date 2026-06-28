@@ -433,3 +433,48 @@ class TestAddAllegato:
             descrizione_allegato="D" * 200,
         )
         assert len(result["Allegati"]["DescrizioneAllegato"]) == 100
+
+
+# ---------------------------------------------------------------------------
+# IT-TL-4: VAT rate warning for unusual rates
+# ---------------------------------------------------------------------------
+
+
+class TestVatRateWarning:
+    def test_unusual_rate_emits_warning_no_error(self):
+        """Non-standard VAT rate (7%) should succeed but emit a warning."""
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Test item",
+            prezzo_unitario=100.0,
+            prezzo_totale=100.0,
+            aliquota_iva=7.0,
+        )
+        assert "error" not in result
+        assert result["DettaglioLinee"]["AliquotaIVA"] == "7.00"
+
+    def test_standard_rate_no_warning(self):
+        """Standard 22% rate should succeed without issue."""
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Test item",
+            prezzo_unitario=100.0,
+            prezzo_totale=100.0,
+            aliquota_iva=22.0,
+        )
+        assert "error" not in result
+
+    def test_all_standard_rates_accepted(self):
+        """All four standard IT rates (4, 5, 10, 22) should pass."""
+        for rate in (4.0, 5.0, 10.0, 22.0):
+            result = call(
+                "add_linea_dettaglio",
+                numero_linea=1,
+                descrizione="Test",
+                prezzo_unitario=100.0,
+                prezzo_totale=100.0,
+                aliquota_iva=rate,
+            )
+            assert "error" not in result

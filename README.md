@@ -8,9 +8,9 @@
 [![PyPI version](https://img.shields.io/pypi/v/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/)
 [![Python](https://img.shields.io/pypi/pyversions/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/) [![mcp-fattura-elettronica-it MCP server](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it/badges/score.svg)](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it)
 
-A Python MCP server for **Italian electronic invoicing** in **FatturaPA XML** format (SDI / Agenzia delle Entrate standard, version 1.6.1). It enables AI agents (Claude, IDEs) to generate, validate, and analyze B2B, B2G, and cross-border electronic invoices that are directly compliant with the technical specifications of the Sistema di Interscambio (SDI).
+A Python MCP server for **Italian electronic invoicing** in **FatturaPA XML** format (SDI / Agenzia delle Entrate standard, version 1.2.3). It enables AI agents (Claude, IDEs) to generate, validate, and analyze B2B, B2G, and cross-border electronic invoices that are directly compliant with the technical specifications of the Sistema di Interscambio (SDI).
 
-This is a **Model Context Protocol (MCP)** server exposing **21 tools** covering the full lifecycle of a FatturaPA XML document: transmission header construction, seller/buyer validation, document type codes (TD01-TD28), line items, VAT summary computation, payment terms, XSD validation against the official Agenzia delle Entrate schema (v1.6.1), XML generation, parsing, JSON export, SDI filename generation, and withholding tax (ritenuta d'acconto) calculation. The server requires no external API calls, as all logic runs locally. Licensed under **Apache 2.0**.
+This is a **Model Context Protocol (MCP)** server exposing **30 tools** covering the full lifecycle of a FatturaPA XML document: transmission header construction, seller/buyer validation, document type codes (TD01-TD28), line items, VAT summary computation, payment terms, XSD validation against the official Agenzia delle Entrate schema (v1.2.3), XML generation, parsing, JSON export, SDI filename generation, and withholding tax (ritenuta d'acconto) calculation. The server requires no external API calls, as all logic runs locally. Licensed under **Apache 2.0**.
 
 ---
 
@@ -53,7 +53,7 @@ The server does not require external credentials in v0.1.0. The available enviro
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `LOG_LEVEL` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
-| `FATTURA_XSD_PATH` | Path to the FatturaPA XSD file | `schemas/FatturaPA_v1.6.1.xsd` |
+| `FATTURA_XSD_PATH` | Path to the FatturaPA XSD file | `schemas/FatturaPA_v1.2.3.xsd` |
 
 ### 🤖 Claude Desktop integration
 
@@ -235,8 +235,8 @@ get_natura_codes()
 ```
 mcp-fattura-elettronica-it (this package, standalone MCP server)
 ├── ItalyPartyValidator(BasePartyValidator)   ← Partita IVA modulo-10
-├── FatturaGenerator(BaseDocumentGenerator)   ← FatturaPA XML v1.6.1
-├── FatturaValidator(BaseDocumentValidator)   ← lxml XSD v1.6.1
+├── FatturaGenerator(BaseDocumentGenerator)   ← FatturaPA XML v1.2.3
+├── FatturaValidator(BaseDocumentValidator)   ← lxml XSD v1.2.3
 └── FatturaParser(BaseDocumentParser)         ← lxml xpath
 
         ↑ extends
@@ -254,7 +254,7 @@ mcp-einvoicing-core (shared foundation, installed as dependency)
 | Resource | Link |
 |----------|------|
 | FatturaPA specifications | [fatturapa.gov.it](https://www.fatturapa.gov.it) |
-| Official XSD v1.6.1 | [Schema v1.2.2, Agenzia delle Entrate](https://www.fatturapa.gov.it/it/norme-e-aggiornamenti/documentazione-fatturapa/) |
+| Official XSD v1.2.3 | [Schema v1.2.2, Agenzia delle Entrate](https://www.fatturapa.gov.it/it/norme-e-aggiornamenti/documentazione-fatturapa/) |
 | XML namespace | `http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2` |
 | SDI, Sistema di Interscambio | [Agenzia delle Entrate](https://www.agenziaentrate.gov.it/portale/web/guest/aree-tematiche/fatturazione-elettronica) |
 | Withholding tax (ritenuta d'acconto) | Art. 25 DPR 600/73, Modello 770 |
@@ -280,11 +280,11 @@ pytest tests/test_mcp_integration.py -v
 
 | Version | Features |
 |---------|----------|
-| **v0.1.0** (current) | XML generation, XSD validation, parsing, 21 MCP tools, withholding tax |
-| **v0.2** | CAdES-BES and XAdES digital signatures (smart card, HSM, P12) |
-| **v0.3** | Direct SDI integration via SDICoop SOAP and SFTP, sending and receiving |
-| **v0.2** | Simplified invoice (TD07/TD08/TD09), amounts up to 400 EUR |
-| **v0.5** | Legally compliant archiving, integration with AgID-accredited providers |
+| **v0.1.0** | XML generation, XSD validation, parsing, 21 MCP tools, withholding tax |
+| **v0.2.0** | Simplified invoices (TD07/TD08/TD09), FPA12 batch invoicing, Codice Fiscale validation, VAT rate warnings, 30 MCP tools |
+| **v0.3.0** (current) | SdI lifecycle scope boundary documented, transmission field defaults removed |
+| **v0.4.0** | CAdES-BES and XAdES digital signatures (smart card, HSM, P12), direct SDI integration (SDICoop SOAP + SFTP) |
+| **v0.5.0** | Legally compliant archiving, integration with AgID-accredited providers |
 
 ---
 

@@ -91,6 +91,9 @@ _MINIMAL_INVOICE = {
     "prepaid_amount": "0.00",
     "rounding_amount": "0.00",
     "amount_due": "1220.00",
+    "progressivo_invio": "00001",
+    "codice_destinatario": "ABCDEFG",
+    "formato_trasmissione": "FPR12",
 }
 
 
