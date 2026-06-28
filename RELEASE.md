@@ -67,10 +67,31 @@ mcp-publisher publish
   `run: |` heredoc).
 - `server.json` description shortened to 86 chars (registry 100-char limit).
 
-### v0.3.0
+### v0.3.0 — 2026-06-28
+#### Added
+- `additional_bodies` parameter on `generate_fattura_xml` for FPA12 batch invoicing
+  (multiple `<FatturaElettronicaBody>` per envelope). **[IT-SC-14] resolved.**
+- Codice Fiscale validation in `validate_cessionario` using core
+  `TaxIdentifier.validate_it_codice_fiscale` (16-char) and `validate_it_partita_iva`
+  (11-digit company format). **[IT-TL-3] resolved.**
+- Informational VAT rate warning in `add_linea_dettaglio` when rate is non-zero
+  and outside {4, 5, 10, 22}. **[IT-TL-4] resolved.**
+- SdI lifecycle scope boundary documented in server instructions. **[IT-LC-2] resolved.**
+- Server now exposes 30 tools (was 27).
 #### Changed
-- `ItalianInvoice(EN16931Invoice)` subclass scaffolded in `models.py`; `FatturaGenerator`
-  updated to use EN 16931 field names throughout. **[IT-SC-7] resolved.**
+- `ItalianInvoice` transmission fields (`progressivo_invio`, `codice_destinatario`,
+  `formato_trasmissione`) no longer have defaults; callers must set them explicitly.
+  Wire-format parsers supply defaults when parsing UBL/CII. **[IT-SC-6] resolved.**
+- Belgian Peppol URN removed from `models.py` docstring; no FatturaPA profile URN
+  exists (verified against AdE spec v1.4 and EU Regole tecniche v2.6).
+  **[IT-SH-2] and [IT-INV-2] resolved.**
+#### Investigation
+- **[IT-INV-1]** Codice Fiscale validator: confirmed stale `[NEED:]` marker; core
+  validator now used in `validate_cessionario`.
+- **[IT-INV-2]** FatturaPA profile URN: no URN exists; CIUS-IT defined by BR-IT
+  rules, not a URN. XSD namespace is the format identifier.
+- **[IT-INV-3]** Rounding mode: ROUND_HALF_UP confirmed correct; AdE spec is
+  silent on rounding mode.
 
 ### v0.2.3
 #### Fixed
