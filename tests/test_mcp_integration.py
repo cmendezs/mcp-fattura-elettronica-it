@@ -70,11 +70,11 @@ def _parse(result) -> dict | list:
 
 class TestToolRegistration:
     @pytest.mark.asyncio
-    async def test_total_tool_count_is_30(self):
-        """The server exposes exactly 30 tools."""
+    async def test_total_tool_count_is_42(self):
+        """The server exposes exactly 42 tools."""
         async with Client(mcp) as client:
             tools = await client.list_tools()
-        assert len(tools) == 30
+        assert len(tools) == 42
 
     @pytest.mark.asyncio
     async def test_all_header_tools_registered(self):
