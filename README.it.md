@@ -10,7 +10,7 @@
 
 Server MCP Python per la **fatturazione elettronica italiana** in formato **FatturaPA XML** (standard SDI / Agenzia delle Entrate, versione 1.2.3). Permette agli agenti IA (Claude, IDE) di generare, validare e analizzare fatture elettroniche B2B, B2G e transfrontaliere direttamente conformi alle specifiche tecniche del Sistema di Interscambio (SDI).
 
-Si tratta di un server **Model Context Protocol (MCP)** che espone **30 strumenti** per l'intero ciclo di vita di un documento FatturaPA XML: costruzione dell'header di trasmissione, validazione cedente/cessionario, codici tipo documento (TD01-TD28), righe dettaglio, calcolo riepilogo IVA, condizioni di pagamento, validazione XSD contro lo schema ufficiale dell'Agenzia delle Entrate (v1.2.3), generazione XML, parsing, esportazione JSON, generazione del nome file SDI e calcolo della ritenuta d'acconto. Il server non richiede chiamate API esterne: tutta la logica viene eseguita localmente. Licenza **Apache 2.0**.
+Si tratta di un server **Model Context Protocol (MCP)** che espone **42 strumenti** per l'intero ciclo di vita di un documento FatturaPA XML: costruzione dell'header di trasmissione, validazione cedente/cessionario, codici tipo documento (TD01-TD28), righe dettaglio, calcolo riepilogo IVA, condizioni di pagamento, validazione XSD contro lo schema ufficiale dell'Agenzia delle Entrate (v1.2.3), generazione XML, parsing, esportazione JSON, generazione del nome file SDI, calcolo della ritenuta d'acconto, firma digitale (XAdES-BES e CAdES-BES), trasmissione diretta al SDI via SDICoop SOAP, parsing delle notifiche SDI e conservazione sostitutiva (archiviazione conforme AgID). Licenza **Apache 2.0**.
 
 ---
 
@@ -48,12 +48,20 @@ cp .env.example .env
 
 ## ⚙️ Configurazione
 
-Il server non richiede credenziali esterne in v0.1.0. Le variabili d'ambiente disponibili sono:
+Le variabili d'ambiente disponibili sono:
 
 | Variabile | Descrizione | Default |
 |-----------|-------------|---------|
 | `LOG_LEVEL` | Livello di log (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
 | `FATTURA_XSD_PATH` | Percorso del file XSD FatturaPA | `schemas/FatturaPA_v1.2.3.xsd` |
+| `SDI_ENVIRONMENT` | Ambiente SDI: `test` o `production` | `test` |
+| `SDI_CERT_PATH` | Percorso del certificato PKCS#12 mTLS per SDI | (nessuno) |
+| `SDI_CERT_PASSWORD` | Password del file PKCS#12 | (nessuno) |
+| `SDI_ENDPOINT_URL` | URL endpoint SDICoop (override) | (auto da ambiente) |
+| `SDI_CHANNEL_ID` | ID canale assegnato durante accreditamento AdE | (nessuno) |
+| `EINVOICING_SIGNER_SOCKET` | Socket Unix per il microservizio di firma | (nessuno) |
+| `EINVOICING_SIGNER_TOKEN` | Token di autenticazione per il microservizio di firma | (nessuno) |
+| `CONSERVAZIONE_STORAGE_PATH` | Percorso archivio locale (solo sviluppo) | `.conservazione/` |
 
 ### 🤖 Integrazione Claude Desktop
 
@@ -139,6 +147,33 @@ File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella car
 | `validate_partita_iva_format` | Validate Partita IVA format and Luhn-like checksum (11-digit Italian VAT) |
 | `get_sdi_filename` | Generate the official SDI filename: IT{PartitaIVA}_{ProgressivoInvio}.xml |
 | `check_ritenuta_acconto` | Check and compute ritenuta d'acconto (withholding tax) for professional invoices |
+
+### Firma digitale (2 strumenti)
+
+| Strumento | Descrizione |
+|-----------|-------------|
+| `sign_fattura_xades` | Firma XAdES-BES enveloped XML (.xml). Richiede certificato PKCS#12. |
+| `sign_fattura_cades` | Firma CAdES-BES CMS/PKCS#7 (.xml.p7m). Richiede certificato PKCS#12. |
+
+### Integrazione SDI (5 strumenti)
+
+| Strumento | Descrizione |
+|-----------|-------------|
+| `submit_to_sdi` | Invia fattura firmata al SDI via SDICoop SOAP (mTLS) |
+| `check_sdi_status` | Verifica stato invio tramite IdentificativoSDI |
+| `parse_sdi_notification` | Parsing notifiche SDI (RC/NS/MC/NE/EC/SE/DT/MT/AT) |
+| `send_esito_committente` | Invia accettazione (EC01) o rifiuto (EC02) al SDI |
+| `get_sdi_channel_info` | Mostra configurazione canale SDI |
+
+### Conservazione sostitutiva (5 strumenti)
+
+| Strumento | Descrizione |
+|-----------|-------------|
+| `archive_invoice` | Archivia fattura firmata con hash SHA-256 e conservazione 10 anni |
+| `retrieve_archived_invoice` | Recupera documento archiviato tramite ID |
+| `verify_archive_integrity` | Verifica integrita hash SHA-256 |
+| `list_archived_invoices` | Elenco fatture archiviate |
+| `build_pacchetto_versamento` | Costruisci PdV ZIP per trasferimento a conservatore accreditato AgID |
 
 ---
 
@@ -267,10 +302,10 @@ pytest tests/test_mcp_integration.py -v
 | Versione | Funzionalità |
 |----------|---------------|
 | **v0.1.0** | Generazione XML, validazione XSD, parsing, 21 strumenti MCP, ritenuta d'acconto |
-| **v0.2.0** | Fattura Semplificata (TD07/TD08/TD09), lotti FPA12, validazione Codice Fiscale, avvisi aliquota IVA, 30 strumenti MCP |
-| **v0.3.0** (attuale) | Documentazione scope SdI, rimozione default campi trasmissione |
-| **v0.4.0** | Firma digitale CAdES-BES e XAdES (smart card, HSM, P12), integrazione diretta SDI (SDICoop SOAP + SFTP) |
-| **v0.5.0** | Conservazione a norma, integrazione con provider accreditati AgID |
+| **v0.2.0** | Fattura Semplificata (TD07/TD08/TD09), lotti FPA12, validazione Codice Fiscale, avvisi aliquota IVA, 30 strumenti |
+| **v0.3.0** | Documentazione scope SdI, rimozione default campi trasmissione |
+| **v0.5.0** (attuale) | Firma digitale XAdES-BES e CAdES-BES, integrazione diretta SDI (SDICoop SOAP), conservazione sostitutiva (archiviazione AgID), 42 strumenti MCP |
+| **v0.6.0** | Canale SFTP, integrazione API provider accreditati AgID |
 
 ---
 

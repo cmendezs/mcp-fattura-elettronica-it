@@ -10,7 +10,7 @@
 
 A Python MCP server for **Italian electronic invoicing** in **FatturaPA XML** format (SDI / Agenzia delle Entrate standard, version 1.2.3). It enables AI agents (Claude, IDEs) to generate, validate, and analyze B2B, B2G, and cross-border electronic invoices that are directly compliant with the technical specifications of the Sistema di Interscambio (SDI).
 
-This is a **Model Context Protocol (MCP)** server exposing **30 tools** covering the full lifecycle of a FatturaPA XML document: transmission header construction, seller/buyer validation, document type codes (TD01-TD28), line items, VAT summary computation, payment terms, XSD validation against the official Agenzia delle Entrate schema (v1.2.3), XML generation, parsing, JSON export, SDI filename generation, and withholding tax (ritenuta d'acconto) calculation. The server requires no external API calls, as all logic runs locally. Licensed under **Apache 2.0**.
+This is a **Model Context Protocol (MCP)** server exposing **42 tools** covering the full lifecycle of a FatturaPA XML document: transmission header construction, seller/buyer validation, document type codes (TD01-TD28), line items, VAT summary computation, payment terms, XSD validation against the official Agenzia delle Entrate schema (v1.2.3), XML generation, parsing, JSON export, SDI filename generation, withholding tax (ritenuta d'acconto) calculation, digital signatures (XAdES-BES and CAdES-BES), direct SDI transmission via SDICoop SOAP, SDI notification parsing, and conservazione sostitutiva (legally compliant archiving per AgID). Licensed under **Apache 2.0**.
 
 ---
 
@@ -48,12 +48,20 @@ cp .env.example .env
 
 ## ⚙️ Configuration
 
-The server does not require external credentials in v0.1.0. The available environment variables are:
+The available environment variables are:
 
 | Variable | Description | Default |
 |----------|-------------|---------|
 | `LOG_LEVEL` | Log level (`DEBUG`, `INFO`, `WARNING`, `ERROR`) | `INFO` |
 | `FATTURA_XSD_PATH` | Path to the FatturaPA XSD file | `schemas/FatturaPA_v1.2.3.xsd` |
+| `SDI_ENVIRONMENT` | SDI environment: `test` or `production` | `test` |
+| `SDI_CERT_PATH` | Path to the PKCS#12 mTLS certificate for SDI | (none) |
+| `SDI_CERT_PASSWORD` | Passphrase for the PKCS#12 file | (none) |
+| `SDI_ENDPOINT_URL` | SDICoop endpoint URL override | (auto from environment) |
+| `SDI_CHANNEL_ID` | Channel ID assigned during AdE accreditation | (none) |
+| `EINVOICING_SIGNER_SOCKET` | Unix socket for the signer microservice | (none) |
+| `EINVOICING_SIGNER_TOKEN` | Auth token for the signer microservice | (none) |
+| `CONSERVAZIONE_STORAGE_PATH` | Local archive storage path (dev only) | `.conservazione/` |
 
 ### 🤖 Claude Desktop integration
 
@@ -153,6 +161,44 @@ Simplified invoices (art. 21-bis DPR 633/72) are valid for transactions up to EU
 breakdown, no DatiRiepilogo. Each `DatiBeniServizi` entry carries its own `Descrizione`,
 `Importo`, and `DatiIVA`. The VFSM10 format uses namespace `v1.0` and is separate from
 the EN 16931 CIUS used by ordinary invoices.
+
+### Digital signatures (2 tools)
+
+| Tool | Description |
+|------|-------------|
+| `sign_fattura_xades` | Apply XAdES-BES enveloped XML signature (.xml). Requires PKCS#12 cert. |
+| `sign_fattura_cades` | Apply CAdES-BES CMS/PKCS#7 attached signature (.xml.p7m). Requires PKCS#12 cert. |
+
+Both signature formats are accepted by SDI (Specifiche tecniche SDI v1.8.4, section 2.1).
+Supports dual mode: signer microservice (keeps keys out of the MCP process) or direct PKCS#12 loading.
+Requires `cryptography>=42.0.0` (installed via the `[xml-sign]` extra on `mcp-einvoicing-core`).
+
+### SDI integration (5 tools)
+
+| Tool | Description |
+|------|-------------|
+| `submit_to_sdi` | Submit a signed invoice to SDI via SDICoop SOAP (mTLS) |
+| `check_sdi_status` | Check submission status by IdentificativoSDI |
+| `parse_sdi_notification` | Parse SDI notification XML (RC/NS/MC/NE/EC/SE/DT/MT/AT) |
+| `send_esito_committente` | Send acceptance (EC01) or rejection (EC02) to SDI |
+| `get_sdi_channel_info` | Show current SDI channel configuration |
+
+Requires AdE accreditation for production use. Configure via `SDI_CERT_PATH`, `SDI_CERT_PASSWORD`,
+`SDI_ENVIRONMENT` (test/production), and `SDI_ENDPOINT_URL` (override) environment variables.
+
+### Conservazione sostitutiva / archiving (5 tools)
+
+| Tool | Description |
+|------|-------------|
+| `archive_invoice` | Archive a signed invoice with SHA-256 hash and 10-year retention |
+| `retrieve_archived_invoice` | Retrieve an archived document by ID |
+| `verify_archive_integrity` | Verify SHA-256 hash integrity of an archived document |
+| `list_archived_invoices` | List all archived invoices |
+| `build_pacchetto_versamento` | Build a PdV ZIP archive for transfer to an AgID-accredited conservator |
+
+Per AgID circolare 65/2014 and DM 17/06/2014, electronic invoices must be archived for
+a minimum of 10 years. The local filesystem backend is for development only; production
+requires integration with an AgID-accredited conservazione provider.
 
 ---
 
@@ -282,9 +328,9 @@ pytest tests/test_mcp_integration.py -v
 |---------|----------|
 | **v0.1.0** | XML generation, XSD validation, parsing, 21 MCP tools, withholding tax |
 | **v0.2.0** | Simplified invoices (TD07/TD08/TD09), FPA12 batch invoicing, Codice Fiscale validation, VAT rate warnings, 30 MCP tools |
-| **v0.3.0** (current) | SdI lifecycle scope boundary documented, transmission field defaults removed |
-| **v0.4.0** | CAdES-BES and XAdES digital signatures (smart card, HSM, P12), direct SDI integration (SDICoop SOAP + SFTP) |
-| **v0.5.0** | Legally compliant archiving, integration with AgID-accredited providers |
+| **v0.3.0** | SdI lifecycle scope boundary documented, transmission field defaults removed |
+| **v0.5.0** (current) | XAdES-BES and CAdES-BES digital signatures, direct SDI integration (SDICoop SOAP), conservazione sostitutiva (AgID archiving), 42 MCP tools |
+| **v0.6.0** | SFTP channel, AgID-accredited provider API integration |
 
 ---
 
