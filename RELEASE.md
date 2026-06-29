@@ -51,6 +51,15 @@ mcp-publisher publish
 
 ## Changelog
 
+### v0.5.0 — 2026-06-29
+#### Added
+- IT-SIGN-1: XAdES-BES and CAdES-BES digital signatures (2 tools: `it__sign_fattura_xades`, `it__sign_fattura_cades`). Dual mode: signer microservice or direct PKCS#12.
+- IT-SDI-1: Direct SDI integration via SDICoop SOAP with mTLS (5 tools: `it__submit_to_sdi`, `it__check_sdi_status`, `it__parse_sdi_notification`, `it__send_esito_committente`, `it__get_sdi_channel_info`). Full notification parser for all 9 SDI notification types.
+- IT-ARCH-1: Conservazione sostitutiva per AgID circolare 65/2014 (5 tools: `it__archive_invoice`, `it__retrieve_archived_invoice`, `it__verify_archive_integrity`, `it__list_archived_invoices`, `it__build_pacchetto_versamento`). Local filesystem backend for dev; PdV ZIP assembly.
+- Server now exposes 42 tools (was 30).
+#### Changed
+- Core dependency updated to `mcp-einvoicing-core>=1.12.0,<2.0.0` (was >=1.1.0).
+
 ### v0.2.5 — 2026-05-31
 #### Added
 - `generate_ubl_invoice` tool — serialises an `ItalianInvoice` dict to UBL 2.1
