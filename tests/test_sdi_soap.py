@@ -58,6 +58,18 @@ class TestParseSdiSoapResponse:
         result = parse_sdi_soap_response(response)
         assert result["IdentificativoSdI"] == "999888777666"
 
+    def test_identificativo_sdi_snake_case_key(self):
+        """IT-LC-3: identificativo_sdi (snake_case) is always populated for lifecycle.py."""
+        response = (
+            b'<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">'
+            b"<soapenv:Body>"
+            b"<IdentificativoSdI>999888777666</IdentificativoSdI>"
+            b"</soapenv:Body>"
+            b"</soapenv:Envelope>"
+        )
+        result = parse_sdi_soap_response(response)
+        assert result["identificativo_sdi"] == "999888777666"
+
     def test_soap_fault_extracted(self):
         response = (
             b'<soapenv:Envelope xmlns:soapenv="http://schemas.xmlsoap.org/soap/envelope/">'

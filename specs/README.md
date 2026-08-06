@@ -23,6 +23,14 @@ format (VFSM10, covering TD07/TD08/TD09) uses a separate namespace
 `http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.0` and is a distinct XML
 format; it cannot be validated against the ordinary invoice XSD.
 
+**Schema content note:** `FatturaPA_FPR12_v1.2.3.xsd` and `FatturaPA_FPA12_v1.2.3.xsd`
+are byte-identical — the ordinary FatturaPA schema does not itself distinguish FPR12
+from FPA12. The two `FormatoTrasmissione` values differ only in SdI business rules
+(e.g. the 6-char IPA `CodiceDestinatario` required for FPA12), not in XSD structure.
+Both files are kept bundled under separate names so format-keyed schema lookup
+(`_get_xsd_path`) stays simple, and so the audit gate's schema-presence check
+(CHECK 5b) continues to verify both.
+
 ---
 
 ## Technical specifications
@@ -57,6 +65,25 @@ is unchanged between 1.2.2 and 1.2.3.
 
 There is no FatturaPA version "1.6.1". All references to that label in code comments
 or docstrings are erroneous and have been corrected to "1.2.3".
+
+---
+
+## SDICoop endpoint URLs — unresolved (IT-LC-5)
+
+`sdi/config.py:75` carries `[NEED: verify SDICoop test/production endpoint URLs from AdE
+accreditation portal]` for the hardcoded defaults `https://testservizi.fatturapa.it/ricevi_fatture`
+(test) and `https://servizi.fatturapa.it/ricevi_fatture` (production).
+
+Checked 2026-08-06 against the bundled `Specifiche-tecniche-relative-al-Sistema-di-Interscambio-
+versione-1.8.4.pdf`: the document describes the SdICoop web-service model (SOAP/HTTPS, WSDL) at a
+conceptual level (§3.1.2, §3.2.2) but explicitly defers the actual endpoint URLs and WSDL contracts
+to separate documents — "Istruzioni per il servizio SDICoop - Trasmissione" and "... - Ricezione" —
+published on the AdE accreditation portal, which is not bundled in `specs/`. No endpoint URL string
+appears anywhere in the PDF.
+
+**Result: not confirmed.** The `[NEED: verify]` marker in `sdi/config.py` stays in place. Resolving
+this requires either downloading the "Istruzioni per il servizio SDICoop" documents from the AdE
+accreditation portal, or verified confirmation from an accredited SDI channel operator.
 
 ---
 

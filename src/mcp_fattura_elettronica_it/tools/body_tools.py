@@ -16,6 +16,7 @@ from pydantic import Field
 
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.xml_utils import format_amount, format_quantity, validate_date_iso, validate_iban
+from mcp_fattura_elettronica_it.natura import NATURA_CODES
 
 logger = get_logger(__name__)
 
@@ -47,36 +48,6 @@ TIPO_DOCUMENTO: dict[str, dict] = {
     "TD27": {"description": "Fattura per autoconsumo o per cessioni gratuite senza rivalsa", "use_case": "Invoice for self-consumption or free transfers"},
     "TD28": {"description": "Acquisti da San Marino con IVA (art. 16, c. 11, D.Lgs. 175/2014)", "use_case": "Purchases from San Marino with VAT (cross-border since 2022)"},
     "TD29": {"description": "Comunicazione per omessa o irregolare fatturazione", "use_case": "Communication for omitted or irregular invoicing by Italian supplier (art. 6, c. 8, D.Lgs. 471/97) — added in FatturaPA XSD v1.2.3"},
-}
-
-# ---------------------------------------------------------------------------
-# Natura codes reference table (N1–N7)
-# ---------------------------------------------------------------------------
-
-NATURA_CODES: dict[str, dict] = {
-    # Parent codes N2, N3, N6 removed — retired from FatturaPA NaturaType XSD enumeration
-    # effective 1 January 2021 (AdE Circular 14/E 2019). Use sub-codes only.
-    "N1": {"description": "Escluse ex art. 15", "legal_ref": "Art. 15 DPR 633/72"},
-    "N2.1": {"description": "Non soggette ad IVA ai sensi degli artt. da 7 a 7-septies del DPR 633/72", "legal_ref": "Art. 7–7-septies DPR 633/72 (territoriality)"},
-    "N2.2": {"description": "Non soggette — altri casi", "legal_ref": "Other out-of-scope cases"},
-    "N3.1": {"description": "Non imponibili — esportazioni", "legal_ref": "Art. 8 DPR 633/72 (exports)"},
-    "N3.2": {"description": "Non imponibili — cessioni intracomunitarie", "legal_ref": "Art. 41 DL 331/93 (intra-EU)"},
-    "N3.3": {"description": "Non imponibili — cessioni verso San Marino", "legal_ref": "Art. 71 DPR 633/72"},
-    "N3.4": {"description": "Non imponibili — operazioni assimilate alle cessioni all'esportazione", "legal_ref": "Art. 8-bis DPR 633/72"},
-    "N3.5": {"description": "Non imponibili — a seguito di dichiarazioni d'intento", "legal_ref": "Habitual exporter declaration (lettera d'intento)"},
-    "N3.6": {"description": "Non imponibili — altre operazioni che non concorrono alla formazione del plafond", "legal_ref": "Other zero-rated not forming VAT ceiling"},
-    "N4": {"description": "Esenti", "legal_ref": "Art. 10 DPR 633/72 (VAT-exempt supplies)"},
-    "N5": {"description": "Regime del margine / IVA non esposta in fattura", "legal_ref": "Art. 36 DL 41/95 (margin scheme)"},
-    "N6.1": {"description": "Inversione contabile — cessione di rottami e altri materiali di recupero", "legal_ref": "Art. 74 c. 7-8 DPR 633/72"},
-    "N6.2": {"description": "Inversione contabile — cessione di oro e argento puro", "legal_ref": "Art. 17 c. 5 DPR 633/72"},
-    "N6.3": {"description": "Inversione contabile — subappalto nel settore edile", "legal_ref": "Art. 17 c. 6 lett. a DPR 633/72"},
-    "N6.4": {"description": "Inversione contabile — cessione di fabbricati", "legal_ref": "Art. 17 c. 6 lett. a-bis DPR 633/72"},
-    "N6.5": {"description": "Inversione contabile — cessione di telefoni cellulari", "legal_ref": "Art. 17 c. 6 lett. b DPR 633/72"},
-    "N6.6": {"description": "Inversione contabile — cessione di prodotti elettronici", "legal_ref": "Art. 17 c. 6 lett. c DPR 633/72"},
-    "N6.7": {"description": "Inversione contabile — prestazioni comparto edile e settori connessi", "legal_ref": "Art. 17 c. 6 lett. a-ter DPR 633/72"},
-    "N6.8": {"description": "Inversione contabile — operazioni settore energetico", "legal_ref": "Art. 17 c. 6 lett. d-bis/d-ter/d-quater DPR 633/72"},
-    "N6.9": {"description": "Inversione contabile — altri casi", "legal_ref": "Other reverse charge cases"},
-    "N7": {"description": "IVA assolta in altro stato UE (one stop shop)", "legal_ref": "OSS / IOSS — VAT paid in another EU member state"},
 }
 
 # ---------------------------------------------------------------------------
@@ -344,7 +315,8 @@ def register_body_tools(mcp: FastMCP) -> None:
         Set ritenuta='SI' on lines subject to withholding tax and include the DatiRitenuta block
         from check_ritenuta_acconto() when generating XML.
 
-        On success returns {'DettaglioLinee': {...}}.
+        On success returns {'DettaglioLinee': {...}}, plus 'warnings' (list[str])
+        when aliquota_iva is a non-standard IT VAT rate (outside 4, 5, 10, 22).
         On failure returns {'error': '<reason>'}.
         """
         if aliquota_iva == 0.0 and not natura:
@@ -366,13 +338,15 @@ def register_body_tools(mcp: FastMCP) -> None:
         if ritenuta and ritenuta not in ("SI",):
             return {"error": "ritenuta must be 'SI' or omitted."}
 
+        warnings: list[str] = []
         _STANDARD_IT_RATES = {4.0, 5.0, 10.0, 22.0}
         if aliquota_iva != 0.0 and aliquota_iva not in _STANDARD_IT_RATES:
-            logger.warning(
-                "Unusual IT VAT rate %.2f%% on linea %d; standard rates are 4, 5, 10, 22",
-                aliquota_iva,
-                numero_linea,
+            message = (
+                f"Unusual IT VAT rate {aliquota_iva:.2f}% on linea {numero_linea}; "
+                "standard rates are 4, 5, 10, 22"
             )
+            logger.warning(message)
+            warnings.append(message)
 
         linea: dict = {
             "NumeroLinea": numero_linea,
@@ -391,7 +365,10 @@ def register_body_tools(mcp: FastMCP) -> None:
         if ritenuta:
             linea["Ritenuta"] = ritenuta
 
-        return {"DettaglioLinee": linea}
+        result: dict = {"DettaglioLinee": linea}
+        if warnings:
+            result["warnings"] = warnings
+        return result
 
     @mcp.tool()
     def compute_totali(
@@ -432,13 +409,13 @@ def register_body_tools(mcp: FastMCP) -> None:
             if key not in groups:
                 groups[key] = {
                     "AliquotaIVA": f"{aliquota:.2f}",
-                    "Imponibile": Decimal("0"),
+                    "ImponibileImporto": Decimal("0"),
                     "Imposta": Decimal("0"),
                     "Natura": natura,
                     "EsigibilitaIVA": "I",  # Immediata (default)
                 }
 
-            groups[key]["Imponibile"] += prezzo_totale
+            groups[key]["ImponibileImporto"] += prezzo_totale
             if aliquota > 0:
                 groups[key]["Imposta"] += (prezzo_totale * aliquota / 100).quantize(
                     Decimal("0.01"), rounding=ROUND_HALF_UP
@@ -449,14 +426,14 @@ def register_body_tools(mcp: FastMCP) -> None:
         totale_imposta = Decimal("0")
 
         for entry in groups.values():
-            imponibile = entry["Imponibile"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            imponibile = entry["ImponibileImporto"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             imposta = entry["Imposta"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             totale_imponibile += imponibile
             totale_imposta += imposta
 
             riepilogo_entry: dict = {
                 "AliquotaIVA": entry["AliquotaIVA"],
-                "Imponibile": str(imponibile),
+                "ImponibileImporto": str(imponibile),
                 "Imposta": str(imposta),
                 "EsigibilitaIVA": entry["EsigibilitaIVA"],
             }

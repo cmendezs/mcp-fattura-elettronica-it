@@ -25,6 +25,7 @@ from mcp_einvoicing_core.models import (
     TaxIdentifier,
 )
 from mcp_fattura_elettronica_it.models import ItalianInvoice
+from mcp_fattura_elettronica_it.natura import resolve_natura
 
 logger = get_logger(__name__)
 
@@ -111,12 +112,8 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
         for line in document.line_items:
             qta = f"<Quantita>{line.quantity}</Quantita>" if line.quantity is not None else ""
             um = f"<UnitaMisura>{line.unit_code}</UnitaMisura>" if line.unit_code else ""
-            # Emit Natura only for non-standard-rated lines (category != S)
-            nat = (
-                f"<Natura>{xml_escape(line.tax_category)}</Natura>"
-                if line.tax_category not in ("S",)
-                else ""
-            )
+            natura_code = resolve_natura(line.tax_category, explicit=line.natura)
+            nat = f"<Natura>{xml_escape(natura_code)}</Natura>" if natura_code else ""
             linee_xml += (
                 f"<DettaglioLinee>"
                 f"<NumeroLinea>{line.line_id}</NumeroLinea>"
@@ -131,16 +128,13 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
 
         riepilogo_xml = ""
         for tax in document.tax_lines:
-            nat = (
-                f"<Natura>{xml_escape(tax.category)}</Natura>"
-                if tax.category not in ("S",)
-                else ""
-            )
+            natura_code = resolve_natura(tax.category, explicit=tax.natura)
+            nat = f"<Natura>{xml_escape(natura_code)}</Natura>" if natura_code else ""
             riepilogo_xml += (
                 f"<DatiRiepilogo>"
                 f"<AliquotaIVA>{tax.rate:.2f}</AliquotaIVA>"
                 f"{nat}"
-                f"<Imponibile>{tax.taxable_amount:.2f}</Imponibile>"
+                f"<ImponibileImporto>{tax.taxable_amount:.2f}</ImponibileImporto>"
                 f"<Imposta>{tax.tax_amount:.2f}</Imposta>"
                 f"<EsigibilitaIVA>I</EsigibilitaIVA>"
                 f"</DatiRiepilogo>"
@@ -242,6 +236,11 @@ class FatturaValidator(BaseDocumentValidator):
         return str(path) if path.exists() else None
 
     def _get_schema_path_for_format(self, formato: str) -> Optional[str]:
+        """Resolve the bundled schema file for FPR12 or FPA12.
+
+        Both files share the same ordinary FatturaPA schema content (v1.2.2);
+        they differ only in SdI business rules, not in XSD structure.
+        """
         filename = "FatturaPA_FPA12_v1.2.3.xsd" if formato == "FPA12" else "FatturaPA_FPR12_v1.2.3.xsd"
         path = _SCHEMAS_DIR / filename
         return str(path) if path.exists() else None
@@ -331,7 +330,7 @@ class FatturaParser(BaseDocumentParser):
 
         versione = root.get("versione", "unknown")
         header = root.find("FatturaElettronicaHeader")
-        body = root.find("FatturaElettronicaBody")
+        body_elements = root.findall("FatturaElettronicaBody")
 
         result: dict = {"versione": versione, "header": {}, "body": {}}
 
@@ -379,50 +378,57 @@ class FatturaParser(BaseDocumentParser):
                     "nazione": _txt(cc, "Sede/Nazione"),
                 }
 
-        if body is not None:
+        def _parse_body(body) -> dict:
             dg = body.find("DatiGenerali/DatiGeneraliDocumento")
-            result["body"]["dati_generali"] = {
-                "tipo_documento": _txt(dg, "TipoDocumento"),
-                "divisa": _txt(dg, "Divisa"),
-                "data": _txt(dg, "Data"),
-                "numero": _txt(dg, "Numero"),
-                "causale": _txt(dg, "Causale"),
+            body_result: dict = {
+                "dati_generali": {
+                    "tipo_documento": _txt(dg, "TipoDocumento"),
+                    "divisa": _txt(dg, "Divisa"),
+                    "data": _txt(dg, "Data"),
+                    "numero": _txt(dg, "Numero"),
+                    "causale": _txt(dg, "Causale"),
+                },
+                "dettaglio_linee": [
+                    {
+                        "numero_linea": _txt(ld, "NumeroLinea"),
+                        "descrizione": _txt(ld, "Descrizione"),
+                        "quantita": _txt(ld, "Quantita"),
+                        "prezzo_unitario": _txt(ld, "PrezzoUnitario"),
+                        "prezzo_totale": _txt(ld, "PrezzoTotale"),
+                        "aliquota_iva": _txt(ld, "AliquotaIVA"),
+                        "natura": _txt(ld, "Natura"),
+                    }
+                    for ld in body.findall("DatiBeniServizi/DettaglioLinee")
+                ],
+                "dati_riepilogo": [
+                    {
+                        "aliquota_iva": _txt(r, "AliquotaIVA"),
+                        "natura": _txt(r, "Natura"),
+                        "imponibile": _txt(r, "ImponibileImporto"),
+                        "imposta": _txt(r, "Imposta"),
+                        "esigibilita_iva": _txt(r, "EsigibilitaIVA"),
+                    }
+                    for r in body.findall("DatiBeniServizi/DatiRiepilogo")
+                ],
             }
-
-            result["body"]["dettaglio_linee"] = [
-                {
-                    "numero_linea": _txt(ld, "NumeroLinea"),
-                    "descrizione": _txt(ld, "Descrizione"),
-                    "quantita": _txt(ld, "Quantita"),
-                    "prezzo_unitario": _txt(ld, "PrezzoUnitario"),
-                    "prezzo_totale": _txt(ld, "PrezzoTotale"),
-                    "aliquota_iva": _txt(ld, "AliquotaIVA"),
-                    "natura": _txt(ld, "Natura"),
-                }
-                for ld in body.findall("DatiBeniServizi/DettaglioLinee")
-            ]
-
-            result["body"]["dati_riepilogo"] = [
-                {
-                    "aliquota_iva": _txt(r, "AliquotaIVA"),
-                    "natura": _txt(r, "Natura"),
-                    "imponibile": _txt(r, "Imponibile"),
-                    "imposta": _txt(r, "Imposta"),
-                    "esigibilita_iva": _txt(r, "EsigibilitaIVA"),
-                }
-                for r in body.findall("DatiBeniServizi/DatiRiepilogo")
-            ]
 
             dp = body.find("DatiPagamento")
             if dp is not None:
                 ddp = dp.find("DettaglioPagamento")
-                result["body"]["dati_pagamento"] = {
+                body_result["dati_pagamento"] = {
                     "condizioni_pagamento": _txt(dp, "CondizioniPagamento"),
                     "modalita_pagamento": _txt(ddp, "ModalitaPagamento"),
                     "importo_pagamento": _txt(ddp, "ImportoPagamento"),
                     "data_scadenza": _txt(ddp, "DataScadenzaPagamento"),
                     "iban": _txt(ddp, "IBAN"),
                 }
+
+            return body_result
+
+        bodies = [_parse_body(body) for body in body_elements]
+        if bodies:
+            result["body"] = bodies[0]
+            result["bodies"] = bodies
 
         return result
 

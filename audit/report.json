@@ -1,5 +1,5 @@
 {
-  "generated_at": "2026-07-15T13:32:36.283095+00:00",
+  "generated_at": "2026-08-06T15:28:49.234485+00:00",
   "pkg_name": "mcp-fattura-elettronica-it",
   "pkg_version": "0.5.0",
   "core_version": "1.15.0",
@@ -1048,7 +1048,7 @@
           "tag": "[OK]",
           "severity": "OK",
           "symbol": "validate_cessionario",
-          "message": "Tool 'validate_cessionario' is present. (Validate buyer block (tax ID, CodiceFiscale, CodiceUfficio))"
+          "message": "Tool 'validate_cessionario' is present. (Validate buyer block (tax ID, CodiceFiscale))"
         },
         {
           "check_id": "CHECK_2",
@@ -1313,6 +1313,20 @@
           "severity": "OK",
           "symbol": "models.ItalianInvoice",
           "message": "ItalianInvoice(EN16931Invoice) is correctly scaffolded."
+        },
+        {
+          "check_id": "CHECK_5",
+          "tag": "[OK]",
+          "severity": "OK",
+          "symbol": "xsd_roundtrip[FPR12]",
+          "message": "generate_fattura_xml() output for FPR12 validates against the bundled XSD."
+        },
+        {
+          "check_id": "CHECK_5",
+          "tag": "[OK]",
+          "severity": "OK",
+          "symbol": "xsd_roundtrip[FPA12]",
+          "message": "generate_fattura_xml() output for FPA12 validates against the bundled XSD."
         }
       ]
     },

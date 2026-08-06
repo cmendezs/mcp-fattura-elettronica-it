@@ -25,8 +25,6 @@ import json
 import sys
 from pathlib import Path
 
-_PKG_DIR = Path(__file__).parent.parent
-
 from mcp_einvoicing_core.audit import (
     SEVERITY_BLOCKING,
     SEVERITY_OK,
@@ -41,6 +39,8 @@ from mcp_einvoicing_core.audit import (
     run_check_core_coverage,
     run_check_version_compatibility,
 )
+
+_PKG_DIR = Path(__file__).parent.parent
 
 # ---------------------------------------------------------------------------
 # CHECK 1 configuration — country-specific constants
@@ -192,7 +192,7 @@ _REQUIRED_TOOLS: dict[str, str] = {
     # Header tools (7)
     "build_transmission_header":   "Build DatiTrasmissione block (SDI routing)",
     "validate_cedente_prestatore": "Validate seller block (tax ID, address, regime)",
-    "validate_cessionario":        "Validate buyer block (tax ID, CodiceFiscale, CodiceUfficio)",
+    "validate_cessionario":        "Validate buyer block (tax ID, CodiceFiscale)",
     "get_regime_fiscale_codes":    "List all RegimeFiscale codes RF01-RF19",
     "generate_progressivo_invio":  "Generate a unique ProgressivoInvio sequence",
     "lookup_codice_destinatario":  "Validate SDI recipient code (6/7-char) or PEC address",
@@ -451,7 +451,137 @@ def run_check_5() -> CheckResult:
                     message=f"Could not verify base class: {exc}",
                 ))
 
+    # 5d: generate→validate XSD roundtrip for FPR12 and FPA12 (IT-AG-1)
+    result.findings.extend(_run_xsd_roundtrip_check())
+
     return result
+
+
+def _run_xsd_roundtrip_check() -> list[CheckFinding]:
+    """5d — generate one canonical FPR12 and one FPA12 invoice and XSD-validate both.
+
+    IT-SC-19/IT-SC-20 shipped as BLOCKING findings because the audit gate never
+    exercised generate_fattura_xml() against the bundled XSD. This sub-check
+    closes that hole: it fails BLOCKING whenever generated output does not
+    validate, so a future schema regression cannot pass the gate silently.
+    """
+    import asyncio
+
+    findings: list[CheckFinding] = []
+    try:
+        from fastmcp import FastMCP as _FastMCP
+        from mcp_fattura_elettronica_it.tools.global_tools import register_global_tools
+
+        test_mcp = _FastMCP("it-audit-xsd-roundtrip")
+        register_global_tools(test_mcp)
+        tools = {t.name: t.fn for t in asyncio.run(test_mcp.list_tools())}
+        generate = tools["generate_fattura_xml"]
+        validate = tools["validate_fattura_xsd"]
+    except Exception as exc:
+        findings.append(CheckFinding(
+            check_id="CHECK_5", tag="[SKIP]", severity=SEVERITY_WARNING,
+            symbol="xsd_roundtrip",
+            message=f"Could not register global tools for XSD roundtrip check: {exc}",
+        ))
+        return findings
+
+    cedente_prestatore = {
+        "CedentePrestatore": {
+            "DatiAnagrafici": {
+                "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "Anagrafica": {"Denominazione": "Audit Gate Srl"},
+                "RegimeFiscale": "RF01",
+            },
+            "Sede": {"Indirizzo": "Via Roma 1", "CAP": "00100", "Comune": "Roma", "Nazione": "IT"},
+        }
+    }
+    cessionario_committente = {
+        "CessionarioCommittente": {
+            "DatiAnagrafici": {
+                "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
+                "Anagrafica": {"Denominazione": "Buyer Srl"},
+            },
+            "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
+        }
+    }
+    dati_generali = {
+        "DatiGenerali": {
+            "DatiGeneraliDocumento": {
+                "TipoDocumento": "TD01",
+                "Divisa": "EUR",
+                "Data": "2026-01-15",
+                "Numero": "2026/001",
+            }
+        }
+    }
+    dettaglio_linee = [
+        {
+            "DettaglioLinee": {
+                "NumeroLinea": 1,
+                "Descrizione": "Consulenza",
+                "PrezzoUnitario": "1000.00",
+                "PrezzoTotale": "1000.00",
+                "AliquotaIVA": "22.00",
+            }
+        }
+    ]
+    dati_riepilogo = [
+        {
+            "AliquotaIVA": "22.00",
+            "ImponibileImporto": "1000.00",
+            "Imposta": "220.00",
+            "EsigibilitaIVA": "I",
+        }
+    ]
+
+    _cases = {
+        "FPR12": "ABC123",
+        "FPA12": "A1B2C3",  # 6-char IPA office code
+    }
+    for formato, codice_dest in _cases.items():
+        dati_trasmissione = {
+            "DatiTrasmissione": {
+                "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "ProgressivoInvio": "00001",
+                "FormatoTrasmissione": formato,
+                "CodiceDestinatario": codice_dest,
+            }
+        }
+        gen_result = generate(
+            dati_trasmissione=dati_trasmissione,
+            cedente_prestatore=cedente_prestatore,
+            cessionario_committente=cessionario_committente,
+            dati_generali=dati_generali,
+            dettaglio_linee=dettaglio_linee,
+            dati_riepilogo=dati_riepilogo,
+        )
+        symbol = f"xsd_roundtrip[{formato}]"
+        if "error" in gen_result:
+            findings.append(CheckFinding(
+                check_id="CHECK_5", tag="[GENERATION_FAILED]", severity=SEVERITY_BLOCKING,
+                symbol=symbol,
+                message=f"generate_fattura_xml() failed for {formato}: {gen_result['error']}",
+            ))
+            continue
+
+        xsd_result = validate(xml_string=gen_result["xml"])
+        if xsd_result.get("valid") is True:
+            findings.append(CheckFinding(
+                check_id="CHECK_5", tag="[OK]", severity=SEVERITY_OK,
+                symbol=symbol,
+                message=f"generate_fattura_xml() output for {formato} validates against the bundled XSD.",
+            ))
+        else:
+            findings.append(CheckFinding(
+                check_id="CHECK_5", tag="[XSD_INVALID]", severity=SEVERITY_BLOCKING,
+                symbol=symbol,
+                message=(
+                    f"generate_fattura_xml() output for {formato} fails XSD validation: "
+                    f"{xsd_result.get('errors', xsd_result)}"
+                ),
+            ))
+
+    return findings
 
 
 # ---------------------------------------------------------------------------

@@ -44,7 +44,7 @@ class SDILifecycleManager(BaseLifecycleManager):
 
         result = await self._client.send_invoice(document, filename)
 
-        id_sdi = result.get("IdentificativoSdI") or result.get("identificativo_sdi", "")
+        id_sdi = result.get("identificativo_sdi", "")
 
         return SubmitResult(
             invoice_ref=str(id_sdi),

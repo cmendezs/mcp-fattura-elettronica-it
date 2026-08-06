@@ -170,6 +170,22 @@ class TestAddLineaDettaglio:
         assert linea["AliquotaIVA"] == "22.00"
         assert linea["Quantita"] == "8"
         assert linea["UnitaMisura"] == "ORE"
+        assert "warnings" not in result
+
+    def test_non_standard_vat_rate_returns_warning(self):
+        """IT-TL-5: a non-standard VAT rate surfaces a warning in the response."""
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Consulenza",
+            prezzo_unitario=100.0,
+            prezzo_totale=100.0,
+            aliquota_iva=15.0,
+        )
+        assert "error" not in result
+        assert "warnings" in result
+        assert len(result["warnings"]) == 1
+        assert "15.00%" in result["warnings"][0]
 
     def test_zero_vat_requires_natura(self):
         result = call(

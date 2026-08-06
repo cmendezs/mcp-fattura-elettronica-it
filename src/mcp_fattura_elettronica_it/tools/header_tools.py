@@ -307,18 +307,6 @@ def register_header_tools(mcp: FastMCP) -> None:
         cap: Annotated[str, Field(description="Postal code of the buyer.")] = "",
         comune: Annotated[str, Field(description="City of the buyer.")] = "",
         nazione: Annotated[str, Field(description="ISO country code of the buyer.")] = "IT",
-        codice_ufficio: Annotated[
-            Optional[str],
-            Field(
-                default=None,
-                description=(
-                    "IPA office code (CodiceUfficio) for B2G invoices (FPA12 format). "
-                    "Required for all invoices addressed to a Public Administration (PA). "
-                    "6-character code from the IPA registry (https://www.indicepa.gov.it). "
-                    "Absence causes SdI routing rejection for FPA12 invoices."
-                ),
-            ),
-        ] = None,
     ) -> dict:
         """Validate and build the CessionarioCommittente (buyer) block for FatturaPA.
 
@@ -331,8 +319,9 @@ def register_header_tools(mcp: FastMCP) -> None:
 
         Italian B2C buyers with only a CodiceFiscale: set codice_fiscale and leave
         id_paese/id_codice empty. Foreign B2B buyers: set id_paese + id_codice.
-        For B2G invoices (FPA12): codice_ufficio is required — the 6-char IPA office code
-        from https://www.indicepa.gov.it. Absence causes SdI routing rejection.
+        For B2G invoices (FPA12): routing to the Public Administration is via a 6-char
+        IPA office CodiceDestinatario in build_transmission_header(), not via this tool —
+        look up the code at https://www.indicepa.gov.it.
 
         On success returns {'CessionarioCommittente': {...}} ready for generate_fattura_xml().
         On failure returns {'error': '<reason>'} listing all issues joined by '; '.
@@ -383,7 +372,7 @@ def register_header_tools(mcp: FastMCP) -> None:
         if codice_fiscale:
             dati_anagrafici["CodiceFiscale"] = codice_fiscale
 
-        result: dict = {
+        return {
             "CessionarioCommittente": {
                 "DatiAnagrafici": dati_anagrafici,
                 "Sede": {
@@ -394,9 +383,6 @@ def register_header_tools(mcp: FastMCP) -> None:
                 },
             }
         }
-        if codice_ufficio:
-            result["CessionarioCommittente"]["CodiceUfficio"] = codice_ufficio.upper()
-        return result
 
     @mcp.tool()
     def get_regime_fiscale_codes() -> dict:

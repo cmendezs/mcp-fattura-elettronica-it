@@ -85,6 +85,36 @@ _MT_XML = b"""\
 </MetadatiInvioFile>
 """
 
+# IT-LC-3: prefixed-namespace fixtures. Real SDI notifications are sometimes
+# wrapped in a namespace-prefixed root by the calling SOAP/transport layer;
+# _text() must resolve fields by local name, not only for the unprefixed case.
+_RC_XML_PREFIXED = b"""\
+<?xml version="1.0" encoding="UTF-8"?>
+<ns:RicevutaConsegna xmlns:ns="http://www.fatturapa.gov.it/sdi/messaggi/v1.0">
+  <ns:IdentificativoSdI>123456789012</ns:IdentificativoSdI>
+  <ns:NomeFile>IT01234567890_00001.xml</ns:NomeFile>
+  <ns:DataOraRicezione>2026-06-29T10:00</ns:DataOraRicezione>
+  <ns:DataOraConsegna>2026-06-29T10:01</ns:DataOraConsegna>
+  <ns:MessageId>999</ns:MessageId>
+</ns:RicevutaConsegna>
+"""
+
+_NS_XML_PREFIXED = b"""\
+<?xml version="1.0" encoding="UTF-8"?>
+<ns:NotificaScarto xmlns:ns="http://www.fatturapa.gov.it/sdi/messaggi/v1.0">
+  <ns:IdentificativoSdI>123456789012</ns:IdentificativoSdI>
+  <ns:NomeFile>IT01234567890_00001.xml</ns:NomeFile>
+  <ns:DataOraRicezione>2026-06-29T10:00</ns:DataOraRicezione>
+  <ns:ListaErrori>
+    <ns:Errore>
+      <ns:Codice>00200</ns:Codice>
+      <ns:Descrizione>File non conforme</ns:Descrizione>
+    </ns:Errore>
+  </ns:ListaErrori>
+  <ns:MessageId>1000</ns:MessageId>
+</ns:NotificaScarto>
+"""
+
 
 class TestParseRicevutaConsegna:
     def test_type_is_rc(self):
@@ -154,3 +184,21 @@ class TestUnrecognisedRoot:
     def test_raises_value_error(self):
         with pytest.raises(ValueError, match="Unrecognised"):
             parse_notification(b"<UnknownRoot/>")
+
+
+class TestParsePrefixedNamespace:
+    """IT-LC-3: fields must resolve by local name under a prefixed namespace."""
+
+    def test_ricevuta_consegna_identificativo_sdi(self):
+        n = parse_notification(_RC_XML_PREFIXED)
+        assert n.tipo == SDINotificationType.RC
+        assert n.identificativo_sdi == "123456789012"
+        assert n.nome_file == "IT01234567890_00001.xml"
+        assert n.data_ora_consegna == "2026-06-29T10:01"
+
+    def test_notifica_scarto_identificativo_sdi(self):
+        n = parse_notification(_NS_XML_PREFIXED)
+        assert n.tipo == SDINotificationType.NS
+        assert n.identificativo_sdi == "123456789012"
+        assert len(n.errori) == 1
+        assert n.errori[0].codice == "00200"

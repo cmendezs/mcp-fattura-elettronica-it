@@ -429,7 +429,7 @@ class TestGlobalToolCalls:
             "dati_riepilogo": [
                 {
                     "AliquotaIVA": "22.00",
-                    "Imponibile": "5000.00",
+                    "ImponibileImporto": "5000.00",
                     "Imposta": "1100.00",
                     "EsigibilitaIVA": "I",
                 }

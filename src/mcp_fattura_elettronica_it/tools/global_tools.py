@@ -31,8 +31,11 @@ _XSD_CACHE: dict[str, Path] = {}
 def _get_xsd_path(formato: str = "FPR12") -> Path:
     """Resolve the XSD schema path for the given FormatoTrasmissione.
 
-    FPR12 (B2B/B2C) and FPA12 (B2G) each have their own AdE XSD file since v1.2.3.
-    FATTURA_XSD_PATH env var overrides for both formats (single custom schema path).
+    FPR12 (B2B/B2C) and FPA12 (B2G) are bundled as two separate files but share
+    the same ordinary FatturaPA schema content (v1.2.2); they differ only in
+    SdI business rules (e.g. the 6-char IPA CodiceDestinatario for FPA12), not
+    in XSD structure. FATTURA_XSD_PATH env var overrides for both formats
+    (single custom schema path).
     """
     global _XSD_CACHE
     if formato in _XSD_CACHE:
@@ -227,7 +230,6 @@ def register_global_tools(mcp: FastMCP) -> None:
             cc_cf = cc_dati.get("CodiceFiscale", "")
             cc_anagrafica = cc_dati.get("Anagrafica", {})
             cc_sede = cc.get("Sede", {})
-            cc_codice_ufficio = cc.get("CodiceUfficio", "")
 
             if additional_bodies and formato != "FPA12":
                 return {
@@ -237,11 +239,16 @@ def register_global_tools(mcp: FastMCP) -> None:
                     )
                 }
 
-            if formato == "FPA12" and not cc_codice_ufficio:
+            # SdI business rule (not an XSD constraint): for PA-destined invoices,
+            # CodiceDestinatario is 6 characters and must match the Codice Ufficio in
+            # IndicePA (WWW.INDICEPA.GOV.IT). Verified: Specifiche_tecniche_del_formato_
+            # FatturaPA_V1.4.pdf §1.1 "DATI DI TRASMISSIONE", p.9.
+            if formato == "FPA12" and not re.match(r"^[A-Z0-9]{6}$", codice_dest.upper()):
                 return {
                     "error": (
-                        "CodiceUfficio is required for FPA12 (Public Administration) invoices. "
-                        "Set codice_ufficio in validate_cessionario() with the 6-char IPA office code."
+                        "FPA12 (Public Administration) invoices require a 6-character "
+                        f"IPA office CodiceDestinatario; got '{codice_dest}'. "
+                        "Look up the code at https://www.indicepa.gov.it."
                     )
                 }
 
@@ -271,11 +278,11 @@ def register_global_tools(mcp: FastMCP) -> None:
                     parts.append(
                         f"<IdFiscaleIVA>"
                         f"<IdPaese>{cc_id.get('IdPaese', 'IT')}</IdPaese>"
-                        f"<IdCodice>{cc_id.get('IdCodice', '')}</IdCodice>"
+                        f"<IdCodice>{xml_escape(cc_id.get('IdCodice', ''))}</IdCodice>"
                         f"</IdFiscaleIVA>"
                     )
                 if cc_cf:
-                    parts.append(f"<CodiceFiscale>{cc_cf}</CodiceFiscale>")
+                    parts.append(f"<CodiceFiscale>{xml_escape(cc_cf)}</CodiceFiscale>")
                 return "".join(parts)
 
             def _linee_xml(linee: list) -> str:
@@ -303,11 +310,12 @@ def register_global_tools(mcp: FastMCP) -> None:
                 parts = []
                 for r in riepilogo:
                     nat = f"<Natura>{r['Natura']}</Natura>" if "Natura" in r else ""
+                    imponibile = r["ImponibileImporto"] if "ImponibileImporto" in r else r["Imponibile"]
                     parts.append(
                         f"<DatiRiepilogo>"
                         f"<AliquotaIVA>{r['AliquotaIVA']}</AliquotaIVA>"
                         f"{nat}"
-                        f"<Imponibile>{r['Imponibile']}</Imponibile>"
+                        f"<ImponibileImporto>{imponibile}</ImponibileImporto>"
                         f"<Imposta>{r['Imposta']}</Imposta>"
                         f"<EsigibilitaIVA>{r.get('EsigibilitaIVA', 'I')}</EsigibilitaIVA>"
                         f"</DatiRiepilogo>"
@@ -436,25 +444,25 @@ def register_global_tools(mcp: FastMCP) -> None:
                 f"<DatiTrasmissione>"
                 f"<IdTrasmittente>"
                 f"<IdPaese>{id_paese_tx}</IdPaese>"
-                f"<IdCodice>{id_codice_tx}</IdCodice>"
+                f"<IdCodice>{xml_escape(id_codice_tx)}</IdCodice>"
                 f"</IdTrasmittente>"
                 f"<ProgressivoInvio>{progressivo}</ProgressivoInvio>"
                 f"<FormatoTrasmissione>{formato}</FormatoTrasmissione>"
-                f"<CodiceDestinatario>{codice_dest}</CodiceDestinatario>"
+                f"<CodiceDestinatario>{xml_escape(codice_dest)}</CodiceDestinatario>"
                 f"{pec_xml}"
                 f"</DatiTrasmissione>"
                 f"<CedentePrestatore>"
                 f"<DatiAnagrafici>"
                 f"<IdFiscaleIVA>"
                 f"<IdPaese>{cp_id.get('IdPaese', 'IT')}</IdPaese>"
-                f"<IdCodice>{cp_id.get('IdCodice', '')}</IdCodice>"
+                f"<IdCodice>{xml_escape(cp_id.get('IdCodice', ''))}</IdCodice>"
                 f"</IdFiscaleIVA>"
                 f"<Anagrafica>{_seller_name(cp_anagrafica)}</Anagrafica>"
-                f"<RegimeFiscale>{cp_regime}</RegimeFiscale>"
+                f"<RegimeFiscale>{xml_escape(cp_regime)}</RegimeFiscale>"
                 f"</DatiAnagrafici>"
                 f"<Sede>"
                 f"<Indirizzo>{xml_escape(cp_sede.get('Indirizzo', ''))}</Indirizzo>"
-                f"<CAP>{cp_sede.get('CAP', '')}</CAP>"
+                f"<CAP>{xml_escape(cp_sede.get('CAP', ''))}</CAP>"
                 f"<Comune>{xml_escape(cp_sede.get('Comune', ''))}</Comune>"
                 f"<Nazione>{cp_sede.get('Nazione', 'IT')}</Nazione>"
                 f"</Sede>"
@@ -466,11 +474,10 @@ def register_global_tools(mcp: FastMCP) -> None:
                 f"</DatiAnagrafici>"
                 f"<Sede>"
                 f"<Indirizzo>{xml_escape(cc_sede.get('Indirizzo', ''))}</Indirizzo>"
-                f"<CAP>{cc_sede.get('CAP', '')}</CAP>"
+                f"<CAP>{xml_escape(cc_sede.get('CAP', ''))}</CAP>"
                 f"<Comune>{xml_escape(cc_sede.get('Comune', ''))}</Comune>"
                 f"<Nazione>{cc_sede.get('Nazione', 'IT')}</Nazione>"
                 f"</Sede>"
-                f"{'<CodiceUfficio>' + cc_codice_ufficio + '</CodiceUfficio>' if cc_codice_ufficio else ''}"
                 f"</CessionarioCommittente>"
                 f"</FatturaElettronicaHeader>"
                 f"{primary_body}"
@@ -617,14 +624,14 @@ def register_global_tools(mcp: FastMCP) -> None:
 
         _h = _find(root, "FatturaElettronicaHeader")
         header = _h if _h is not None else _find(root, "p:FatturaElettronicaHeader")
-        _b = _find(root, "FatturaElettronicaBody")
-        body = _b if _b is not None else _find(root, "p:FatturaElettronicaBody")
 
         # Fallback: search without namespace
         if header is None:
             header = root.find("FatturaElettronicaHeader")
-        if body is None:
-            body = root.find("FatturaElettronicaBody")
+
+        bodies_ns = root.xpath("p:FatturaElettronicaBody", namespaces=ns)
+        bodies_no_ns = root.findall("FatturaElettronicaBody")
+        body_elements = bodies_ns if bodies_ns else bodies_no_ns
 
         def _txt(el, path: str) -> Optional[str]:
             if el is None:
@@ -682,14 +689,16 @@ def register_global_tools(mcp: FastMCP) -> None:
                     "nazione": _txt(cc, "Sede/Nazione"),
                 }
 
-        if body is not None:
+        def _parse_body(body) -> dict:
+            body_result: dict = {}
+
             dg = body.find("DatiGenerali/DatiGeneraliDocumento")
             causale_list = []
             if dg is not None:
                 for causale_el in dg.findall("Causale"):
                     if causale_el.text:
                         causale_list.append(causale_el.text)
-            result["body"]["dati_generali"] = {
+            body_result["dati_generali"] = {
                 "tipo_documento": _txt(dg, "TipoDocumento") if dg is not None else None,
                 "divisa": _txt(dg, "Divisa") if dg is not None else None,
                 "data": _txt(dg, "Data") if dg is not None else None,
@@ -708,29 +717,36 @@ def register_global_tools(mcp: FastMCP) -> None:
                     "aliquota_iva": _txt(linea, "AliquotaIVA"),
                     "natura": _txt(linea, "Natura"),
                 })
-            result["body"]["dettaglio_linee"] = linee
+            body_result["dettaglio_linee"] = linee
 
             riepilogo = []
             for r in body.findall("DatiBeniServizi/DatiRiepilogo"):
                 riepilogo.append({
                     "aliquota_iva": _txt(r, "AliquotaIVA"),
                     "natura": _txt(r, "Natura"),
-                    "imponibile": _txt(r, "Imponibile"),
+                    "imponibile": _txt(r, "ImponibileImporto"),
                     "imposta": _txt(r, "Imposta"),
                     "esigibilita_iva": _txt(r, "EsigibilitaIVA"),
                 })
-            result["body"]["dati_riepilogo"] = riepilogo
+            body_result["dati_riepilogo"] = riepilogo
 
             dp = body.find("DatiPagamento")
             if dp is not None:
                 ddp = dp.find("DettaglioPagamento")
-                result["body"]["dati_pagamento"] = {
+                body_result["dati_pagamento"] = {
                     "condizioni_pagamento": _txt(dp, "CondizioniPagamento"),
                     "modalita_pagamento": _txt(ddp, "ModalitaPagamento") if ddp is not None else None,
                     "importo_pagamento": _txt(ddp, "ImportoPagamento") if ddp is not None else None,
                     "data_scadenza": _txt(ddp, "DataScadenzaPagamento") if ddp is not None else None,
                     "iban": _txt(ddp, "IBAN") if ddp is not None else None,
                 }
+
+            return body_result
+
+        bodies = [_parse_body(body) for body in body_elements]
+        if bodies:
+            result["body"] = bodies[0]
+            result["bodies"] = bodies
 
         return result
 

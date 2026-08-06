@@ -312,7 +312,7 @@ class TestCrossFormatRejection:
             }
         }
         linee = [{"DettaglioLinee": {"NumeroLinea": 1, "Descrizione": "X", "PrezzoUnitario": "10", "PrezzoTotale": "10.00", "AliquotaIVA": "22.00"}}]
-        riepilogo = [{"AliquotaIVA": "22.00", "Imponibile": "10.00", "Imposta": "2.20", "EsigibilitaIVA": "I"}]
+        riepilogo = [{"AliquotaIVA": "22.00", "ImponibileImporto": "10.00", "Imposta": "2.20", "EsigibilitaIVA": "I"}]
 
         result = call(
             "generate_fattura_xml",

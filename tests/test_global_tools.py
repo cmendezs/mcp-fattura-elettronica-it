@@ -83,7 +83,7 @@ VALID_LINEE = [
         "DettaglioLinee": {
             "NumeroLinea": 1,
             "Descrizione": "Consulenza",
-            "PrezzoUnitario": "1000",
+            "PrezzoUnitario": "1000.00",
             "PrezzoTotale": "1000.00",
             "AliquotaIVA": "22.00",
         }
@@ -93,7 +93,7 @@ VALID_LINEE = [
 VALID_RIEPILOGO = [
     {
         "AliquotaIVA": "22.00",
-        "Imponibile": "1000.00",
+        "ImponibileImporto": "1000.00",
         "Imposta": "220.00",
         "EsigibilitaIVA": "I",
     }
@@ -160,8 +160,30 @@ class TestGenerateFatturaXml:
         result = _generate_xml()
         assert "2026/001" in result["xml"]
 
-    def test_fpa12_requires_codice_ufficio(self):
-        """IT-SC-12: FPA12 without codice_ufficio returns error."""
+    def test_fpa12_rejects_7_char_codice_destinatario(self):
+        """IT-SC-20: FPA12 requires a 6-char IPA CodiceDestinatario, not CodiceUfficio."""
+        dt = {
+            "DatiTrasmissione": {
+                "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "ProgressivoInvio": "00001",
+                "FormatoTrasmissione": "FPA12",
+                "CodiceDestinatario": "A1B2C3D",  # 7 chars — invalid for FPA12
+            }
+        }
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=dt,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+        )
+        assert "error" in result
+        assert "6-character" in result["error"]
+
+    def test_fpa12_accepts_6_char_codice_destinatario(self):
+        """IT-SC-20: FPA12 with a 6-char CodiceDestinatario succeeds; no CodiceUfficio emitted."""
         dt = {
             "DatiTrasmissione": {
                 "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
@@ -179,40 +201,8 @@ class TestGenerateFatturaXml:
             dettaglio_linee=VALID_LINEE,
             dati_riepilogo=VALID_RIEPILOGO,
         )
-        assert "error" in result
-        assert "CodiceUfficio" in result["error"]
-
-    def test_fpa12_with_codice_ufficio_succeeds(self):
-        """IT-SC-12: FPA12 with codice_ufficio succeeds."""
-        dt = {
-            "DatiTrasmissione": {
-                "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
-                "ProgressivoInvio": "00001",
-                "FormatoTrasmissione": "FPA12",
-                "CodiceDestinatario": "A1B2C3",
-            }
-        }
-        cc_with_ufficio = {
-            "CessionarioCommittente": {
-                "DatiAnagrafici": {
-                    "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
-                    "Anagrafica": {"Denominazione": "PA Entity"},
-                },
-                "Sede": {"Indirizzo": "Via Roma 1", "CAP": "00100", "Comune": "Roma", "Nazione": "IT"},
-                "CodiceUfficio": "UFAB12",
-            }
-        }
-        result = call(
-            "generate_fattura_xml",
-            dati_trasmissione=dt,
-            cedente_prestatore=VALID_CEDENTE,
-            cessionario_committente=cc_with_ufficio,
-            dati_generali=VALID_DATI_GENERALI,
-            dettaglio_linee=VALID_LINEE,
-            dati_riepilogo=VALID_RIEPILOGO,
-        )
         assert "error" not in result
-        assert "UFAB12" in result["xml"]
+        assert "CodiceUfficio" not in result["xml"]
 
     def test_ritenuta_before_causale_in_xml(self):
         """IT-SC-5: DatiRitenuta must appear before Causale in the XML."""
@@ -330,9 +320,64 @@ class TestValidateFatturaXsd:
     def test_valid_xml_passes(self):
         xml = _generate_xml()["xml"]
         result = call("validate_fattura_xsd", xml_string=xml)
-        # The generated XML may not pass strict XSD due to simplified generation,
-        # but the tool must return a dict with 'valid' key.
-        assert "valid" in result
+        assert result["valid"] is True, result.get("errors")
+
+    def test_fpa12_valid_xml_passes(self):
+        dt_fpa12 = {
+            "DatiTrasmissione": {
+                "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "ProgressivoInvio": "00001",
+                "FormatoTrasmissione": "FPA12",
+                "CodiceDestinatario": "A1B2C3",
+            }
+        }
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=dt_fpa12,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+        )
+        assert "error" not in result
+        xsd_result = call("validate_fattura_xsd", xml_string=result["xml"])
+        assert xsd_result["valid"] is True, xsd_result.get("errors")
+
+    def test_exempt_natura_n4_xml_passes(self):
+        linee_esenti = [
+            {
+                "DettaglioLinee": {
+                    "NumeroLinea": 1,
+                    "Descrizione": "Prestazione esente",
+                    "PrezzoUnitario": "1000.00",
+                    "PrezzoTotale": "1000.00",
+                    "AliquotaIVA": "0.00",
+                    "Natura": "N4",
+                }
+            }
+        ]
+        riepilogo_esente = [
+            {
+                "AliquotaIVA": "0.00",
+                "Natura": "N4",
+                "ImponibileImporto": "1000.00",
+                "Imposta": "0.00",
+                "EsigibilitaIVA": "I",
+            }
+        ]
+        result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=VALID_DATI_TRASMISSIONE,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=linee_esenti,
+            dati_riepilogo=riepilogo_esente,
+        )
+        assert "error" not in result
+        xsd_result = call("validate_fattura_xsd", xml_string=result["xml"])
+        assert xsd_result["valid"] is True, xsd_result.get("errors")
 
     def test_malformed_xml_returns_error(self):
         result = call("validate_fattura_xsd", xml_string="<not-valid-xml")
@@ -392,6 +437,56 @@ class TestParseFatturaXml:
         riepilogo = result["body"]["dati_riepilogo"]
         assert len(riepilogo) == 1
         assert riepilogo[0]["aliquota_iva"] == "22.00"
+
+    def test_parses_imponibile_importo(self):
+        """IT-SC-19: parsing a real-shaped <ImponibileImporto> document populates imponibile."""
+        xml = _generate_xml()["xml"]
+        assert "<ImponibileImporto>1000.00</ImponibileImporto>" in xml
+        result = call("parse_fattura_xml", xml_string=xml)
+        riepilogo = result["body"]["dati_riepilogo"]
+        assert riepilogo[0]["imponibile"] == "1000.00"
+
+    def test_parses_multi_body_fpa12_into_bodies_list(self):
+        """IT-LC-4: a multi-body FPA12 file parses to two entries in 'bodies'."""
+        dt_fpa12 = {
+            "DatiTrasmissione": {
+                "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "ProgressivoInvio": "00001",
+                "FormatoTrasmissione": "FPA12",
+                "CodiceDestinatario": "A1B2C3",
+            }
+        }
+        extra = [
+            {
+                "dati_generali": {
+                    "DatiGeneraliDocumento": {
+                        "TipoDocumento": "TD01",
+                        "Divisa": "EUR",
+                        "Data": "2026-01-16",
+                        "Numero": "2026/002",
+                    }
+                },
+                "dettaglio_linee": VALID_LINEE,
+                "dati_riepilogo": VALID_RIEPILOGO,
+            }
+        ]
+        gen_result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=dt_fpa12,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+            additional_bodies=extra,
+        )
+        assert "error" not in gen_result
+
+        result = call("parse_fattura_xml", xml_string=gen_result["xml"])
+        assert len(result["bodies"]) == 2
+        assert result["body"] == result["bodies"][0]
+        assert result["bodies"][0]["dati_generali"]["numero"] == "2026/001"
+        assert result["bodies"][1]["dati_generali"]["numero"] == "2026/002"
 
 
 # ---------------------------------------------------------------------------
@@ -683,14 +778,13 @@ class TestAdditionalBodies:
                 "CodiceDestinatario": "ABC123",
             }
         }
-        cc_with_ufficio = {
+        cc_pa_entity = {
             "CessionarioCommittente": {
                 "DatiAnagrafici": {
                     "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
                     "Anagrafica": {"Denominazione": "Ente PA"},
                 },
                 "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
-                "CodiceUfficio": "UFF001",
             }
         }
         extra = [
@@ -711,7 +805,7 @@ class TestAdditionalBodies:
             "generate_fattura_xml",
             dati_trasmissione=dt_fpa12,
             cedente_prestatore=VALID_CEDENTE,
-            cessionario_committente=cc_with_ufficio,
+            cessionario_committente=cc_pa_entity,
             dati_generali=VALID_DATI_GENERALI,
             dettaglio_linee=VALID_LINEE,
             dati_riepilogo=VALID_RIEPILOGO,
@@ -730,21 +824,20 @@ class TestAdditionalBodies:
                 "CodiceDestinatario": "ABC123",
             }
         }
-        cc_with_ufficio = {
+        cc_pa_entity = {
             "CessionarioCommittente": {
                 "DatiAnagrafici": {
                     "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
                     "Anagrafica": {"Denominazione": "Ente PA"},
                 },
                 "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
-                "CodiceUfficio": "UFF001",
             }
         }
         result = call(
             "generate_fattura_xml",
             dati_trasmissione=dt_fpa12,
             cedente_prestatore=VALID_CEDENTE,
-            cessionario_committente=cc_with_ufficio,
+            cessionario_committente=cc_pa_entity,
             dati_generali=VALID_DATI_GENERALI,
             dettaglio_linee=VALID_LINEE,
             dati_riepilogo=VALID_RIEPILOGO,

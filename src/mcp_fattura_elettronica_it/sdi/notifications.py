@@ -115,11 +115,10 @@ def parse_notification(xml_bytes: bytes) -> SDINotification:
         )
 
     def _text(tag: str) -> Optional[str]:
-        el = root.find(f".//{tag}")
-        if el is None:
-            el = root.find(f".//{{{root.nsmap.get(None, '')}}}{tag}")
-        if el is not None and el.text:
-            return el.text.strip()
+        for el in root.iter():
+            el_local = el.tag.split("}")[-1] if "}" in el.tag else el.tag
+            if el_local == tag and el.text:
+                return el.text.strip()
         return None
 
     errori: list[SDIErrore] = []

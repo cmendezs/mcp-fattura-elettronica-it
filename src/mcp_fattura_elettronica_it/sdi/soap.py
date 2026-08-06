@@ -91,6 +91,9 @@ def parse_sdi_soap_response(response_bytes: bytes) -> dict:
         if child.text and child.text.strip():
             result[local] = child.text.strip()
 
+    if "IdentificativoSdI" in result:
+        result["identificativo_sdi"] = result["IdentificativoSdI"]
+
     fault = root.find(f".//{{{_SOAP_NS}}}Fault")
     if fault is not None:
         faultstring = fault.findtext("faultstring") or "Unknown SOAP fault"

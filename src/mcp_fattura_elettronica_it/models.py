@@ -19,7 +19,34 @@ from typing import Optional
 
 from pydantic import Field
 
-from mcp_einvoicing_core.en16931 import EN16931Invoice
+from mcp_einvoicing_core.en16931 import EN16931Invoice, EN16931LineItem, EN16931Tax
+
+
+class ItalianLineItem(EN16931LineItem):
+    """Invoice line — EN 16931 BG-25, narrowed for FatturaPA.
+
+    natura: FatturaPA Natura exemption code (N1–N7 and sub-codes) for this line.
+    Escape hatch for tax_category values that resolve_natura() cannot map
+    unambiguously (Z, AE, L, M) — set explicitly in that case.
+    """
+
+    natura: Optional[str] = Field(
+        default=None,
+        description="FatturaPA Natura exemption code for this line, if any.",
+    )
+
+
+class ItalianTax(EN16931Tax):
+    """VAT breakdown entry — EN 16931 BG-23, narrowed for FatturaPA.
+
+    natura: FatturaPA Natura exemption code (N1–N7 and sub-codes) for this
+    DatiRiepilogo group. Escape hatch, as with ItalianLineItem.natura.
+    """
+
+    natura: Optional[str] = Field(
+        default=None,
+        description="FatturaPA Natura exemption code for this VAT group, if any.",
+    )
 
 
 class ItalianInvoice(EN16931Invoice):
@@ -71,15 +98,13 @@ class ItalianInvoice(EN16931Invoice):
         ),
     )
 
-    # ── CessionarioCommittente — B2G office routing ──────────────────────────
+    # ── DatiBeniServizi — Natura-aware line items and tax lines ──────────────
 
-    codice_ufficio: Optional[str] = Field(
-        default=None,
-        max_length=20,
-        description=(
-            "IPA office code (CodiceUfficio) for B2G invoices (FPA12). "
-            "Required for all invoices addressed to a Public Administration. "
-            "Absence causes SdI routing rejection. "
-            "Look up at https://www.indicepa.gov.it."
-        ),
+    line_items: list[ItalianLineItem] = Field(  # type: ignore[assignment]
+        default_factory=list,
+        description="Invoice lines (BG-25), narrowed with an optional Natura code.",
+    )
+
+    tax_lines: list[ItalianTax] = Field(  # type: ignore[assignment]
+        ..., description="VAT breakdown (BG-23), narrowed with an optional Natura code.",
     )
