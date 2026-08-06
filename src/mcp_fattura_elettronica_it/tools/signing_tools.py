@@ -14,7 +14,6 @@ import base64
 from typing import Any
 
 from fastmcp import FastMCP
-
 from mcp_einvoicing_core.base_server import assert_not_read_only
 from mcp_einvoicing_core.confirmation import ConfirmationGate
 from mcp_einvoicing_core.logging_utils import get_logger

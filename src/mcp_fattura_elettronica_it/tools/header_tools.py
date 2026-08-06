@@ -9,13 +9,12 @@ from __future__ import annotations
 
 import random
 import re
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastmcp import FastMCP
-from pydantic import Field
-
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.models import TaxIdentifier
+from pydantic import Field
 
 logger = get_logger(__name__)
 
@@ -101,7 +100,7 @@ def register_header_tools(mcp: FastMCP) -> None:
             ),
         ],
         pec_destinatario: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(
@@ -160,18 +159,18 @@ def register_header_tools(mcp: FastMCP) -> None:
             Field(description="Partita IVA (11 digits) or foreign VAT number of the seller."),
         ],
         denominazione: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description="Company name (Denominazione). Mutually exclusive with nome+cognome.",
             ),
         ] = None,
         nome: Annotated[
-            Optional[str],
+            str | None,
             Field(default=None, description="First name (Nome), for individual sellers."),
         ] = None,
         cognome: Annotated[
-            Optional[str],
+            str | None,
             Field(default=None, description="Last name (Cognome), for individual sellers."),
         ] = None,
         regime_fiscale: Annotated[
@@ -259,7 +258,7 @@ def register_header_tools(mcp: FastMCP) -> None:
     @mcp.tool()
     def validate_cessionario(
         denominazione: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(
@@ -269,15 +268,15 @@ def register_header_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         nome: Annotated[
-            Optional[str],
+            str | None,
             Field(default=None, description="First name of the buyer (natural person)."),
         ] = None,
         cognome: Annotated[
-            Optional[str],
+            str | None,
             Field(default=None, description="Last name of the buyer (natural person)."),
         ] = None,
         id_paese: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(
@@ -287,14 +286,14 @@ def register_header_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         id_codice: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description="VAT number of the buyer. Required if id_paese is provided.",
             ),
         ] = None,
         codice_fiscale: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(
@@ -431,7 +430,7 @@ def register_header_tools(mcp: FastMCP) -> None:
     @mcp.tool()
     def generate_progressivo_invio(
         prefix: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(
@@ -441,7 +440,7 @@ def register_header_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         sequence: Annotated[
-            Optional[int],
+            int | None,
             Field(
                 default=None,
                 ge=1,
@@ -484,7 +483,7 @@ def register_header_tools(mcp: FastMCP) -> None:
     @mcp.tool()
     def lookup_codice_destinatario(
         codice: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(
@@ -496,7 +495,7 @@ def register_header_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         pec: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(

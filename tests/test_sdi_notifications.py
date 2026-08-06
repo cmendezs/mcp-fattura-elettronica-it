@@ -9,7 +9,6 @@ from mcp_fattura_elettronica_it.sdi.notifications import (
     parse_notification,
 )
 
-
 _RC_XML = b"""\
 <?xml version="1.0" encoding="UTF-8"?>
 <RicevutaConsegna>

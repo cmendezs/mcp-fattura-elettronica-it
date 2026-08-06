@@ -12,7 +12,7 @@ from __future__ import annotations
 import hashlib
 import io
 import zipfile
-from datetime import datetime, timezone
+from datetime import UTC, datetime
 from typing import Any
 
 from lxml import etree
@@ -39,7 +39,7 @@ def build_indice_pdv(
     header = etree.SubElement(root, "Header")
     etree.SubElement(header, "ProducerId").text = metadata.get("producer_id", "")
     etree.SubElement(header, "ArchiveDate").text = metadata.get(
-        "archive_date", datetime.now(timezone.utc).isoformat()
+        "archive_date", datetime.now(UTC).isoformat()
     )
     etree.SubElement(header, "RetentionYears").text = str(
         metadata.get("retention_years", 10)

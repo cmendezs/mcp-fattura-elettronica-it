@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
@@ -52,7 +51,7 @@ class SDISettings(BaseSettings):
         default="",
         description="Path to the PKCS#12 (.p12/.pfx) mTLS certificate.",
     )
-    cert_password: Optional[str] = Field(
+    cert_password: str | None = Field(
         default=None,
         description="Passphrase for the PKCS#12 file.",
     )

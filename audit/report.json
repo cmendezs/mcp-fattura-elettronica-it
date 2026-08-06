@@ -1,7 +1,7 @@
 {
-  "generated_at": "2026-08-06T15:28:49.234485+00:00",
+  "generated_at": "2026-08-06T17:51:45.924851+00:00",
   "pkg_name": "mcp-fattura-elettronica-it",
-  "pkg_version": "0.5.0",
+  "pkg_version": "0.6.0",
   "core_version": "1.15.0",
   "core_version_compatible": true,
   "exit_code": 1,

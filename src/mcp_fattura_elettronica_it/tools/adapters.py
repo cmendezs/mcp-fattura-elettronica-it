@@ -9,7 +9,6 @@ enabling mcp-fattura-elettronica-it to participate in multi-country aggregators
 from __future__ import annotations
 
 from pathlib import Path
-from typing import Optional
 
 from mcp_einvoicing_core.base_server import (
     BaseDocumentGenerator,
@@ -17,13 +16,14 @@ from mcp_einvoicing_core.base_server import (
     BaseDocumentValidator,
     BasePartyValidator,
 )
-from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.exceptions import DocumentGenerationError
-from mcp_einvoicing_core.xml_utils import safe_fromstring, safe_parser, xml_escape
+from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.models import (
     DocumentValidationResult,
     TaxIdentifier,
 )
+from mcp_einvoicing_core.xml_utils import safe_fromstring, safe_parser, xml_escape
+
 from mcp_fattura_elettronica_it.models import ItalianInvoice
 from mcp_fattura_elettronica_it.natura import resolve_natura
 
@@ -47,7 +47,7 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
     def get_country_code(self) -> str:
         return "IT"
 
-    def get_namespace(self) -> Optional[str]:
+    def get_namespace(self) -> str | None:
         return _FATTURA_NS
 
     def generate(self, document: ItalianInvoice) -> str:
@@ -231,11 +231,11 @@ class FatturaValidator(BaseDocumentValidator):
     def get_schema_version(self) -> str:
         return "FatturaPA v1.2.3"
 
-    def get_schema_path(self) -> Optional[str]:
+    def get_schema_path(self) -> str | None:
         path = _SCHEMAS_DIR / "FatturaPA_FPR12_v1.2.3.xsd"
         return str(path) if path.exists() else None
 
-    def _get_schema_path_for_format(self, formato: str) -> Optional[str]:
+    def _get_schema_path_for_format(self, formato: str) -> str | None:
         """Resolve the bundled schema file for FPR12 or FPA12.
 
         Both files share the same ordinary FatturaPA schema content (v1.2.2);
@@ -283,7 +283,7 @@ class FatturaValidator(BaseDocumentValidator):
                 parser.resolvers.add(_LocalResolver())
             xsd_doc = etree.parse(str(xsd_path), parser)
             schema = etree.XMLSchema(xsd_doc)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — XSD load can fail in ways lxml doesn't type; surface as a validation result, not a crash
             return DocumentValidationResult(
                 valid=False, errors=[f"Failed to load XSD: {exc}"], warnings=[], metadata={}
             )
@@ -322,7 +322,7 @@ class FatturaParser(BaseDocumentParser):
         except etree.XMLSyntaxError as exc:
             return {"error": f"XML parse error: {exc}"}
 
-        def _txt(el, path: str) -> Optional[str]:
+        def _txt(el, path: str) -> str | None:
             if el is None:
                 return None
             node = el.find(path)

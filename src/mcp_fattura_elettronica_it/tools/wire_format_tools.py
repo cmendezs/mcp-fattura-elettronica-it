@@ -20,8 +20,6 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastmcp import FastMCP
-from pydantic import Field, ValidationError
-
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.wire_formats import (
     EN16931CIIParser,
@@ -29,6 +27,8 @@ from mcp_einvoicing_core.wire_formats import (
     EN16931UBLParser,
     EN16931UBLSerializer,
 )
+from pydantic import Field, ValidationError
+
 from mcp_fattura_elettronica_it.models import ItalianInvoice
 
 logger = get_logger(__name__)
@@ -146,7 +146,7 @@ def register_wire_format_tools(mcp: FastMCP) -> None:
         except ValidationError as exc:
             errors = [str(e["msg"]) for e in exc.errors()]
             return {"error": "Invoice validation failed.", "details": errors}
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — non-ValidationError parse failures still return as a tool error, not a crash
             return {"error": f"Failed to parse invoice_data: {exc}"}
 
         try:
@@ -198,7 +198,7 @@ def register_wire_format_tools(mcp: FastMCP) -> None:
         except ValidationError as exc:
             errors = [str(e["msg"]) for e in exc.errors()]
             return {"error": "Invoice validation failed.", "details": errors}
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — non-ValidationError parse failures still return as a tool error, not a crash
             return {"error": f"Failed to parse invoice_data: {exc}"}
 
         try:
@@ -242,7 +242,7 @@ def register_wire_format_tools(mcp: FastMCP) -> None:
         try:
             xml_bytes = xml_string.encode("utf-8") if isinstance(xml_string, str) else xml_string
             invoice = _ITUBLParser().parse(xml_bytes)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — untrusted XML; any parse failure becomes a tool error, not a crash
             return {"valid": False, "errors": [f"XML parse error: {exc}"]}
 
         errors: list[str] = []
@@ -322,7 +322,7 @@ def register_wire_format_tools(mcp: FastMCP) -> None:
         try:
             xml_bytes = xml_string.encode("utf-8") if isinstance(xml_string, str) else xml_string
             invoice = _ITCIIParser().parse(xml_bytes)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — untrusted XML; any parse failure becomes a tool error, not a crash
             return {"valid": False, "errors": [f"XML parse error: {exc}"]}
 
         errors: list[str] = []

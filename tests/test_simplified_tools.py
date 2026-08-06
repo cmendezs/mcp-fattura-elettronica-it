@@ -9,10 +9,10 @@ from __future__ import annotations
 import asyncio
 
 from fastmcp import FastMCP
-from mcp_fattura_elettronica_it.tools.simplified_tools import register_simplified_tools
 
 # Also import global tools to test that TD07 is rejected by the ordinary generator
 from mcp_fattura_elettronica_it.tools.global_tools import register_global_tools
+from mcp_fattura_elettronica_it.tools.simplified_tools import register_simplified_tools
 
 # ---------------------------------------------------------------------------
 # Setup

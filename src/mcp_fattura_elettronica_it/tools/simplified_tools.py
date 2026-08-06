@@ -13,13 +13,12 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastmcp import FastMCP
-from pydantic import Field
-
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.xml_utils import safe_fromstring, safe_parser, xml_escape
+from pydantic import Field
 
 logger = get_logger(__name__)
 
@@ -98,7 +97,7 @@ def register_simplified_tools(mcp: FastMCP) -> None:
             ),
         ],
         allegati: Annotated[
-            Optional[list],
+            list | None,
             Field(
                 default=None,
                 description=(
@@ -235,7 +234,7 @@ def register_simplified_tools(mcp: FastMCP) -> None:
                 return "".join(parts)
 
             # Allegati (simplified format uses NomeAttachment, not NomeAllegato)
-            def _allegati_xml(allegati_list: Optional[list]) -> str:
+            def _allegati_xml(allegati_list: list | None) -> str:
                 if not allegati_list:
                     return ""
                 parts = []
@@ -392,7 +391,7 @@ def register_simplified_tools(mcp: FastMCP) -> None:
 
             xsd_doc = etree.parse(str(xsd_path), parser)
             schema = etree.XMLSchema(xsd_doc)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — XSD load can fail in ways lxml doesn't type; surface as a tool error, not a crash
             return {"error": f"Failed to load VFSM10 XSD schema: {exc}"}
 
         is_valid = schema.validate(xml_doc)
@@ -446,7 +445,7 @@ def register_simplified_tools(mcp: FastMCP) -> None:
                 return nodes[0]
             return element.find(xpath)
 
-        def _txt(el, path: str) -> Optional[str]:
+        def _txt(el, path: str) -> str | None:
             if el is None:
                 return None
             node = el.find(path)

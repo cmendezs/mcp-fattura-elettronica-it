@@ -13,8 +13,6 @@ special-scheme codes" for the source table.
 
 from __future__ import annotations
 
-from typing import Optional
-
 from mcp_einvoicing_core.exceptions import DocumentGenerationError
 
 # ---------------------------------------------------------------------------
@@ -65,7 +63,7 @@ NATURA_CODES: dict[str, dict] = {
 # (N3.x for zero-rated variants, N6.x for reverse charge) depends on business
 # context that the bare UNCL5305 category does not carry. Callers must pass
 # an explicit Natura for these categories.
-UNCL5305_TO_NATURA: dict[str, Optional[str]] = {
+UNCL5305_TO_NATURA: dict[str, str | None] = {
     "S": None,
     "E": "N4",
     "K": "N3.2",
@@ -74,7 +72,7 @@ UNCL5305_TO_NATURA: dict[str, Optional[str]] = {
 }
 
 
-def resolve_natura(category: str, explicit: Optional[str] = None) -> Optional[str]:
+def resolve_natura(category: str, explicit: str | None = None) -> str | None:
     """Resolve the Natura code for a UNCL5305 tax category.
 
     Returns `explicit` when supplied (the caller's escape hatch). Otherwise

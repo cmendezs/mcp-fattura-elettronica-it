@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import Any, Optional
+from typing import Any
 
 from mcp_einvoicing_core.base_server import BaseLifecycleManager, SubmitResult
 from mcp_einvoicing_core.logging_utils import get_logger
@@ -16,7 +16,7 @@ logger = get_logger(__name__)
 class SDILifecycleManager(BaseLifecycleManager):
     """Lifecycle manager for SDI invoice submission and status tracking."""
 
-    def __init__(self, settings: Optional[SDISettings] = None) -> None:
+    def __init__(self, settings: SDISettings | None = None) -> None:
         self._settings = settings or SDISettings()
         self._client = SDICoopClient(self._settings)
 

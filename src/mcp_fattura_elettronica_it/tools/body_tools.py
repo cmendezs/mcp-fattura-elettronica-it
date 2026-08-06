@@ -8,14 +8,19 @@ Natura exemption codes, and attachments.
 from __future__ import annotations
 
 import base64
-from decimal import Decimal, ROUND_HALF_UP
-from typing import Annotated, Optional
+from decimal import ROUND_HALF_UP, Decimal
+from typing import Annotated
 
 from fastmcp import FastMCP
+from mcp_einvoicing_core.logging_utils import get_logger
+from mcp_einvoicing_core.xml_utils import (
+    format_amount,
+    format_quantity,
+    validate_date_iso,
+    validate_iban,
+)
 from pydantic import Field
 
-from mcp_einvoicing_core.logging_utils import get_logger
-from mcp_einvoicing_core.xml_utils import format_amount, format_quantity, validate_date_iso, validate_iban
 from mcp_fattura_elettronica_it.natura import NATURA_CODES
 
 logger = get_logger(__name__)
@@ -121,7 +126,7 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = "EUR",
         causale: Annotated[
-            Optional[str | list[str]],
+            str | list[str] | None,
             Field(
                 default=None,
                 description=(
@@ -132,21 +137,21 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         rif_numero_linea: Annotated[
-            Optional[int],
+            int | None,
             Field(
                 default=None,
                 description="Line number reference for credit/debit notes linking back to the original invoice.",
             ),
         ] = None,
         id_documento_riferimento: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description="Number of the original invoice (for credit notes TD04, debit notes TD05, etc.).",
             ),
         ] = None,
         data_documento_riferimento: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description="Date of the original invoice (YYYY-MM-DD), for TD04/TD05.",
@@ -241,7 +246,7 @@ def register_body_tools(mcp: FastMCP) -> None:
             Field(description="Description of the good or service (max 1000 chars)."),
         ],
         quantita: Annotated[
-            Optional[float],
+            float | None,
             Field(
                 default=None,
                 description=(
@@ -251,7 +256,7 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         unita_misura: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description="Unit of measure (e.g. 'PZ', 'KG', 'ORE', 'M2'). Optional.",
@@ -282,7 +287,7 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = 22.0,
         natura: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(
@@ -293,7 +298,7 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         ritenuta: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(
@@ -409,8 +414,8 @@ def register_body_tools(mcp: FastMCP) -> None:
             if key not in groups:
                 groups[key] = {
                     "AliquotaIVA": f"{aliquota:.2f}",
-                    "ImponibileImporto": Decimal("0"),
-                    "Imposta": Decimal("0"),
+                    "ImponibileImporto": Decimal(0),
+                    "Imposta": Decimal(0),
                     "Natura": natura,
                     "EsigibilitaIVA": "I",  # Immediata (default)
                 }
@@ -422,8 +427,8 @@ def register_body_tools(mcp: FastMCP) -> None:
                 )
 
         riepilogo = []
-        totale_imponibile = Decimal("0")
-        totale_imposta = Decimal("0")
+        totale_imponibile = Decimal(0)
+        totale_imposta = Decimal(0)
 
         for entry in groups.values():
             imponibile = entry["ImponibileImporto"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
@@ -501,21 +506,21 @@ def register_body_tools(mcp: FastMCP) -> None:
             Field(description="Payment amount (may equal or differ from invoice total for instalments)."),
         ],
         data_scadenza_pagamento: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description="Payment due date (YYYY-MM-DD). Omit for immediate payment.",
             ),
         ] = None,
         iban: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description="IBAN for bank transfer (MP05). Validated for format (letters+digits, max 34 chars).",
             ),
         ] = None,
         istituto_finanziario: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description="Name of the financial institution (bank name). Optional.",
@@ -601,7 +606,7 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ],
         formato_allegato: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description=(
@@ -611,7 +616,7 @@ def register_body_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         descrizione_allegato: Annotated[
-            Optional[str],
+            str | None,
             Field(
                 default=None,
                 description="Short description of the attachment content, max 100 chars. Optional.",
@@ -634,7 +639,7 @@ def register_body_tools(mcp: FastMCP) -> None:
         """
         try:
             decoded = base64.b64decode(attachment_base64)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — untrusted input; any decode failure becomes a tool error, not a crash
             return {"error": f"Invalid base64 content: {exc}"}
 
         if len(nome_allegato) > 60:

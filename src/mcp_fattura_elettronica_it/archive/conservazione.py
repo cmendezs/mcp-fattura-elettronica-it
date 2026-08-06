@@ -15,15 +15,14 @@ from __future__ import annotations
 
 import hashlib
 import os
-from datetime import datetime, timedelta, timezone
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
-from typing import Any, Optional
-
-from pydantic import Field
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from typing import Any
 
 from mcp_einvoicing_core.archive import ArchiveMetadata, BaseArchiveProvider
 from mcp_einvoicing_core.logging_utils import get_logger
+from pydantic import Field
+from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = get_logger(__name__)
 
@@ -68,7 +67,7 @@ class ConservazioneProvider(BaseArchiveProvider):
     stores documents as files with JSON metadata sidecar files.
     """
 
-    def __init__(self, settings: Optional[ConservazioneSettings] = None) -> None:
+    def __init__(self, settings: ConservazioneSettings | None = None) -> None:
         self._settings = settings or ConservazioneSettings()
         self._storage_path = Path(
             self._settings.storage_path or os.path.join(os.getcwd(), ".conservazione")
@@ -83,7 +82,7 @@ class ConservazioneProvider(BaseArchiveProvider):
     ) -> ArchiveMetadata:
         storage = self._ensure_storage()
         doc_hash = hashlib.sha256(document).hexdigest()
-        now = datetime.now(timezone.utc)
+        now = datetime.now(UTC)
         retention_until = now + timedelta(days=365 * self._settings.retention_years)
 
         doc_id = metadata.get("document_id") or f"{now.strftime('%Y%m%d%H%M%S')}_{doc_hash[:12]}"

@@ -10,7 +10,6 @@ import base64
 from typing import Any
 
 from fastmcp import FastMCP
-
 from mcp_einvoicing_core.logging_utils import get_logger
 
 from mcp_fattura_elettronica_it.archive.conservazione import (

@@ -15,12 +15,10 @@ Notification types per section 1.1:
 from __future__ import annotations
 
 from enum import Enum
-from typing import Optional
-
-from pydantic import BaseModel, Field
 
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.xml_utils import safe_fromstring
+from pydantic import BaseModel, Field
 
 logger = get_logger(__name__)
 
@@ -62,9 +60,9 @@ class SDIErrore(BaseModel):
 class RiferimentoFattura(BaseModel):
     """Invoice reference within a notification."""
 
-    numero_fattura: Optional[str] = None
-    anno_fattura: Optional[str] = None
-    posizione_fattura: Optional[str] = None
+    numero_fattura: str | None = None
+    anno_fattura: str | None = None
+    posizione_fattura: str | None = None
 
 
 class SDINotification(BaseModel):
@@ -72,22 +70,22 @@ class SDINotification(BaseModel):
 
     tipo: SDINotificationType = Field(description="Notification type code.")
     identificativo_sdi: str = Field(description="12-digit SDI file identifier.")
-    nome_file: Optional[str] = None
-    data_ora_ricezione: Optional[str] = None
-    data_ora_consegna: Optional[str] = None
-    message_id: Optional[str] = None
-    descrizione: Optional[str] = None
-    note: Optional[str] = None
+    nome_file: str | None = None
+    data_ora_ricezione: str | None = None
+    data_ora_consegna: str | None = None
+    message_id: str | None = None
+    descrizione: str | None = None
+    note: str | None = None
 
     errori: list[SDIErrore] = Field(default_factory=list, description="Errors (NS only).")
-    esito: Optional[str] = Field(default=None, description="EC01 (accept) or EC02 (reject), for EC/NE.")
-    scarto: Optional[str] = Field(default=None, description="EN00/EN01 for SE.")
-    riferimento_fattura: Optional[RiferimentoFattura] = None
+    esito: str | None = Field(default=None, description="EC01 (accept) or EC02 (reject), for EC/NE.")
+    scarto: str | None = Field(default=None, description="EN00/EN01 for SE.")
+    riferimento_fattura: RiferimentoFattura | None = None
 
-    codice_destinatario: Optional[str] = None
-    formato: Optional[str] = None
-    tentativi_invio: Optional[str] = None
-    hash_file_originale: Optional[str] = None
+    codice_destinatario: str | None = None
+    formato: str | None = None
+    tentativi_invio: str | None = None
+    hash_file_originale: str | None = None
 
 
 def parse_notification(xml_bytes: bytes) -> SDINotification:
@@ -114,7 +112,7 @@ def parse_notification(xml_bytes: bytes) -> SDINotification:
             f"Expected one of: {', '.join(_ROOT_TAG_TO_TYPE.keys())}"
         )
 
-    def _text(tag: str) -> Optional[str]:
+    def _text(tag: str) -> str | None:
         for el in root.iter():
             el_local = el.tag.split("}")[-1] if "}" in el.tag else el.tag
             if el_local == tag and el.text:
@@ -140,7 +138,7 @@ def parse_notification(xml_bytes: bytes) -> SDINotification:
                     descrizione=(desc_el.text or "") if desc_el is not None else "",
                 ))
 
-    rif_fattura: Optional[RiferimentoFattura] = None
+    rif_fattura: RiferimentoFattura | None = None
     rif_el = None
     for el in root.iter():
         el_local = el.tag.split("}")[-1] if "}" in el.tag else el.tag
@@ -148,7 +146,7 @@ def parse_notification(xml_bytes: bytes) -> SDINotification:
             rif_el = el
             break
     if rif_el is not None:
-        def _rif_text(tag: str) -> Optional[str]:
+        def _rif_text(tag: str) -> str | None:
             for child in rif_el:
                 child_local = child.tag.split("}")[-1] if "}" in child.tag else child.tag
                 if child_local == tag and child.text:

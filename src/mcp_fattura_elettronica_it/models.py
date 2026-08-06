@@ -15,11 +15,8 @@ The _IS_EN16931_FAMILY constant in that script must be set to True.
 
 from __future__ import annotations
 
-from typing import Optional
-
-from pydantic import Field
-
 from mcp_einvoicing_core.en16931 import EN16931Invoice, EN16931LineItem, EN16931Tax
+from pydantic import Field
 
 
 class ItalianLineItem(EN16931LineItem):
@@ -30,7 +27,7 @@ class ItalianLineItem(EN16931LineItem):
     unambiguously (Z, AE, L, M) — set explicitly in that case.
     """
 
-    natura: Optional[str] = Field(
+    natura: str | None = Field(
         default=None,
         description="FatturaPA Natura exemption code for this line, if any.",
     )
@@ -43,7 +40,7 @@ class ItalianTax(EN16931Tax):
     DatiRiepilogo group. Escape hatch, as with ItalianLineItem.natura.
     """
 
-    natura: Optional[str] = Field(
+    natura: str | None = Field(
         default=None,
         description="FatturaPA Natura exemption code for this VAT group, if any.",
     )
@@ -78,7 +75,7 @@ class ItalianInvoice(EN16931Invoice):
         ),
     )
 
-    pec_destinatario: Optional[str] = Field(
+    pec_destinatario: str | None = Field(
         default=None,
         description="PEC address for routing when codice_destinatario is '0000000'.",
     )

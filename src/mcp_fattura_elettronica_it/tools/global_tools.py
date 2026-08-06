@@ -8,16 +8,20 @@ from __future__ import annotations
 import json
 import os
 import re
-from decimal import Decimal, ROUND_HALF_UP
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
-from typing import Annotated, Optional
+from typing import Annotated
 
 from fastmcp import FastMCP
-from pydantic import Field
-
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.models import TaxIdentifier
-from mcp_einvoicing_core.xml_utils import filter_empty_values, safe_fromstring, safe_parser, xml_escape
+from mcp_einvoicing_core.xml_utils import (
+    filter_empty_values,
+    safe_fromstring,
+    safe_parser,
+    xml_escape,
+)
+from pydantic import Field
 
 logger = get_logger(__name__)
 
@@ -37,7 +41,6 @@ def _get_xsd_path(formato: str = "FPR12") -> Path:
     in XSD structure. FATTURA_XSD_PATH env var overrides for both formats
     (single custom schema path).
     """
-    global _XSD_CACHE
     if formato in _XSD_CACHE:
         return _XSD_CACHE[formato]
     env_path = os.getenv("FATTURA_XSD_PATH")
@@ -153,21 +156,21 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ],
         dati_pagamento: Annotated[
-            Optional[dict],
+            dict | None,
             Field(
                 default=None,
                 description="DatiPagamento block from build_dati_pagamento(). Optional.",
             ),
         ] = None,
         allegati: Annotated[
-            Optional[list],
+            list | None,
             Field(
                 default=None,
                 description="List of Allegati dicts from add_allegato(). Optional.",
             ),
         ] = None,
         dati_ritenuta: Annotated[
-            Optional[dict],
+            dict | None,
             Field(
                 default=None,
                 description=(
@@ -177,7 +180,7 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         additional_bodies: Annotated[
-            Optional[list],
+            list | None,
             Field(
                 default=None,
                 description=(
@@ -322,7 +325,7 @@ def register_global_tools(mcp: FastMCP) -> None:
                     )
                 return "".join(parts)
 
-            def _pagamento_xml(pagamento: Optional[dict]) -> str:
+            def _pagamento_xml(pagamento: dict | None) -> str:
                 if not pagamento:
                     return ""
                 p = pagamento.get("DatiPagamento", pagamento)
@@ -342,7 +345,7 @@ def register_global_tools(mcp: FastMCP) -> None:
                     f"</DatiPagamento>"
                 )
 
-            def _allegati_xml(allegati_list: Optional[list]) -> str:
+            def _allegati_xml(allegati_list: list | None) -> str:
                 if not allegati_list:
                     return ""
                 parts = []
@@ -359,7 +362,7 @@ def register_global_tools(mcp: FastMCP) -> None:
                     )
                 return "".join(parts)
 
-            def _ritenuta_xml(ritenuta: Optional[dict]) -> str:
+            def _ritenuta_xml(ritenuta: dict | None) -> str:
                 if not ritenuta:
                     return ""
                 r = ritenuta.get("DatiRitenuta", ritenuta)
@@ -378,9 +381,9 @@ def register_global_tools(mcp: FastMCP) -> None:
                 body_dg: dict,
                 body_linee: list,
                 body_riepilogo: list,
-                body_pagamento: Optional[dict],
-                body_allegati: Optional[list],
-                body_ritenuta: Optional[dict],
+                body_pagamento: dict | None,
+                body_allegati: list | None,
+                body_ritenuta: dict | None,
             ) -> str:
                 dg_inner = body_dg.get("DatiGenerali", body_dg)
                 dg_doc_inner = dg_inner.get("DatiGeneraliDocumento", dg_inner)
@@ -562,7 +565,7 @@ def register_global_tools(mcp: FastMCP) -> None:
 
             xsd_doc = etree.parse(str(xsd_path), parser)
             schema = etree.XMLSchema(xsd_doc)
-        except Exception as exc:
+        except Exception as exc:  # noqa: BLE001 — XSD load can fail in ways lxml doesn't type; surface as a tool error, not a crash
             return {"error": f"Failed to load XSD schema: {exc}"}
 
         is_valid = schema.validate(xml_doc)
@@ -612,7 +615,7 @@ def register_global_tools(mcp: FastMCP) -> None:
 
         ns = {"p": FATTURA_NS}
 
-        def _text(element, xpath: str) -> Optional[str]:
+        def _text(element, xpath: str) -> str | None:
             nodes = element.xpath(xpath, namespaces=ns)
             return nodes[0].text if nodes else None
 
@@ -633,7 +636,7 @@ def register_global_tools(mcp: FastMCP) -> None:
         bodies_no_ns = root.findall("FatturaElettronicaBody")
         body_elements = bodies_ns if bodies_ns else bodies_no_ns
 
-        def _txt(el, path: str) -> Optional[str]:
+        def _txt(el, path: str) -> str | None:
             if el is None:
                 return None
             node = el.find(path)
@@ -915,7 +918,7 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ],
         aliquota_override: Annotated[
-            Optional[float],
+            float | None,
             Field(
                 default=None,
                 description=(
@@ -929,7 +932,7 @@ def register_global_tools(mcp: FastMCP) -> None:
             ),
         ] = None,
         importo_override: Annotated[
-            Optional[float],
+            float | None,
             Field(
                 default=None,
                 description=(

@@ -9,8 +9,8 @@ from __future__ import annotations
 
 import asyncio
 
-
 from fastmcp import FastMCP
+
 from mcp_fattura_elettronica_it.tools.global_tools import FATTURA_NS, register_global_tools
 
 # ---------------------------------------------------------------------------

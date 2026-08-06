@@ -10,7 +10,6 @@ from __future__ import annotations
 import base64
 
 from lxml import etree
-
 from mcp_einvoicing_core.xml_utils import safe_fromstring
 
 _SOAP_NS = "http://schemas.xmlsoap.org/soap/envelope/"

@@ -11,9 +11,9 @@ from __future__ import annotations
 from decimal import Decimal
 
 import pytest
-
 from mcp_einvoicing_core.en16931 import EN16931Address, EN16931Party
 from mcp_einvoicing_core.exceptions import DocumentGenerationError
+
 from mcp_fattura_elettronica_it.models import ItalianInvoice, ItalianLineItem, ItalianTax
 from mcp_fattura_elettronica_it.tools.adapters import FatturaGenerator, FatturaParser
 
@@ -56,7 +56,7 @@ class TestFatturaGeneratorNaturaResolution:
         line = ItalianLineItem(
             line_id="1",
             name="Prestazione esente",
-            quantity=Decimal("1"),
+            quantity=Decimal(1),
             unit_code="EA",
             unit_price=Decimal("1000.00"),
             line_net_amount=Decimal("1000.00"),
@@ -80,7 +80,7 @@ class TestFatturaGeneratorNaturaResolution:
         line = ItalianLineItem(
             line_id="1",
             name="Subappalto edile",
-            quantity=Decimal("1"),
+            quantity=Decimal(1),
             unit_code="EA",
             unit_price=Decimal("1000.00"),
             line_net_amount=Decimal("1000.00"),
@@ -103,7 +103,7 @@ class TestFatturaGeneratorNaturaResolution:
         line = ItalianLineItem(
             line_id="1",
             name="Subappalto edile",
-            quantity=Decimal("1"),
+            quantity=Decimal(1),
             unit_code="EA",
             unit_price=Decimal("1000.00"),
             line_net_amount=Decimal("1000.00"),
@@ -145,7 +145,7 @@ class TestFatturaGeneratorNaturaResolution:
         line = ItalianLineItem(
             line_id="1",
             name="Consulenza",
-            quantity=Decimal("1"),
+            quantity=Decimal(1),
             unit_code="EA",
             unit_price=Decimal("1000.00"),
             line_net_amount=Decimal("1000.00"),

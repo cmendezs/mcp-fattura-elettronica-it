@@ -6,13 +6,16 @@ Covers happy path, validation errors, and edge cases for all 7 body tools.
 
 from __future__ import annotations
 
+import asyncio
 import base64
 
-import asyncio
-
-
 from fastmcp import FastMCP
-from mcp_fattura_elettronica_it.tools.body_tools import NATURA_CODES, TIPO_DOCUMENTO, register_body_tools
+
+from mcp_fattura_elettronica_it.tools.body_tools import (
+    NATURA_CODES,
+    TIPO_DOCUMENTO,
+    register_body_tools,
+)
 
 # ---------------------------------------------------------------------------
 # Helper setup

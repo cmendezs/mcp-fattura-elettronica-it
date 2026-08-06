@@ -6,15 +6,14 @@ Covers happy path, validation errors, and edge cases for all 7 header tools.
 
 from __future__ import annotations
 
-
 import asyncio
+
+from fastmcp import FastMCP
 
 from mcp_fattura_elettronica_it.tools.header_tools import (
     REGIME_FISCALE,
     register_header_tools,
 )
-from fastmcp import FastMCP
-
 
 # ---------------------------------------------------------------------------
 # Helpers — instantiate tools directly by calling the registered functions
