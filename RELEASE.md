@@ -51,6 +51,40 @@ mcp-publisher publish
 
 ## Changelog
 
+### v0.6.0 — 2026-08-07
+#### Fixed
+- `<Imponibile>` renamed to `<ImponibileImporto>` in all emitted and parsed
+  XML; the previous element name did not match the FatturaPA XSD, so
+  generated invoices failed schema validation. **[IT-SC-19] resolved, BLOCKING.**
+- Removed the invalid `<CodiceUfficio>` element/field from PA-destined
+  invoices; added correct 6-char IPA `CodiceDestinatario` validation for
+  FPA12. **[IT-SC-20] resolved, BLOCKING.**
+- SdI notification parsing made namespace-robust via local-name matching,
+  no longer brittle to prefix variation. **[IT-SC-22] resolved.**
+- `identificativo_sdi` now always present as a snake_case key in SOAP
+  response parsing. **[IT-LC-4] resolved.**
+- XML-escaping applied to header fields previously interpolated raw.
+  **[IT-SH-4] resolved.**
+- Removed orphan, mislabeled `FatturaPA_v1.6.1.xsd` (no such version exists;
+  content was actually v1.2.2).
+#### Added
+- UNCL5305-to-Natura exemption code resolution (`natura.py`), with an
+  explicit-code escape hatch for ambiguous categories. **[IT-SC-21] resolved.**
+- Permanent audit-gate regression check that generates and XSD-validates a
+  canonical FPR12/FPA12 invoice on every gate run. **[IT-AG-1] resolved.**
+- Multi-body FPA12 XML parsing support (`bodies` list). **[IT-LC-3] resolved.**
+- Non-standard IT VAT rate now returned as a caller-visible warning, not
+  just logged. **[IT-TL-5] resolved.**
+#### Changed
+- Strengthened test assertions across the suite so a schema-invalid
+  document can no longer pass silently. **[IT-TC-1] resolved.**
+#### Investigation
+- **[IT-LC-5]** SDICoop endpoint URLs: checked against the bundled SdI
+  technical spec (v1.8.4); endpoint URLs are deferred to separate
+  "Istruzioni per il servizio SDICoop" documents on the AdE accreditation
+  portal, not bundled in `specs/`. `[NEED: verify]` marker retained in
+  `sdi/config.py`.
+
 ### v0.5.0 — 2026-06-29
 #### Added
 - IT-SIGN-1: XAdES-BES and CAdES-BES digital signatures (2 tools: `it__sign_fattura_xades`, `it__sign_fattura_cades`). Dual mode: signer microservice or direct PKCS#12.
