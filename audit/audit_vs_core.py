@@ -55,15 +55,38 @@ _PRIMARY_INVOICE_CLASS: tuple[str, str] = ("mcp_fattura_elettronica_it.models", 
 
 _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
     # IT uses EInvoicingMCPServer; the following are internal helpers or lifecycle
-    # ABC not needed in country tool handlers.
+    # ABC not needed in country tool handlers. InvoiceDocument/InvoiceParty/
+    # TaxIdValidationResult are cross-module re-exports of core.models symbols
+    # (IT uses ItalianInvoice(EN16931Invoice), not the InvoiceDocument tree).
+    # scrub() (LLM-facing IBAN/BIC redaction) is not yet wired into any IT tool
+    # handler — same gap as every other country package in this workspace.
+    # ABC/Any/BaseModel/FastMCP/Field/Generic/TypeVar/abstractmethod are
+    # stdlib/Pydantic/FastMCP imports used internally by base_server.py itself.
     "mcp_einvoicing_core.base_server": {
         "assert_not_read_only",
         "scrub",
         "BaseLifecycleManager",
         "SubmitResult",
+        "InvoiceDocument",
+        "InvoiceParty",
+        "TaxIdValidationResult",
+        "ABC",
+        "Any",
+        "BaseModel",
+        "FastMCP",
+        "Field",
+        "Generic",
+        "TypeVar",
+        "abstractmethod",
     },
-    # Digital signing (CAdES/XAdES) is out of scope for v0.2.x.
-    # FatturaPA signature is applied externally (DSS, Aruba, InfoCert, etc.).
+    # XAdES signing is out of scope for v0.2.x (FatturaPA uses XAdES only for
+    # PA channel enrollment, not invoice signing). CAdES signing IS implemented
+    # (tools/signing_tools.py: SignerClient microservice, or CAdESSigner/
+    # CAdESSignerConfig via a function-local import when no signer microservice
+    # is configured) — CHECK 1's module-level scan cannot see that lazy import,
+    # so CAdESSigner/CAdESSignerConfig are listed here despite being used.
+    # ABC/abstractmethod/dataclass/datetime/field/timezone are stdlib imports
+    # used internally by digital_signature.py itself.
     "mcp_einvoicing_core.digital_signature": {
         "BaseDocumentSigner",
         "XAdESEPESSigner",
@@ -73,16 +96,36 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         # FatturaPA, which is signed via CAdES (PKCS#7) before SDI submission
         "XMLDSigSigner",
         "XMLDSigSignerConfig",
+        # OVERRIDE-REASON: used via a function-local import in signing_tools.py
+        # to avoid loading the crypto dependency chain unless a local cert path
+        # is supplied; CHECK 1 only scans module-level attributes.
+        "CAdESSigner",
+        "CAdESSignerConfig",
+        "ABC",
+        "abstractmethod",
+        "dataclass",
+        "datetime",
+        "field",
+        "timezone",
     },
     # FatturaPA artefacts (XSD schemas) are bundled in schemas/ and do not
-    # use the download_rules framework.
+    # use the download_rules framework. Path/dataclass/entry_points/field are
+    # stdlib imports used internally by download_rules.py; main is its CLI
+    # entrypoint, not part of the importable surface.
     "mcp_einvoicing_core.download_rules": {
         "DownloadSpec",
         "download_artefacts",
+        "Path",
+        "dataclass",
+        "entry_points",
+        "field",
+        "main",
     },
     # EN16931Party and EN16931LineItem not yet subclassed (IT-SC-7 in progress).
     # ItalianInvoice(EN16931Invoice) is scaffolded; sub-models (address, allowance,
     # payment means, tax) are deferred to IT-SC-7 completion.
+    # BaseModel/Decimal/Field/date/field_validator/model_validator are
+    # stdlib/Pydantic imports used internally by en16931.py itself.
     "mcp_einvoicing_core.en16931": {
         "EN16931Party",
         "EN16931LineItem",
@@ -90,6 +133,12 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         "EN16931AllowanceCharge",
         "EN16931PaymentMeans",
         "EN16931Tax",
+        "BaseModel",
+        "Decimal",
+        "Field",
+        "date",
+        "field_validator",
+        "model_validator",
     },
     # FatturaPA tool handlers return {'error': ...} dicts; core exception types
     # are not yet raised directly from IT tool code.
@@ -105,15 +154,36 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         "XSDValidationError",
     },
     # No clearance API in FatturaPA v0.2.x — no SDI submission, no OAuth2 tokens.
+    # AuthenticationError is a cross-module re-export of exceptions.AuthenticationError,
+    # already excluded above for the same reason. BaseEInvoicingConfig is unused —
+    # IT's own sdi/config.py defines its BaseSettings config directly. Any/BaseModel/
+    # BaseSettings/Enum/Field/Path/field_validator/parsedate_to_datetime/urlparse are
+    # stdlib/Pydantic imports used internally by http_client.py itself.
     "mcp_einvoicing_core.http_client": {
         "BaseEInvoicingClient",
         "OAuthValues",
         "OAuthConfig",
         "TokenCache",
+        "AuthenticationError",
+        "BaseEInvoicingConfig",
+        "Any",
+        "BaseModel",
+        "BaseSettings",
+        "Enum",
+        "Field",
+        "Path",
+        "field_validator",
+        "parsedate_to_datetime",
+        "urlparse",
     },
     # InvoiceDocument sub-models not yet used in the flat-layout IT tools.
     # FatturaGenerator maps from InvoiceDocument top-level fields directly.
+    # InvoiceDocument itself is unused too — IT's primary model is
+    # ItalianInvoice(EN16931Invoice), not the InvoiceDocument tree.
+    # BaseModel/Decimal/Field/field_validator/model_validator are stdlib/Pydantic
+    # imports used internally by models.py itself.
     "mcp_einvoicing_core.models": {
+        "InvoiceDocument",
         "InvoiceParty",
         "InvoiceLineItem",
         "InvoiceTaxLine",
@@ -122,32 +192,47 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         "PaymentTerms",
         "VATSummary",
         "PartyAddress",
+        "BaseModel",
+        "Decimal",
+        "Field",
+        "field_validator",
+        "model_validator",
     },
     # Peppol not used in FatturaPA B2B/B2G flows.
     # UBL 2.1/Peppol support blocked on IT-CORE-1 (no core UBL serialisers).
+    # Enum/dataclass/field are stdlib imports used internally by peppol.py itself.
     "mcp_einvoicing_core.peppol": {
         "PeppolParticipantId",
         "PeppolSMPClient",
         "PeppolEnvironment",
         "PeppolLookupResult",
         "PeppolServiceInfo",
+        "Enum",
+        "dataclass",
+        "field",
     },
     # PDF/A-3 embedding not required by FatturaPA (XML-only format).
     "mcp_einvoicing_core.pdf": {
         "PDFEmbedder",
     },
     # Profile registry not used; FatturaPA uses a fixed XSD namespace.
+    # dataclass is a stdlib import used internally by profile_registry.py itself.
     "mcp_einvoicing_core.profile_registry": {
         "ProfileRegistry",
         "set_profile_registry",
         "ProfileEntry",
+        "dataclass",
     },
     # QR codes not required by FatturaPA spec.
     "mcp_einvoicing_core.qr": {
         "generate_qr_png_base64",
     },
     # Schematron not used; FatturaPA uses XSD-only validation.
-    # BaseXSDValidator is available but FatturaValidator extends BaseDocumentValidator.
+    # BaseXSDValidator is available but FatturaValidator extends BaseDocumentValidator
+    # directly with its own lxml-based XSD check. get_xslt_version and
+    # load_schematron_validator are Schematron/SVRL-only helpers, also unused.
+    # ABC/Path/abstractmethod/dataclass/field are stdlib imports used internally
+    # by schematron.py itself.
     "mcp_einvoicing_core.schematron": {
         "SchematronValidator",
         "BaseStructuredValidator",
@@ -155,11 +240,20 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         "BaseJSONValidator",
         "ValidationMessage",
         "ValidationResult",
+        "SaxonSchematronValidator",
+        "get_xslt_version",
+        "load_schematron_validator",
+        "ABC",
+        "Path",
+        "abstractmethod",
+        "dataclass",
+        "field",
     },
     # IT tools use template-string XML generation; xml_element/xml_optional/
     # xml_escape produce per-element fragments not needed with the current approach.
     # resolve_xml_input and mark_untrusted* are security helpers for user-supplied
     # XML — not yet wired into parse_fattura_xml (planned for security hardening).
+    # Any/Decimal are stdlib/typing imports used internally by xml_utils.py itself.
     "mcp_einvoicing_core.xml_utils": {
         "xml_element",
         "xml_optional",
@@ -168,17 +262,29 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         "mark_untrusted",
         "mark_untrusted_fields",
         "format_error",
+        "Any",
+        "Decimal",
     },
 }
 
 _PKG_MODULES: list[str] = [
-    "server",
-    "models",
-    "tools",
-    "tools.header_tools",
-    "tools.body_tools",
-    "tools.global_tools",
-    "tools.adapters",
+    "mcp_fattura_elettronica_it.server",
+    "mcp_fattura_elettronica_it.models",
+    "mcp_fattura_elettronica_it.natura",
+    "mcp_fattura_elettronica_it.archive.conservazione",
+    "mcp_fattura_elettronica_it.sdi.client",
+    "mcp_fattura_elettronica_it.sdi.lifecycle",
+    "mcp_fattura_elettronica_it.sdi.notifications",
+    "mcp_fattura_elettronica_it.sdi.soap",
+    "mcp_fattura_elettronica_it.tools.header_tools",
+    "mcp_fattura_elettronica_it.tools.body_tools",
+    "mcp_fattura_elettronica_it.tools.global_tools",
+    "mcp_fattura_elettronica_it.tools.adapters",
+    "mcp_fattura_elettronica_it.tools.archive_tools",
+    "mcp_fattura_elettronica_it.tools.sdi_tools",
+    "mcp_fattura_elettronica_it.tools.signing_tools",
+    "mcp_fattura_elettronica_it.tools.simplified_tools",
+    "mcp_fattura_elettronica_it.tools.wire_format_tools",
 ]
 
 _PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
