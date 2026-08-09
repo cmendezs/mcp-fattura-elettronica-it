@@ -20,6 +20,7 @@ from __future__ import annotations
 from typing import Annotated
 
 from fastmcp import FastMCP
+from mcp_einvoicing_core.base_server import scrub
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.wire_formats import (
     EN16931CIIParser,
@@ -82,9 +83,15 @@ class _ITCIIParser(EN16931CIIParser):
 
 
 def _invoice_to_dict(inv: ItalianInvoice) -> dict:
-    """Convert ItalianInvoice to a JSON-serialisable dict (dates as ISO strings)."""
+    """Convert ItalianInvoice to a JSON-serialisable dict (dates as ISO strings).
+
+    IBAN/BIC (BT-84/BT-86) are redacted via scrub() before returning to the
+    LLM — this dict is the direct return value of parse_ubl_invoice and
+    parse_cii_invoice, and the invoice may have been parsed from a
+    counterparty-supplied document.
+    """
     data = inv.model_dump(mode="json")
-    return data
+    return scrub(data)
 
 
 # ---------------------------------------------------------------------------

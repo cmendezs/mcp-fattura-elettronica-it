@@ -13,6 +13,7 @@ from pathlib import Path
 from typing import Annotated
 
 from fastmcp import FastMCP
+from mcp_einvoicing_core.base_server import scrub
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.models import TaxIdentifier
 from mcp_einvoicing_core.xml_utils import (
@@ -751,7 +752,7 @@ def register_global_tools(mcp: FastMCP) -> None:
             result["body"] = bodies[0]
             result["bodies"] = bodies
 
-        return result
+        return scrub(result)
 
     @mcp.tool()
     def export_to_json(

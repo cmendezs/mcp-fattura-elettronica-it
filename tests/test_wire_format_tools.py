@@ -7,6 +7,7 @@ Covers: generate → parse round-trips, validation success/failure, missing-fiel
 from __future__ import annotations
 
 import asyncio
+import json
 
 from fastmcp import FastMCP
 
@@ -95,6 +96,15 @@ _MINIMAL_INVOICE = {
     "progressivo_invio": "00001",
     "codice_destinatario": "ABCDEFG",
     "formato_trasmissione": "FPR12",
+}
+
+_INVOICE_WITH_IBAN = {
+    **_MINIMAL_INVOICE,
+    "payment_means": {
+        "type_code": "58",
+        "iban": "IT60X0542811101000000123456",
+        "bic": "UNCRITMMXXX",
+    },
 }
 
 
@@ -208,6 +218,17 @@ class TestParseUBL:
         result = call("parse_ubl_invoice", xml_string="<bad>")
         assert "error" in result
 
+    def test_redacts_iban_and_bic(self):
+        """A counterparty's payment means must not be echoed back to the LLM unredacted."""
+        xml = call("generate_ubl_invoice", invoice_data=_INVOICE_WITH_IBAN)["xml"]
+        assert "IT60X0542811101000000123456" in xml
+
+        result = call("parse_ubl_invoice", xml_string=xml)
+        assert "IT60X0542811101000000123456" not in json.dumps(result)
+        assert "UNCRITMMXXX" not in json.dumps(result)
+        assert result["payment_means"]["iban"] == "[IBAN REDACTED]"
+        assert result["payment_means"]["bic"] == "[BIC REDACTED]"
+
 
 # ---------------------------------------------------------------------------
 # validate_cii_invoice
@@ -260,3 +281,14 @@ class TestParseCII:
     def test_invalid_xml_returns_error(self):
         result = call("parse_cii_invoice", xml_string="<bad>")
         assert "error" in result
+
+    def test_redacts_iban_and_bic(self):
+        """A counterparty's payment means must not be echoed back to the LLM unredacted."""
+        xml = call("generate_cii_invoice", invoice_data=_INVOICE_WITH_IBAN)["xml"]
+        assert "IT60X0542811101000000123456" in xml
+
+        result = call("parse_cii_invoice", xml_string=xml)
+        assert "IT60X0542811101000000123456" not in json.dumps(result)
+        assert "UNCRITMMXXX" not in json.dumps(result)
+        assert result["payment_means"]["iban"] == "[IBAN REDACTED]"
+        assert result["payment_means"]["bic"] == "[BIC REDACTED]"

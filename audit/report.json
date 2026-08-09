@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-09T08:46:41.972109+00:00",
+  "generated_at": "2026-08-09T14:28:53.231323+00:00",
   "pkg_name": "mcp-fattura-elettronica-it",
-  "pkg_version": "0.6.0",
-  "core_version": "1.15.0",
+  "pkg_version": "0.6.1",
+  "core_version": "1.16.1",
   "core_version_compatible": true,
   "exit_code": 0,
   "total_blocking": 0,
@@ -159,10 +159,10 @@
         },
         {
           "check_id": "CHECK_1",
-          "tag": "[OVERRIDE]",
+          "tag": "[OK]",
           "severity": "OK",
           "symbol": "mcp_einvoicing_core.base_server.scrub",
-          "message": "Intentionally overridden by mcp-fattura-elettronica-it."
+          "message": "Imported and used."
         },
         {
           "check_id": "CHECK_1",
@@ -246,6 +246,13 @@
           "tag": "[OVERRIDE]",
           "severity": "OK",
           "symbol": "mcp_einvoicing_core.digital_signature.field",
+          "message": "Intentionally overridden by mcp-fattura-elettronica-it."
+        },
+        {
+          "check_id": "CHECK_1",
+          "tag": "[OVERRIDE]",
+          "severity": "OK",
+          "symbol": "mcp_einvoicing_core.digital_signature.load_certificate_der",
           "message": "Intentionally overridden by mcp-fattura-elettronica-it."
         },
         {
@@ -519,6 +526,13 @@
           "tag": "[OVERRIDE]",
           "severity": "OK",
           "symbol": "mcp_einvoicing_core.http_client.Field",
+          "message": "Intentionally overridden by mcp-fattura-elettronica-it."
+        },
+        {
+          "check_id": "CHECK_1",
+          "tag": "[OVERRIDE]",
+          "severity": "OK",
+          "symbol": "mcp_einvoicing_core.http_client.JWSConfig",
           "message": "Intentionally overridden by mcp-fattura-elettronica-it."
         },
         {
@@ -1259,7 +1273,7 @@
           "tag": "[OK]",
           "severity": "OK",
           "symbol": "mcp-einvoicing-core",
-          "message": "Installed: 1.15.0 | Declared range: >=1.12.0,<2.0.0 | Compatible: True"
+          "message": "Installed: 1.16.1 | Declared range: >=1.16.1,<2.0.0 | Compatible: True"
         }
       ]
     },

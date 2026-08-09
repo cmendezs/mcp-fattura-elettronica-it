@@ -8,6 +8,7 @@ Uses a minimal but structurally valid FatturaPA XML fixture.
 from __future__ import annotations
 
 import asyncio
+import json
 
 from fastmcp import FastMCP
 
@@ -426,6 +427,34 @@ class TestParseFatturaXml:
         result = call("parse_fattura_xml", xml_string=xml)
         assert len(result["body"]["dettaglio_linee"]) == 1
         assert result["body"]["dettaglio_linee"][0]["descrizione"] == "Consulenza"
+
+    def test_redacts_iban_from_inbound_xml(self):
+        """A counterparty-supplied IBAN must not be echoed back to the LLM unredacted."""
+        pagamento_with_iban = {
+            "DatiPagamento": {
+                "CondizioniPagamento": "TP02",
+                "DettaglioPagamento": {
+                    "ModalitaPagamento": "MP05",
+                    "ImportoPagamento": "1220.00",
+                    "IBAN": "IT60X0542811101000000123456",
+                },
+            }
+        }
+        xml = call(
+            "generate_fattura_xml",
+            dati_trasmissione=VALID_DATI_TRASMISSIONE,
+            cedente_prestatore=VALID_CEDENTE,
+            cessionario_committente=VALID_CESSIONARIO,
+            dati_generali=VALID_DATI_GENERALI,
+            dettaglio_linee=VALID_LINEE,
+            dati_riepilogo=VALID_RIEPILOGO,
+            dati_pagamento=pagamento_with_iban,
+        )["xml"]
+        assert "IT60X0542811101000000123456" in xml
+
+        result = call("parse_fattura_xml", xml_string=xml)
+        assert "IT60X0542811101000000123456" not in json.dumps(result)
+        assert result["body"]["dati_pagamento"]["iban"] == "[IBAN REDACTED]"
 
     def test_invalid_xml_returns_error(self):
         result = call("parse_fattura_xml", xml_string="not xml at all")

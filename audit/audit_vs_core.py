@@ -58,13 +58,10 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
     # ABC not needed in country tool handlers. InvoiceDocument/InvoiceParty/
     # TaxIdValidationResult are cross-module re-exports of core.models symbols
     # (IT uses ItalianInvoice(EN16931Invoice), not the InvoiceDocument tree).
-    # scrub() (LLM-facing IBAN/BIC redaction) is not yet wired into any IT tool
-    # handler — same gap as every other country package in this workspace.
     # ABC/Any/BaseModel/FastMCP/Field/Generic/TypeVar/abstractmethod are
     # stdlib/Pydantic/FastMCP imports used internally by base_server.py itself.
     "mcp_einvoicing_core.base_server": {
         "assert_not_read_only",
-        "scrub",
         "BaseLifecycleManager",
         "SubmitResult",
         "InvoiceDocument",
