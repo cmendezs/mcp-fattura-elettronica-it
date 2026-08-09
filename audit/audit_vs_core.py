@@ -101,6 +101,10 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         # is supplied; CHECK 1 only scans module-level attributes.
         "CAdESSigner",
         "CAdESSignerConfig",
+        # OVERRIDE-REASON: load_certificate_der (core v1.16.0) is a helper for
+        # country packages building custom auth claims from a cert's public
+        # bytes (e.g. ES FACe's JWS "username" claim); IT has no such flow.
+        "load_certificate_der",
         "ABC",
         "abstractmethod",
         "dataclass",
@@ -166,6 +170,9 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         "TokenCache",
         "AuthenticationError",
         "BaseEInvoicingConfig",
+        # OVERRIDE-REASON: JWSConfig (core v1.16.0) configures RS256/x5c JWT
+        # auth for platforms like ES FACe; no such auth mode in IT's SDI flows.
+        "JWSConfig",
         "Any",
         "BaseModel",
         "BaseSettings",
