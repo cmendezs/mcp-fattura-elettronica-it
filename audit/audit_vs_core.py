@@ -73,6 +73,10 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         # FatturaPA, which is signed via CAdES (PKCS#7) before SDI submission
         "XMLDSigSigner",
         "XMLDSigSignerConfig",
+        # OVERRIDE-REASON: load_certificate_der (core v1.16.0) is a helper for
+        # country packages building custom auth claims from a cert's public
+        # bytes (e.g. ES FACe's JWS "username" claim); IT has no such flow.
+        "load_certificate_der",
     },
     # FatturaPA artefacts (XSD schemas) are bundled in schemas/ and do not
     # use the download_rules framework.
@@ -110,6 +114,9 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         "OAuthValues",
         "OAuthConfig",
         "TokenCache",
+        # OVERRIDE-REASON: JWSConfig (core v1.16.0) configures RS256/x5c JWT
+        # auth for platforms like ES FACe; no such auth mode in IT's SDI flows.
+        "JWSConfig",
     },
     # InvoiceDocument sub-models not yet used in the flat-layout IT tools.
     # FatturaGenerator maps from InvoiceDocument top-level fields directly.
