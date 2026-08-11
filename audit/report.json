@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-09T14:28:53.231323+00:00",
+  "generated_at": "2026-08-11T15:33:24.939953+00:00",
   "pkg_name": "mcp-fattura-elettronica-it",
   "pkg_version": "0.6.1",
-  "core_version": "1.16.1",
+  "core_version": "1.16.2",
   "core_version_compatible": true,
   "exit_code": 0,
   "total_blocking": 0,
@@ -568,6 +568,13 @@
           "tag": "[OVERRIDE]",
           "severity": "OK",
           "symbol": "mcp_einvoicing_core.http_client.TokenCache",
+          "message": "Intentionally overridden by mcp-fattura-elettronica-it."
+        },
+        {
+          "check_id": "CHECK_1",
+          "tag": "[OVERRIDE]",
+          "severity": "OK",
+          "symbol": "mcp_einvoicing_core.http_client.compute_retry_delay",
           "message": "Intentionally overridden by mcp-fattura-elettronica-it."
         },
         {
@@ -1273,7 +1280,7 @@
           "tag": "[OK]",
           "severity": "OK",
           "symbol": "mcp-einvoicing-core",
-          "message": "Installed: 1.16.1 | Declared range: >=1.16.1,<2.0.0 | Compatible: True"
+          "message": "Installed: 1.16.2 | Declared range: >=1.16.1,<2.0.0 | Compatible: True"
         }
       ]
     },

@@ -170,6 +170,10 @@ _INTENTIONAL_OVERRIDES: dict[str, set[str]] = {
         # OVERRIDE-REASON: JWSConfig (core v1.16.0) configures RS256/x5c JWT
         # auth for platforms like ES FACe; no such auth mode in IT's SDI flows.
         "JWSConfig",
+        # OVERRIDE-REASON: compute_retry_delay (core v1.16.2) is a retry-backoff
+        # helper for BaseEInvoicingClient subclasses; IT has no HTTP client
+        # (SDI submission is out of scope for v0.2.x, see http_client note above).
+        "compute_retry_delay",
         "Any",
         "BaseModel",
         "BaseSettings",
