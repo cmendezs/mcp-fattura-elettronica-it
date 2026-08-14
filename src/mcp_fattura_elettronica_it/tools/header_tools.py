@@ -1,5 +1,7 @@
 """
-MCP tools for the FatturaElettronicaHeader section of FatturaPA v1.2.3.
+MCP tools for the FatturaElettronicaHeader section of FatturaPA (XSD v1.2.3,
+Specifiche Tecniche 1.9.1 — the two version numbers are independent; 1.9.1 does
+not change the XSD).
 
 Covers transmission data, seller/buyer validation, fiscal regime codes,
 Partita IVA validation, ProgressivoInvio generation, and SDI recipient lookup.
@@ -15,6 +17,8 @@ from fastmcp import FastMCP
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.models import TaxIdentifier
 from pydantic import Field
+
+from mcp_fattura_elettronica_it.sdi.notifications import SCARTO_CODE_REFERENCE
 
 logger = get_logger(__name__)
 
@@ -158,6 +162,19 @@ def register_header_tools(mcp: FastMCP) -> None:
             str,
             Field(description="Partita IVA (11 digits) or foreign VAT number of the seller."),
         ],
+        codice_fiscale: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description=(
+                    "Codice Fiscale of the seller, optional. Set this when id_codice is a "
+                    "VAT-group (Gruppo IVA) IdFiscaleIVA: value must be the Codice Fiscale of "
+                    "the specific participating member company, never the group's own CF. "
+                    "Emitted as DatiAnagrafici/CodiceFiscale, between IdFiscaleIVA and "
+                    "Anagrafica per the XSD element order."
+                ),
+            ),
+        ] = None,
         denominazione: Annotated[
             str | None,
             Field(
@@ -205,9 +222,18 @@ def register_header_tools(mcp: FastMCP) -> None:
         build_transmission_header() and before validate_cessionario().
         Call get_regime_fiscale_codes() first if you need to look up the RF code.
 
+        Gruppo IVA (VAT-group) sellers: when id_codice is a VAT-group IdFiscaleIVA,
+        pass codice_fiscale set to the Codice Fiscale of the specific participating
+        member company issuing this invoice, never the group's own CF. This mirrors
+        the buyer-side rule enforced by SdI scarto code 00327 (see
+        mcp_fattura_elettronica_it.sdi.notifications.SCARTO_CODE_REFERENCE); SdI does
+        not publish an equivalent seller-side control code, but the same distinction
+        applies structurally.
+
         Validates: either denominazione or both nome+cognome must be provided (mutually
         exclusive); regime_fiscale must be a valid RF01–RF19 code; Italian Partita IVA
-        (id_paese='IT') must be exactly 11 digits.
+        (id_paese='IT') must be exactly 11 digits; codice_fiscale, if provided, must be
+        16 alphanumeric characters (individuals) or 11 digits (companies/VAT groups).
 
         On success returns {'CedentePrestatore': {...}} ready to pass to generate_fattura_xml().
         On failure returns {'error': '<reason>'} listing all validation issues joined by '; '.
@@ -229,6 +255,22 @@ def register_header_tools(mcp: FastMCP) -> None:
         if id_paese == "IT" and not re.match(r"^\d{11}$", id_codice):
             errors.append("Italian Partita IVA must be exactly 11 digits.")
 
+        if codice_fiscale:
+            cf = codice_fiscale.strip()
+            if len(cf) == 16:
+                valid_cf, cf_err = TaxIdentifier.validate_it_codice_fiscale(cf)
+                if not valid_cf:
+                    errors.append(f"Invalid Codice Fiscale: {cf_err}")
+            elif len(cf) == 11 and cf.isdigit():
+                valid_piva, piva_err = TaxIdentifier.validate_it_partita_iva(cf)
+                if not valid_piva:
+                    errors.append(f"Invalid Codice Fiscale (numeric/company format): {piva_err}")
+            else:
+                errors.append(
+                    "Codice Fiscale must be 16 alphanumeric characters (individuals) "
+                    "or 11 digits (companies/VAT groups)."
+                )
+
         if errors:
             return {"error": "; ".join(errors)}
 
@@ -239,13 +281,15 @@ def register_header_tools(mcp: FastMCP) -> None:
             anagrafica["Nome"] = nome
             anagrafica["Cognome"] = cognome
 
+        dati_anagrafici: dict = {"IdFiscaleIVA": {"IdPaese": id_paese.upper(), "IdCodice": id_codice}}
+        if codice_fiscale:
+            dati_anagrafici["CodiceFiscale"] = codice_fiscale.strip()
+        dati_anagrafici["Anagrafica"] = anagrafica
+        dati_anagrafici["RegimeFiscale"] = regime_fiscale
+
         return {
             "CedentePrestatore": {
-                "DatiAnagrafici": {
-                    "IdFiscaleIVA": {"IdPaese": id_paese.upper(), "IdCodice": id_codice},
-                    "Anagrafica": anagrafica,
-                    "RegimeFiscale": regime_fiscale,
-                },
+                "DatiAnagrafici": dati_anagrafici,
                 "Sede": {
                     "Indirizzo": indirizzo,
                     "CAP": cap,
@@ -322,7 +366,17 @@ def register_header_tools(mcp: FastMCP) -> None:
         IPA office CodiceDestinatario in build_transmission_header(), not via this tool —
         look up the code at https://www.indicepa.gov.it.
 
-        On success returns {'CessionarioCommittente': {...}} ready for generate_fattura_xml().
+        Gruppo IVA (VAT-group) buyers: when id_paese/id_codice are omitted and
+        codice_fiscale is an 11-digit (company-format) code, this may be a VAT-group's
+        own CF rather than a participating member's. SdI rejects that combination with
+        scarto code 00327 (see mcp_fattura_elettronica_it.sdi.notifications.
+        SCARTO_CODE_REFERENCE) — this tool cannot validate VAT-group membership offline,
+        so it only warns on the detectable structural precondition (IdFiscaleIVA absent
+        + 11-digit codice_fiscale); the returned 'warnings' list flags this case. Confirm
+        codice_fiscale identifies the specific member company, not the group itself.
+
+        On success returns {'CessionarioCommittente': {...}} ready for generate_fattura_xml(),
+        plus 'warnings' (list[str]) when the 00327 structural precondition is detected.
         On failure returns {'error': '<reason>'} listing all issues joined by '; '.
         """
         errors: list[str] = []
@@ -371,7 +425,7 @@ def register_header_tools(mcp: FastMCP) -> None:
         if codice_fiscale:
             dati_anagrafici["CodiceFiscale"] = codice_fiscale
 
-        return {
+        result: dict = {
             "CessionarioCommittente": {
                 "DatiAnagrafici": dati_anagrafici,
                 "Sede": {
@@ -382,6 +436,24 @@ def register_header_tools(mcp: FastMCP) -> None:
                 },
             }
         }
+
+        # Proactive warning for the detectable structural precondition of scarto
+        # code 00327: IdFiscaleIVA absent + an 11-digit (company/VAT-group-format)
+        # CodiceFiscale. VAT-group *membership* cannot be checked offline — only
+        # this structural signal — so this is a warning, not a blocking error.
+        if not (id_paese and id_codice) and codice_fiscale:
+            cf_stripped = codice_fiscale.strip()
+            if len(cf_stripped) == 11 and cf_stripped.isdigit():
+                result["warnings"] = [
+                    f"IdFiscaleIVA is absent and codice_fiscale ('{cf_stripped}') is an "
+                    "11-digit company-format code. If this CodiceFiscale identifies a VAT "
+                    "group (Gruppo IVA) itself rather than a specific participating member, "
+                    "SdI will reject the invoice with scarto code 00327: "
+                    f"{SCARTO_CODE_REFERENCE['00327']} This cannot be validated offline; "
+                    "confirm the CF identifies the correct member company."
+                ]
+
+        return result
 
     @mcp.tool()
     def get_regime_fiscale_codes() -> dict:
@@ -522,6 +594,13 @@ def register_header_tools(mcp: FastMCP) -> None:
         PA office codes can be looked up at https://www.indicepa.gov.it.
         This tool performs format validation only, no live query against the SDI SOAP
         directory service or the IPA registry (planned for a future release).
+
+        Per-channel cap (reference only, not enforced here — this tool validates the
+        format of a single code, not channel-wide allocation): per AdE Specifiche
+        Tecniche 1.9.1 (in force 2026-05-15), an accredited reception channel (WS or
+        SFTP) may request a maximum of 300 CodiceDestinatario codes via the Sistema di
+        Accreditamento once it has passed to production. This cap is unrelated to, and
+        does not change, the per-invoice 6/7-character format validated above.
 
         On success returns a dict with 'routing_type', 'codice_destinatario' and/or
         'pec_destinatario', and a 'note' with usage guidance.

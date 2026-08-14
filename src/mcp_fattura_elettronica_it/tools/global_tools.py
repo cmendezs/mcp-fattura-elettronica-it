@@ -225,6 +225,7 @@ def register_global_tools(mcp: FastMCP) -> None:
 
             cp_dati = cp.get("DatiAnagrafici", {})
             cp_id = cp_dati.get("IdFiscaleIVA", {})
+            cp_cf = cp_dati.get("CodiceFiscale", "")
             cp_anagrafica = cp_dati.get("Anagrafica", {})
             cp_regime = cp_dati.get("RegimeFiscale", "RF01")
             cp_sede = cp.get("Sede", {})
@@ -289,6 +290,22 @@ def register_global_tools(mcp: FastMCP) -> None:
                     parts.append(f"<CodiceFiscale>{xml_escape(cc_cf)}</CodiceFiscale>")
                 return "".join(parts)
 
+            def _altri_dati_gestionali_xml(entries: list | None) -> str:
+                if not entries:
+                    return ""
+                parts = []
+                for e in entries:
+                    rt = f"<RiferimentoTesto>{xml_escape(e['RiferimentoTesto'])}</RiferimentoTesto>" if "RiferimentoTesto" in e else ""
+                    rn = f"<RiferimentoNumero>{e['RiferimentoNumero']}</RiferimentoNumero>" if "RiferimentoNumero" in e else ""
+                    rd = f"<RiferimentoData>{e['RiferimentoData']}</RiferimentoData>" if "RiferimentoData" in e else ""
+                    parts.append(
+                        f"<AltriDatiGestionali>"
+                        f"<TipoDato>{xml_escape(e['TipoDato'])}</TipoDato>"
+                        f"{rt}{rn}{rd}"
+                        f"</AltriDatiGestionali>"
+                    )
+                return "".join(parts)
+
             def _linee_xml(linee: list) -> str:
                 parts = []
                 for linea in linee:
@@ -297,6 +314,10 @@ def register_global_tools(mcp: FastMCP) -> None:
                     um = f"<UnitaMisura>{ld['UnitaMisura']}</UnitaMisura>" if "UnitaMisura" in ld else ""
                     nat = f"<Natura>{ld['Natura']}</Natura>" if "Natura" in ld else ""
                     rit = f"<Ritenuta>{ld['Ritenuta']}</Ritenuta>" if "Ritenuta" in ld else ""
+                    # XSD order: ... AliquotaIVA, Ritenuta, Natura, RiferimentoAmministrazione,
+                    # AltriDatiGestionali. AltriDatiGestionali is always last regardless of
+                    # the pre-existing {nat}{rit} order above, so it is XSD-valid to append here.
+                    adg = _altri_dati_gestionali_xml(ld.get("AltriDatiGestionali"))
                     parts.append(
                         f"<DettaglioLinee>"
                         f"<NumeroLinea>{ld['NumeroLinea']}</NumeroLinea>"
@@ -305,7 +326,7 @@ def register_global_tools(mcp: FastMCP) -> None:
                         f"<PrezzoUnitario>{ld['PrezzoUnitario']}</PrezzoUnitario>"
                         f"<PrezzoTotale>{ld['PrezzoTotale']}</PrezzoTotale>"
                         f"<AliquotaIVA>{ld['AliquotaIVA']}</AliquotaIVA>"
-                        f"{nat}{rit}"
+                        f"{nat}{rit}{adg}"
                         f"</DettaglioLinee>"
                     )
                 return "".join(parts)
@@ -461,6 +482,7 @@ def register_global_tools(mcp: FastMCP) -> None:
                 f"<IdPaese>{cp_id.get('IdPaese', 'IT')}</IdPaese>"
                 f"<IdCodice>{xml_escape(cp_id.get('IdCodice', ''))}</IdCodice>"
                 f"</IdFiscaleIVA>"
+                f"{f'<CodiceFiscale>{xml_escape(cp_cf)}</CodiceFiscale>' if cp_cf else ''}"
                 f"<Anagrafica>{_seller_name(cp_anagrafica)}</Anagrafica>"
                 f"<RegimeFiscale>{xml_escape(cp_regime)}</RegimeFiscale>"
                 f"</DatiAnagrafici>"
@@ -668,6 +690,7 @@ def register_global_tools(mcp: FastMCP) -> None:
                 result["header"]["cedente_prestatore"] = {
                     "id_paese": _txt(cp_an, "IdFiscaleIVA/IdPaese") if cp_an is not None else None,
                     "id_codice": _txt(cp_an, "IdFiscaleIVA/IdCodice") if cp_an is not None else None,
+                    "codice_fiscale": _txt(cp_an, "CodiceFiscale") if cp_an is not None else None,
                     "denominazione": _txt(cp_an, "Anagrafica/Denominazione") if cp_an is not None else None,
                     "nome": _txt(cp_an, "Anagrafica/Nome") if cp_an is not None else None,
                     "cognome": _txt(cp_an, "Anagrafica/Cognome") if cp_an is not None else None,

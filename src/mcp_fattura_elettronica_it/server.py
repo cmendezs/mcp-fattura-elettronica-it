@@ -1,8 +1,13 @@
 """
 Entry point for the MCP server mcp-fattura-elettronica-it.
 
-Exposes 42 tools for generating, validating, signing, transmitting, and archiving
-Italian electronic invoices in FatturaPA XML format (SDI / Agenzia delle Entrate standard v1.2.3).
+Exposes 43 tools for generating, validating, signing, transmitting, and archiving
+Italian electronic invoices in FatturaPA XML format (SDI / Agenzia delle Entrate
+standard, XSD v1.2.3, Specifiche Tecniche 1.9.1).
+
+NOTE: "Specifiche Tecniche" (Allegato A, the AdE controls/codifiche document) and
+the XSD schema are two separate artefacts with independent version numbers.
+Specifiche Tecniche 1.9.1 (in force 2026-05-15) does NOT change the XSD.
 
 Usage:
     python server.py                    # stdio mode (Claude Desktop / claude.ai/code)
@@ -38,20 +43,28 @@ logger = get_logger(__name__)
 _server = EInvoicingMCPServer(
     name="mcp-fattura-elettronica-it",
     instructions=(
-        "MCP server for Italian electronic invoicing (FatturaPA v1.2.3 / SDI). "
-        "Generates, validates, and analyses e-invoices for B2B, B2G, and cross-border "
-        "transactions compliant with Agenzia delle Entrate specifications.\n\n"
+        "MCP server for Italian electronic invoicing (FatturaPA XSD v1.2.3, "
+        "Specifiche Tecniche 1.9.1 / SDI). \"Specifiche Tecniche\" and the XSD are "
+        "separate artefacts with independent version numbers; 1.9.1 does not change "
+        "the XSD. Generates, validates, and analyses e-invoices for B2B, B2G, and "
+        "cross-border transactions compliant with Agenzia delle Entrate specifications.\n\n"
         "**Header tools** — FatturaElettronicaHeader (6 tools):\n"
         "  • build_transmission_header: Build DatiTrasmissione block (SDI routing)\n"
-        "  • validate_cedente_prestatore: Validate seller block (tax ID, address, regime)\n"
-        "  • validate_cessionario: Validate buyer block (tax ID or CodiceFiscale)\n"
+        "  • validate_cedente_prestatore: Validate seller block (tax ID, address, regime, "
+        "optional Gruppo IVA member CodiceFiscale)\n"
+        "  • validate_cessionario: Validate buyer block (tax ID or CodiceFiscale; warns on "
+        "the structural precondition of scarto code 00327 for Gruppo IVA)\n"
         "  • get_regime_fiscale_codes: List all RegimeFiscale codes RF01–RF19\n"
         "  • generate_progressivo_invio: Generate a unique ProgressivoInvio sequence\n"
-        "  • lookup_codice_destinatario: Validate SDI recipient code or PEC address\n\n"
-        "**Body tools** — FatturaElettronicaBody (7 tools):\n"
+        "  • lookup_codice_destinatario: Validate SDI recipient code or PEC address "
+        "(300-code max per accredited channel, per Specifiche Tecniche 1.9.1)\n\n"
+        "**Body tools** — FatturaElettronicaBody (8 tools):\n"
         "  • build_dati_generali: Build DatiGenerali (type TD01–TD28, date, number)\n"
         "  • get_tipo_documento_codes: List all document type codes TD01–TD28\n"
-        "  • add_linea_dettaglio: Add a DettaglioLinee line item\n"
+        "  • add_linea_dettaglio: Add a DettaglioLinee line item (optional AltriDatiGestionali)\n"
+        "  • build_sport_worker_exemption_dato_gestionale: Build the AltriDatiGestionali "
+        "entry for the sport-worker IRPEF exemption (TipoDato='ESENZSPORT', Specifiche "
+        "Tecniche 1.9.1)\n"
         "  • compute_totali: Compute DatiRiepilogo VAT summary from line items\n"
         "  • get_natura_codes: List all Natura exemption codes (N1–N7 and sub-codes)\n"
         "  • build_dati_pagamento: Build DatiPagamento (terms TP01/02/03, method MP01–MP23)\n"
@@ -93,7 +106,8 @@ _server = EInvoicingMCPServer(
         "**SDI integration tools** (5 tools):\n"
         "  • submit_to_sdi: Submit signed invoice to SDI via SDICoop\n"
         "  • check_sdi_status: Check submission status by IdentificativoSDI\n"
-        "  • parse_sdi_notification: Parse SDI notification XML (RC/NS/MC/NE/EC/SE/DT/MT/AT)\n"
+        "  • parse_sdi_notification: Parse SDI notification XML (RC/NS/MC/NE/EC/SE/DT/MT/AT); "
+        "known scarto codes (e.g. 00327) include a supplementary reference_note\n"
         "  • send_esito_committente: Send EC01 (accept) or EC02 (reject) to SDI\n"
         "  • get_sdi_channel_info: Show current SDI channel configuration\n\n"
         "**Archive tools** (5 tools):\n"
@@ -106,7 +120,9 @@ _server = EInvoicingMCPServer(
         "XSD validation, parsing, digital signatures (XAdES-BES / CAdES-BES), SDI transmission "
         "via SDICoop, and conservazione sostitutiva (legally compliant archiving per AgID).\n\n"
         "Out of scope v0.5.x: SFTP channel, AgID-accredited provider API integration.\n"
-        "XSD: FatturaPA v1.2.3 — namespace http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2"
+        "XSD: FatturaPA v1.2.3 — namespace http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2 "
+        "(unchanged by Specifiche Tecniche 1.9.1). "
+        "Specifiche Tecniche: 1.9.1, in force 2026-05-15 (Allegato A — controls/codifiche)."
     ),
 )
 mcp = _server.mcp
@@ -126,8 +142,8 @@ register_archive_tools(mcp)
 
 logger.info(
     "MCP server 'mcp-fattura-elettronica-it' initialised — "
-    "7 Header + 7 Body + 7 Global + 3 Simplified + 6 Wire-format + "
-    "2 Signing + 5 SDI + 5 Archive = 42 tools"
+    "7 Header + 8 Body + 7 Global + 3 Simplified + 6 Wire-format + "
+    "2 Signing + 5 SDI + 5 Archive = 43 tools"
 )
 
 # ---------------------------------------------------------------------------

@@ -50,11 +50,58 @@ _ROOT_TAG_TO_TYPE: dict[str, SDINotificationType] = {
 }
 
 
+# ---------------------------------------------------------------------------
+# Scarto (rejection) control-code reference
+# ---------------------------------------------------------------------------
+#
+# NotificaScarto XML already carries a <Descrizione> per error from SdI itself;
+# this table is a SUPPLEMENT (not a replacement) for codes where added context
+# is useful. Currently covers only the control code introduced by AdE
+# Specifiche Tecniche 1.9.1 (in force 2026-05-15). Extend as further codes are
+# verified against the AdE Allegato A — Specifiche Tecniche document.
+#
+# Source: AdE "Specifiche tecniche operative del SdI" v1.9.1, changelog entry
+# dated 31/03/2026 ("Introdotto nuovo controllo sulla fattura con codice
+# 00327") and control-code table: "Codice: 00327 — Descrizione in caso di
+# fatture ordinarie: 1.4.1.2 <CodiceFiscale> di gruppo IVA non riferito ad un
+# partecipante, in assenza di <IdFiscaleIVA> di gruppo IVA [...] Lo scarto
+# avviene se, in assenza di PIVA del cessionario/committente, il CF è
+# valorizzato con quello di un gruppo IVA e non di una sua partecipata. Il CF
+# deve essere valorizzato con il CF della società partecipante al gruppo Iva."
+SCARTO_CODE_REFERENCE: dict[str, str] = {
+    "00327": (
+        "Buyer (CessionarioCommittente) IdFiscaleIVA is absent and the CodiceFiscale "
+        "supplied belongs to a VAT group (Gruppo IVA) itself rather than to one of its "
+        "participating members. Set CodiceFiscale to the Codice Fiscale of the specific "
+        "member company that is party to this transaction, not the group's own CF. "
+        "(AdE Specifiche Tecniche 1.9.1, in force 2026-05-15.)"
+    ),
+}
+
+
+def describe_scarto_code(codice: str) -> str | None:
+    """Return a supplementary human-readable description for a known scarto (rejection) code.
+
+    Looks up `codice` in SCARTO_CODE_REFERENCE. Returns None for codes not yet
+    catalogued here — most scarto codes rely solely on the <Descrizione> text
+    the SdI notification itself carries; this table only adds context for
+    codes where that text benefits from further explanation.
+    """
+    return SCARTO_CODE_REFERENCE.get(codice)
+
+
 class SDIErrore(BaseModel):
     """A single error entry from a NotificaScarto ListaErrori."""
 
     codice: str = Field(description="SDI error code (e.g. '00200').")
     descrizione: str = Field(description="Human-readable error description.")
+    reference_note: str | None = Field(
+        default=None,
+        description=(
+            "Supplementary description from SCARTO_CODE_REFERENCE, when `codice` is "
+            "catalogued there. None for codes not yet catalogued."
+        ),
+    )
 
 
 class RiferimentoFattura(BaseModel):
@@ -133,9 +180,11 @@ def parse_notification(xml_bytes: bytes) -> SDINotification:
                     elif child_local == "Descrizione":
                         desc_el = child
             if codice_el is not None:
+                codice_val = codice_el.text or ""
                 errori.append(SDIErrore(
-                    codice=codice_el.text or "",
+                    codice=codice_val,
                     descrizione=(desc_el.text or "") if desc_el is not None else "",
+                    reference_note=describe_scarto_code(codice_val),
                 ))
 
     rif_fattura: RiferimentoFattura | None = None

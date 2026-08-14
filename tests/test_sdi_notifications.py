@@ -5,7 +5,9 @@ from __future__ import annotations
 import pytest
 
 from mcp_fattura_elettronica_it.sdi.notifications import (
+    SCARTO_CODE_REFERENCE,
     SDINotificationType,
+    describe_scarto_code,
     parse_notification,
 )
 
@@ -41,6 +43,22 @@ _NS_XML = b"""\
     </Errore>
   </ListaErrori>
   <MessageId>1000</MessageId>
+</NotificaScarto>
+"""
+
+_NS_XML_00327 = b"""\
+<?xml version="1.0" encoding="UTF-8"?>
+<NotificaScarto>
+  <IdentificativoSdI>123456789013</IdentificativoSdI>
+  <NomeFile>IT01234567890_00002.xml</NomeFile>
+  <DataOraRicezione>2026-06-29T10:00</DataOraRicezione>
+  <ListaErrori>
+    <Errore>
+      <Codice>00327</Codice>
+      <Descrizione>CodiceFiscale di gruppo IVA non riferito ad un partecipante</Descrizione>
+    </Errore>
+  </ListaErrori>
+  <MessageId>1001</MessageId>
 </NotificaScarto>
 """
 
@@ -138,6 +156,36 @@ class TestParseNotificaScarto:
         assert len(n.errori) == 2
         assert n.errori[0].codice == "00200"
         assert n.errori[1].codice == "00305"
+
+    def test_uncatalogued_code_has_no_reference_note(self):
+        n = parse_notification(_NS_XML)
+        assert n.errori[0].reference_note is None
+        assert n.errori[1].reference_note is None
+
+
+# ---------------------------------------------------------------------------
+# IT reg-watch (Specifiche Tecniche 1.9.1): scarto code 00327 reference
+# ---------------------------------------------------------------------------
+
+
+class TestScartoCodeReference:
+    def test_00327_catalogued(self):
+        assert "00327" in SCARTO_CODE_REFERENCE
+        assert "Gruppo IVA" in SCARTO_CODE_REFERENCE["00327"] or "VAT group" in SCARTO_CODE_REFERENCE["00327"]
+
+    def test_describe_scarto_code_known(self):
+        note = describe_scarto_code("00327")
+        assert note is not None
+        assert "member" in note.lower()
+
+    def test_describe_scarto_code_unknown_returns_none(self):
+        assert describe_scarto_code("99999") is None
+
+    def test_parsed_notification_includes_reference_note(self):
+        n = parse_notification(_NS_XML_00327)
+        assert n.errori[0].codice == "00327"
+        assert n.errori[0].reference_note is not None
+        assert "member" in n.errori[0].reference_note.lower()
 
 
 class TestParseEsitoCommittente:

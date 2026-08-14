@@ -16,6 +16,7 @@ from mcp_fattura_elettronica_it.tools.body_tools import (
     TIPO_DOCUMENTO,
     register_body_tools,
 )
+from mcp_fattura_elettronica_it.tools.global_tools import register_global_tools
 
 # ---------------------------------------------------------------------------
 # Helper setup
@@ -23,6 +24,7 @@ from mcp_fattura_elettronica_it.tools.body_tools import (
 
 _mcp = FastMCP(name="test-body")
 register_body_tools(_mcp)
+register_global_tools(_mcp)
 
 
 async def _get_tools():
@@ -171,7 +173,7 @@ class TestAddLineaDettaglio:
         linea = result["DettaglioLinee"]
         assert linea["NumeroLinea"] == 1
         assert linea["AliquotaIVA"] == "22.00"
-        assert linea["Quantita"] == "8"
+        assert linea["Quantita"] == "8.00"
         assert linea["UnitaMisura"] == "ORE"
         assert "warnings" not in result
 
@@ -261,6 +263,253 @@ class TestAddLineaDettaglio:
             aliquota_iva=22.0,
         )
         assert "Quantita" not in result["DettaglioLinee"]
+
+
+# ---------------------------------------------------------------------------
+# AltriDatiGestionali (IT reg-watch: FatturaPA Specifiche Tecniche 1.9.1)
+# ---------------------------------------------------------------------------
+
+
+class TestAltriDatiGestionaliOnAddLineaDettaglio:
+    def test_generic_entry_emitted(self):
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Prodotti agricoli",
+            prezzo_unitario=100.0,
+            prezzo_totale=100.0,
+            aliquota_iva=22.0,
+            altri_dati_gestionali=[
+                {
+                    "TipoDato": "ALI-COMP",
+                    "RiferimentoNumero": 7.5,
+                }
+            ],
+        )
+        adg = result["DettaglioLinee"]["AltriDatiGestionali"]
+        assert adg == [{"TipoDato": "ALI-COMP", "RiferimentoNumero": "7.50"}]
+
+    def test_full_entry_all_fields(self):
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Compenso sportivo",
+            prezzo_unitario=1000.0,
+            prezzo_totale=1000.0,
+            aliquota_iva=0.0,
+            natura="N1",
+            altri_dati_gestionali=[
+                {
+                    "TipoDato": "ESENZSPORT",
+                    "RiferimentoTesto": "nota",
+                    "RiferimentoNumero": 15000.0,
+                    "RiferimentoData": "2026-01-15",
+                }
+            ],
+        )
+        adg = result["DettaglioLinee"]["AltriDatiGestionali"][0]
+        assert adg["TipoDato"] == "ESENZSPORT"
+        assert adg["RiferimentoTesto"] == "nota"
+        assert adg["RiferimentoNumero"] == "15000.00"
+        assert adg["RiferimentoData"] == "2026-01-15"
+
+    def test_missing_tipo_dato_rejected(self):
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Test",
+            prezzo_unitario=100.0,
+            prezzo_totale=100.0,
+            aliquota_iva=22.0,
+            altri_dati_gestionali=[{"RiferimentoTesto": "x"}],
+        )
+        assert "error" in result
+
+    def test_tipo_dato_too_long_rejected(self):
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Test",
+            prezzo_unitario=100.0,
+            prezzo_totale=100.0,
+            aliquota_iva=22.0,
+            altri_dati_gestionali=[{"TipoDato": "X" * 11}],
+        )
+        assert "error" in result
+
+    def test_riferimento_testo_too_long_rejected(self):
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Test",
+            prezzo_unitario=100.0,
+            prezzo_totale=100.0,
+            aliquota_iva=22.0,
+            altri_dati_gestionali=[{"TipoDato": "X", "RiferimentoTesto": "Y" * 61}],
+        )
+        assert "error" in result
+
+    def test_invalid_riferimento_data_rejected(self):
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Test",
+            prezzo_unitario=100.0,
+            prezzo_totale=100.0,
+            aliquota_iva=22.0,
+            altri_dati_gestionali=[{"TipoDato": "X", "RiferimentoData": "15/01/2026"}],
+        )
+        assert "error" in result
+
+    def test_no_altri_dati_gestionali_key_when_omitted(self):
+        result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Test",
+            prezzo_unitario=100.0,
+            prezzo_totale=100.0,
+            aliquota_iva=22.0,
+        )
+        assert "AltriDatiGestionali" not in result["DettaglioLinee"]
+
+
+class TestBuildSportWorkerExemptionDatoGestionale:
+    def test_default_sets_tipo_dato_only(self):
+        result = call("build_sport_worker_exemption_dato_gestionale")
+        assert result["AltriDatiGestionali"] == {"TipoDato": "ESENZSPORT"}
+
+    def test_with_riferimento_numero(self):
+        result = call(
+            "build_sport_worker_exemption_dato_gestionale",
+            riferimento_numero=12000.0,
+        )
+        adg = result["AltriDatiGestionali"]
+        assert adg["TipoDato"] == "ESENZSPORT"
+        assert adg["RiferimentoNumero"] == "12000.00"
+
+    def test_invalid_riferimento_data_rejected(self):
+        result = call(
+            "build_sport_worker_exemption_dato_gestionale",
+            riferimento_data="15-01-2026",
+        )
+        assert "error" in result
+
+
+class TestAltriDatiGestionaliXsdRoundTrip:
+    """IT reg-watch: AltriDatiGestionali must XSD-validate end to end via the
+    generate_fattura_xml -> validate_fattura_xsd pipeline (global_tools.py),
+    not just be structurally correct in isolation."""
+
+    _DATI_TRASMISSIONE = {
+        "DatiTrasmissione": {
+            "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
+            "ProgressivoInvio": "00001",
+            "FormatoTrasmissione": "FPR12",
+            "CodiceDestinatario": "ABC123",
+        }
+    }
+    _CEDENTE = {
+        "CedentePrestatore": {
+            "DatiAnagrafici": {
+                "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "01234567897"},
+                "Anagrafica": {"Denominazione": "ACME Srl"},
+                "RegimeFiscale": "RF01",
+            },
+            "Sede": {"Indirizzo": "Via Roma 1", "CAP": "00100", "Comune": "Roma", "Nazione": "IT"},
+        }
+    }
+    _CESSIONARIO = {
+        "CessionarioCommittente": {
+            "DatiAnagrafici": {
+                "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
+                "Anagrafica": {"Denominazione": "Buyer Srl"},
+            },
+            "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
+        }
+    }
+    _DATI_GENERALI = {
+        "DatiGenerali": {
+            "DatiGeneraliDocumento": {
+                "TipoDocumento": "TD01",
+                "Divisa": "EUR",
+                "Data": "2026-01-15",
+                "Numero": "2026/001",
+            }
+        }
+    }
+
+    def test_altri_dati_gestionali_xsd_valid(self):
+        linea_result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Compenso sportivo dilettantistico",
+            prezzo_unitario=1000.12,
+            prezzo_totale=1000.12,
+            aliquota_iva=22.0,
+            altri_dati_gestionali=[
+                call("build_sport_worker_exemption_dato_gestionale")["AltriDatiGestionali"]
+            ],
+        )
+        assert "error" not in linea_result
+
+        riepilogo = call(
+            "compute_totali",
+            linee=[{"prezzo_totale": 1000.12, "aliquota_iva": 22.0}],
+        )["DatiRiepilogo"]
+
+        xml_result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=self._DATI_TRASMISSIONE,
+            cedente_prestatore=self._CEDENTE,
+            cessionario_committente=self._CESSIONARIO,
+            dati_generali=self._DATI_GENERALI,
+            dettaglio_linee=[linea_result],
+            dati_riepilogo=riepilogo,
+        )
+        assert "error" not in xml_result
+        assert "<TipoDato>ESENZSPORT</TipoDato>" in xml_result["xml"]
+
+        xsd_result = call("validate_fattura_xsd", xml_string=xml_result["xml"])
+        assert xsd_result["valid"] is True, xsd_result.get("errors")
+
+    def test_whole_number_unit_price_xsd_valid(self):
+        # PrezzoUnitario/Quantita are Amount8DecimalType/QuantitaType in the XSD,
+        # both requiring a mandatory decimal point with 2-8 digits. format_quantity()
+        # strips trailing zeros and previously stripped the decimal point entirely
+        # for whole numbers (e.g. 1000.0 -> "1000"), which failed XSD pattern
+        # validation. Regression test for the min_decimals=2 fix.
+        linea_result = call(
+            "add_linea_dettaglio",
+            numero_linea=1,
+            descrizione="Consulenza",
+            quantita=1.0,
+            prezzo_unitario=1000.0,
+            prezzo_totale=1000.0,
+            aliquota_iva=22.0,
+        )
+        assert "error" not in linea_result
+        linea = linea_result["DettaglioLinee"]
+        assert linea["PrezzoUnitario"] == "1000.00"
+        assert linea["Quantita"] == "1.00"
+
+        riepilogo = call(
+            "compute_totali",
+            linee=[{"prezzo_totale": 1000.0, "aliquota_iva": 22.0}],
+        )["DatiRiepilogo"]
+
+        xml_result = call(
+            "generate_fattura_xml",
+            dati_trasmissione=self._DATI_TRASMISSIONE,
+            cedente_prestatore=self._CEDENTE,
+            cessionario_committente=self._CESSIONARIO,
+            dati_generali=self._DATI_GENERALI,
+            dettaglio_linee=[linea_result],
+            dati_riepilogo=riepilogo,
+        )
+        assert "error" not in xml_result
+
+        xsd_result = call("validate_fattura_xsd", xml_string=xml_result["xml"])
+        assert xsd_result["valid"] is True, xsd_result.get("errors")
 
 
 # ---------------------------------------------------------------------------

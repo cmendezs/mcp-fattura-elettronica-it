@@ -1,8 +1,8 @@
 {
-  "generated_at": "2026-08-11T15:33:24.939953+00:00",
+  "generated_at": "2026-08-14T13:43:53.491154+00:00",
   "pkg_name": "mcp-fattura-elettronica-it",
-  "pkg_version": "0.6.1",
-  "core_version": "1.16.2",
+  "pkg_version": "0.7.0",
+  "core_version": "1.17.0",
   "core_version_compatible": true,
   "exit_code": 0,
   "total_blocking": 0,
@@ -1196,6 +1196,13 @@
           "severity": "OK",
           "symbol": "check_ritenuta_acconto",
           "message": "Tool 'check_ritenuta_acconto' is present. (Compute ritenuta d'acconto RT01-RT06)"
+        },
+        {
+          "check_id": "CHECK_2",
+          "tag": "[EXTRA]",
+          "severity": "OK",
+          "symbol": "build_sport_worker_exemption_dato_gestionale",
+          "message": "Tool 'build_sport_worker_exemption_dato_gestionale' is present but not in the required spec."
         }
       ]
     },
@@ -1280,7 +1287,7 @@
           "tag": "[OK]",
           "severity": "OK",
           "symbol": "mcp-einvoicing-core",
-          "message": "Installed: 1.16.2 | Declared range: >=1.16.1,<2.0.0 | Compatible: True"
+          "message": "Installed: 1.17.0 | Declared range: >=1.17.0,<2.0.0 | Compatible: True"
         }
       ]
     },

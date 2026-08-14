@@ -58,6 +58,14 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
         are not yet supported via this adapter — use the global_tools
         generate_fattura_xml tool for individual-person invoices until
         IT-SC-6 (ItalianParty subclass with nome/cognome) is implemented.
+
+        Gruppo IVA (VAT-group) CodiceFiscale: set document.cedente_codice_fiscale
+        and/or document.cessionario_codice_fiscale (flat fields on ItalianInvoice,
+        not on the party) to the Codice Fiscale of the specific participating
+        member — never the group's own CF. These are unrelated to IT-SC-6: they
+        do not require a party subclass, since CodiceFiscale is emitted alongside
+        the existing EN16931Party.vat_id-derived IdFiscaleIVA rather than replacing
+        any party field.
         """
         formato = document.formato_trasmissione
         seller = document.seller
@@ -88,6 +96,15 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
                 f"<IdCodice>{buyer_codice}</IdCodice>"
                 f"</IdFiscaleIVA>"
             )
+        # Gruppo IVA (VAT-group): cessionario_codice_fiscale must identify the
+        # specific participating member, never the group's own CF — see
+        # ItalianInvoice.cessionario_codice_fiscale and sdi.notifications.
+        # SCARTO_CODE_REFERENCE['00327'].
+        buyer_cf_xml = (
+            f"<CodiceFiscale>{xml_escape(document.cessionario_codice_fiscale)}</CodiceFiscale>"
+            if document.cessionario_codice_fiscale
+            else ""
+        )
         buyer_ana = f"<Denominazione>{xml_escape(buyer.name)}</Denominazione>"
         b_addr = buyer.address
         buyer_sede = (
@@ -114,6 +131,32 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
             um = f"<UnitaMisura>{line.unit_code}</UnitaMisura>" if line.unit_code else ""
             natura_code = resolve_natura(line.tax_category, explicit=line.natura)
             nat = f"<Natura>{xml_escape(natura_code)}</Natura>" if natura_code else ""
+            # AltriDatiGestionali is last in the XSD DettaglioLineeType sequence
+            # (after Natura / RiferimentoAmministrazione).
+            adg = ""
+            if line.altri_dati_gestionali:
+                for entry in line.altri_dati_gestionali:
+                    rt = (
+                        f"<RiferimentoTesto>{xml_escape(entry.riferimento_testo)}</RiferimentoTesto>"
+                        if entry.riferimento_testo
+                        else ""
+                    )
+                    rn = (
+                        f"<RiferimentoNumero>{entry.riferimento_numero:.2f}</RiferimentoNumero>"
+                        if entry.riferimento_numero is not None
+                        else ""
+                    )
+                    rd = (
+                        f"<RiferimentoData>{entry.riferimento_data.isoformat()}</RiferimentoData>"
+                        if entry.riferimento_data
+                        else ""
+                    )
+                    adg += (
+                        f"<AltriDatiGestionali>"
+                        f"<TipoDato>{xml_escape(entry.tipo_dato)}</TipoDato>"
+                        f"{rt}{rn}{rd}"
+                        f"</AltriDatiGestionali>"
+                    )
             linee_xml += (
                 f"<DettaglioLinee>"
                 f"<NumeroLinea>{line.line_id}</NumeroLinea>"
@@ -123,6 +166,7 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
                 f"<PrezzoTotale>{line.line_net_amount:.2f}</PrezzoTotale>"
                 f"<AliquotaIVA>{line.tax_rate:.2f}</AliquotaIVA>"
                 f"{nat}"
+                f"{adg}"
                 f"</DettaglioLinee>"
             )
 
@@ -185,6 +229,7 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
             f"<IdPaese>{seller_paese}</IdPaese>"
             f"<IdCodice>{seller_codice}</IdCodice>"
             f"</IdFiscaleIVA>"
+            f"{f'<CodiceFiscale>{xml_escape(document.cedente_codice_fiscale)}</CodiceFiscale>' if document.cedente_codice_fiscale else ''}"
             f"<Anagrafica>{seller_ana}</Anagrafica>"
             f"<RegimeFiscale>{xml_escape(document.regime_fiscale)}</RegimeFiscale>"
             f"</DatiAnagrafici>"
@@ -193,6 +238,7 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
             f"<CessionarioCommittente>"
             f"<DatiAnagrafici>"
             f"{buyer_id_xml}"
+            f"{buyer_cf_xml}"
             f"<Anagrafica>{buyer_ana}</Anagrafica>"
             f"</DatiAnagrafici>"
             f"<Sede>{buyer_sede}</Sede>"
@@ -353,6 +399,7 @@ class FatturaParser(BaseDocumentParser):
                 result["header"]["cedente_prestatore"] = {
                     "id_paese": _txt(cp_an, "IdFiscaleIVA/IdPaese"),
                     "id_codice": _txt(cp_an, "IdFiscaleIVA/IdCodice"),
+                    "codice_fiscale": _txt(cp_an, "CodiceFiscale"),
                     "denominazione": _txt(cp_an, "Anagrafica/Denominazione"),
                     "nome": _txt(cp_an, "Anagrafica/Nome"),
                     "cognome": _txt(cp_an, "Anagrafica/Cognome"),

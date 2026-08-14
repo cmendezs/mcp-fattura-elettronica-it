@@ -195,6 +195,42 @@ class TestValidateCedentePrestatore:
         )
         assert "error" in result
 
+    def test_gruppo_iva_member_codice_fiscale_accepted(self):
+        """IT reg-watch (Specifiche Tecniche 1.9.1): seller's Gruppo IVA member CF."""
+        result = call(
+            "validate_cedente_prestatore",
+            id_paese="IT",
+            id_codice="12345678901",
+            codice_fiscale="01234567897",
+            denominazione="ACME Srl (Gruppo IVA member)",
+            regime_fiscale="RF01",
+        )
+        cp_dati = result["CedentePrestatore"]["DatiAnagrafici"]
+        assert cp_dati["CodiceFiscale"] == "01234567897"
+        # XSD order: IdFiscaleIVA, CodiceFiscale, Anagrafica, ..., RegimeFiscale.
+        assert list(cp_dati.keys()) == ["IdFiscaleIVA", "CodiceFiscale", "Anagrafica", "RegimeFiscale"]
+
+    def test_codice_fiscale_omitted_when_not_provided(self):
+        result = call(
+            "validate_cedente_prestatore",
+            id_paese="IT",
+            id_codice="12345678901",
+            denominazione="ACME Srl",
+            regime_fiscale="RF01",
+        )
+        assert "CodiceFiscale" not in result["CedentePrestatore"]["DatiAnagrafici"]
+
+    def test_invalid_codice_fiscale_checksum_rejected(self):
+        result = call(
+            "validate_cedente_prestatore",
+            id_paese="IT",
+            id_codice="01234567897",
+            codice_fiscale="12345678901",  # fails modulo-10 checksum (see TaxIdentifier tests)
+            denominazione="ACME Srl",
+            regime_fiscale="RF01",
+        )
+        assert "error" in result
+
 
 # ---------------------------------------------------------------------------
 # validate_cessionario
@@ -251,6 +287,37 @@ class TestValidateCessionario:
             id_codice="98765432109",
         )
         assert "error" in result
+
+    def test_gruppo_iva_structural_precondition_warns(self):
+        """IT reg-watch (Specifiche Tecniche 1.9.1): IdFiscaleIVA absent + 11-digit
+        CodiceFiscale is the structural precondition for scarto code 00327."""
+        result = call(
+            "validate_cessionario",
+            denominazione="Buyer Srl",
+            codice_fiscale="01234567897",
+        )
+        assert "error" not in result
+        assert "warnings" in result
+        assert "00327" in result["warnings"][0]
+
+    def test_no_warning_when_idfiscale_present(self):
+        result = call(
+            "validate_cessionario",
+            denominazione="Buyer Srl",
+            id_paese="IT",
+            id_codice="98765432109",
+            codice_fiscale="01234567897",
+        )
+        assert "warnings" not in result
+
+    def test_no_warning_for_individual_16_char_cf(self):
+        result = call(
+            "validate_cessionario",
+            nome="Luigi",
+            cognome="Bianchi",
+            codice_fiscale="BNCLGI80A01H501O",
+        )
+        assert "warnings" not in result
 
 
 # ---------------------------------------------------------------------------

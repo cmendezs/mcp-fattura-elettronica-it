@@ -1,8 +1,10 @@
 """
-MCP tools for the FatturaElettronicaBody section of FatturaPA v1.2.3.
+MCP tools for the FatturaElettronicaBody section of FatturaPA (XSD v1.2.3,
+Specifiche Tecniche 1.9.1 — the two version numbers are independent; 1.9.1 does
+not change the XSD).
 
 Covers general document data, line items, VAT summary, payment terms,
-Natura exemption codes, and attachments.
+Natura exemption codes, AltriDatiGestionali entries, and attachments.
 """
 
 from __future__ import annotations
@@ -21,6 +23,7 @@ from mcp_einvoicing_core.xml_utils import (
 )
 from pydantic import Field
 
+from mcp_fattura_elettronica_it.models import SPORT_WORKER_EXEMPTION_TIPO_DATO
 from mcp_fattura_elettronica_it.natura import NATURA_CODES
 
 logger = get_logger(__name__)
@@ -307,6 +310,22 @@ def register_body_tools(mcp: FastMCP) -> None:
                 ),
             ),
         ] = None,
+        altri_dati_gestionali: Annotated[
+            list[dict] | None,
+            Field(
+                default=None,
+                description=(
+                    "Optional list of AltriDatiGestionali entries (DettaglioLinee, XSD "
+                    "maxOccurs unbounded). Each entry is a dict with XSD-cased keys: "
+                    "'TipoDato' (str, required, max 10 chars), 'RiferimentoTesto' (str, "
+                    "optional, max 60 chars), 'RiferimentoNumero' (str/float, optional), "
+                    "'RiferimentoData' (str YYYY-MM-DD, optional) — the same shape returned "
+                    "by build_sport_worker_exemption_dato_gestionale()['AltriDatiGestionali'], "
+                    "which can be passed straight through in this list for the sport-worker "
+                    "IRPEF exemption codifica ('ESENZSPORT')."
+                ),
+            ),
+        ] = None,
     ) -> dict:
         """Build a single DettaglioLinee (line item) entry for the FatturaElettronicaBody.
 
@@ -319,6 +338,9 @@ def register_body_tools(mcp: FastMCP) -> None:
         When aliquota_iva is 0.0, natura is required — call get_natura_codes() to select the code.
         Set ritenuta='SI' on lines subject to withholding tax and include the DatiRitenuta block
         from check_ritenuta_acconto() when generating XML.
+        altri_dati_gestionali (optional): structured management data entries, emitted after
+        Natura in the XSD element order. See build_sport_worker_exemption_dato_gestionale()
+        for the codifica introduced by Specifiche Tecniche 1.9.1.
 
         On success returns {'DettaglioLinee': {...}}, plus 'warnings' (list[str])
         when aliquota_iva is a non-standard IT VAT rate (outside 4, 5, 10, 22).
@@ -343,6 +365,44 @@ def register_body_tools(mcp: FastMCP) -> None:
         if ritenuta and ritenuta not in ("SI",):
             return {"error": "ritenuta must be 'SI' or omitted."}
 
+        adg_entries: list[dict] = []
+        if altri_dati_gestionali:
+            for i, entry in enumerate(altri_dati_gestionali):
+                tipo_dato = entry.get("TipoDato")
+                if not tipo_dato:
+                    return {"error": f"altri_dati_gestionali[{i}]: 'TipoDato' is required."}
+                if len(tipo_dato) > 10:
+                    return {
+                        "error": (
+                            f"altri_dati_gestionali[{i}]: 'TipoDato' must not exceed 10 characters."
+                        )
+                    }
+                riferimento_testo = entry.get("RiferimentoTesto")
+                if riferimento_testo and len(riferimento_testo) > 60:
+                    return {
+                        "error": (
+                            f"altri_dati_gestionali[{i}]: 'RiferimentoTesto' must not "
+                            "exceed 60 characters."
+                        )
+                    }
+                riferimento_data = entry.get("RiferimentoData")
+                if riferimento_data and not validate_date_iso(riferimento_data):
+                    return {
+                        "error": (
+                            f"altri_dati_gestionali[{i}]: invalid 'RiferimentoData' "
+                            f"'{riferimento_data}'. Use YYYY-MM-DD."
+                        )
+                    }
+
+                adg_xml_entry: dict = {"TipoDato": tipo_dato}
+                if riferimento_testo:
+                    adg_xml_entry["RiferimentoTesto"] = riferimento_testo
+                if entry.get("RiferimentoNumero") is not None:
+                    adg_xml_entry["RiferimentoNumero"] = format_amount(entry["RiferimentoNumero"])
+                if riferimento_data:
+                    adg_xml_entry["RiferimentoData"] = riferimento_data
+                adg_entries.append(adg_xml_entry)
+
         warnings: list[str] = []
         _STANDARD_IT_RATES = {4.0, 5.0, 10.0, 22.0}
         if aliquota_iva != 0.0 and aliquota_iva not in _STANDARD_IT_RATES:
@@ -356,24 +416,74 @@ def register_body_tools(mcp: FastMCP) -> None:
         linea: dict = {
             "NumeroLinea": numero_linea,
             "Descrizione": descrizione[:1000],
-            "PrezzoUnitario": format_quantity(prezzo_unitario),
+            "PrezzoUnitario": format_quantity(prezzo_unitario, min_decimals=2),
             "PrezzoTotale": format_amount(prezzo_totale),
             "AliquotaIVA": format_amount(aliquota_iva),
         }
 
         if quantita is not None:
-            linea["Quantita"] = format_quantity(quantita)
+            linea["Quantita"] = format_quantity(quantita, min_decimals=2)
         if unita_misura:
             linea["UnitaMisura"] = unita_misura
         if natura:
             linea["Natura"] = natura
         if ritenuta:
             linea["Ritenuta"] = ritenuta
+        if adg_entries:
+            linea["AltriDatiGestionali"] = adg_entries
 
         result: dict = {"DettaglioLinee": linea}
         if warnings:
             result["warnings"] = warnings
         return result
+
+    @mcp.tool()
+    def build_sport_worker_exemption_dato_gestionale(
+        riferimento_numero: Annotated[
+            float | None,
+            Field(
+                default=None,
+                description=(
+                    "Optional cumulative annual compensation amount (EUR) to record in "
+                    "RiferimentoNumero. Not mandated by the spec for this codifica — a "
+                    "convenience for callers who want to track it on the invoice."
+                ),
+            ),
+        ] = None,
+        riferimento_data: Annotated[
+            str | None,
+            Field(
+                default=None,
+                description="Optional reference date (YYYY-MM-DD) for RiferimentoData.",
+            ),
+        ] = None,
+    ) -> dict:
+        """Build the AltriDatiGestionali entry for the sport-worker IRPEF exemption codifica.
+
+        Covers compensation under art. 36, comma 6, D.Lgs. 36/2021 (lavoro sportivo
+        dilettantistico), exempt from the taxable base up to EUR 15,000/year. Sets
+        TipoDato to 'ESENZSPORT' — verified against AdE Allegato A – Specifiche
+        Tecniche 1.9.1 (in force 2026-05-15). RiferimentoTesto/RiferimentoNumero are
+        not mandated for this codifica (unlike e.g. 'ALI-COMP', which requires
+        RiferimentoNumero); both are left to the caller's discretion here.
+
+        Pass the returned dict's 'AltriDatiGestionali' value inside a list to
+        add_linea_dettaglio()'s altri_dati_gestionali parameter — or pass the dict
+        itself if you are constructing the list manually.
+
+        On success returns {'AltriDatiGestionali': {'TipoDato': 'ESENZSPORT', ...}}.
+        On failure (invalid riferimento_data) returns {'error': '<reason>'}.
+        """
+        if riferimento_data and not validate_date_iso(riferimento_data):
+            return {"error": f"Invalid riferimento_data '{riferimento_data}'. Use YYYY-MM-DD."}
+
+        entry: dict = {"TipoDato": SPORT_WORKER_EXEMPTION_TIPO_DATO}
+        if riferimento_numero is not None:
+            entry["RiferimentoNumero"] = format_amount(riferimento_numero)
+        if riferimento_data:
+            entry["RiferimentoData"] = riferimento_data
+
+        return {"AltriDatiGestionali": entry}
 
     @mcp.tool()
     def compute_totali(

@@ -14,7 +14,12 @@ import pytest
 from mcp_einvoicing_core.en16931 import EN16931Address, EN16931Party
 from mcp_einvoicing_core.exceptions import DocumentGenerationError
 
-from mcp_fattura_elettronica_it.models import ItalianInvoice, ItalianLineItem, ItalianTax
+from mcp_fattura_elettronica_it.models import (
+    ItalianInvoice,
+    ItalianLineItem,
+    ItalianTax,
+    build_sport_worker_exemption_altri_dati_gestionali,
+)
 from mcp_fattura_elettronica_it.tools.adapters import FatturaGenerator, FatturaParser
 
 SELLER = EN16931Party(
@@ -30,7 +35,7 @@ BUYER = EN16931Party(
 )
 
 
-def _invoice(line_items, tax_lines) -> ItalianInvoice:
+def _invoice(line_items, tax_lines, **extra) -> ItalianInvoice:
     return ItalianInvoice(
         profile="urn:cen.eu:en16931:2017",
         invoice_number="2026/001",
@@ -47,6 +52,7 @@ def _invoice(line_items, tax_lines) -> ItalianInvoice:
         progressivo_invio="00001",
         codice_destinatario="ABC123",
         formato_trasmissione="FPR12",
+        **extra,
     )
 
 
@@ -163,3 +169,112 @@ class TestFatturaGeneratorNaturaResolution:
         xml = FatturaGenerator().generate(invoice)
 
         assert "<Natura>" not in xml
+
+
+# ---------------------------------------------------------------------------
+# IT reg-watch (Specifiche Tecniche 1.9.1): AltriDatiGestionali + Gruppo IVA
+# ---------------------------------------------------------------------------
+
+
+class TestAltriDatiGestionaliEmission:
+    def test_sport_worker_exemption_emitted_after_natura(self):
+        line = ItalianLineItem(
+            line_id="1",
+            name="Compenso sportivo dilettantistico",
+            quantity=Decimal(1),
+            unit_code="EA",
+            unit_price=Decimal("1000.00"),
+            line_net_amount=Decimal("1000.00"),
+            tax_category="E",
+            tax_rate=Decimal("0.00"),
+            altri_dati_gestionali=[build_sport_worker_exemption_altri_dati_gestionali()],
+        )
+        tax = ItalianTax(
+            category="E",
+            rate=Decimal("0.00"),
+            taxable_amount=Decimal("1000.00"),
+            tax_amount=Decimal("0.00"),
+        )
+        invoice = _invoice([line], [tax])
+
+        xml = FatturaGenerator().generate(invoice)
+
+        assert "<TipoDato>ESENZSPORT</TipoDato>" in xml
+        # AltriDatiGestionali must come after Natura in the DettaglioLinee sequence.
+        assert xml.index("<Natura>N4</Natura>") < xml.index("<AltriDatiGestionali>")
+
+    def test_no_altri_dati_gestionali_when_not_set(self):
+        line = ItalianLineItem(
+            line_id="1",
+            name="Consulenza",
+            quantity=Decimal(1),
+            unit_code="EA",
+            unit_price=Decimal("1000.00"),
+            line_net_amount=Decimal("1000.00"),
+            tax_category="S",
+            tax_rate=Decimal("22.00"),
+        )
+        tax = ItalianTax(
+            category="S",
+            rate=Decimal("22.00"),
+            taxable_amount=Decimal("1000.00"),
+            tax_amount=Decimal("220.00"),
+        )
+        invoice = _invoice([line], [tax])
+
+        xml = FatturaGenerator().generate(invoice)
+
+        assert "<AltriDatiGestionali>" not in xml
+
+
+class TestGruppoIvaCodiceFiscale:
+    def test_cedente_codice_fiscale_emitted(self):
+        line = ItalianLineItem(
+            line_id="1", name="Consulenza", quantity=Decimal(1), unit_code="EA",
+            unit_price=Decimal("1000.00"), line_net_amount=Decimal("1000.00"),
+            tax_category="S", tax_rate=Decimal("22.00"),
+        )
+        tax = ItalianTax(
+            category="S", rate=Decimal("22.00"),
+            taxable_amount=Decimal("1000.00"), tax_amount=Decimal("220.00"),
+        )
+        invoice = _invoice([line], [tax], cedente_codice_fiscale="01234567897")
+
+        xml = FatturaGenerator().generate(invoice)
+
+        assert "<CodiceFiscale>01234567897</CodiceFiscale>" in xml
+        # XSD order within CedentePrestatore/DatiAnagrafici: IdFiscaleIVA, CodiceFiscale, Anagrafica.
+        assert xml.index("</IdFiscaleIVA>") < xml.index("<CodiceFiscale>01234567897</CodiceFiscale>") < xml.index("<Anagrafica>")
+
+    def test_cessionario_codice_fiscale_emitted(self):
+        line = ItalianLineItem(
+            line_id="1", name="Consulenza", quantity=Decimal(1), unit_code="EA",
+            unit_price=Decimal("1000.00"), line_net_amount=Decimal("1000.00"),
+            tax_category="S", tax_rate=Decimal("22.00"),
+        )
+        tax = ItalianTax(
+            category="S", rate=Decimal("22.00"),
+            taxable_amount=Decimal("1000.00"), tax_amount=Decimal("220.00"),
+        )
+        invoice = _invoice([line], [tax], cessionario_codice_fiscale="98765432109")
+
+        xml = FatturaGenerator().generate(invoice)
+
+        cc_section = xml.split("<CessionarioCommittente>")[1]
+        assert "<CodiceFiscale>98765432109</CodiceFiscale>" in cc_section
+
+    def test_no_codice_fiscale_when_not_set(self):
+        line = ItalianLineItem(
+            line_id="1", name="Consulenza", quantity=Decimal(1), unit_code="EA",
+            unit_price=Decimal("1000.00"), line_net_amount=Decimal("1000.00"),
+            tax_category="S", tax_rate=Decimal("22.00"),
+        )
+        tax = ItalianTax(
+            category="S", rate=Decimal("22.00"),
+            taxable_amount=Decimal("1000.00"), tax_amount=Decimal("220.00"),
+        )
+        invoice = _invoice([line], [tax])
+
+        xml = FatturaGenerator().generate(invoice)
+
+        assert "<CodiceFiscale>" not in xml

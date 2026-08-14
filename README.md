@@ -8,9 +8,11 @@
 [![PyPI version](https://img.shields.io/pypi/v/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/)
 [![Python](https://img.shields.io/pypi/pyversions/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/) [![mcp-fattura-elettronica-it MCP server](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it/badges/score.svg)](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it)
 
-A Python MCP server for **Italian electronic invoicing** in **FatturaPA XML** format (SDI / Agenzia delle Entrate standard, version 1.2.3). It enables AI agents (Claude, IDEs) to generate, validate, and analyze B2B, B2G, and cross-border electronic invoices that are directly compliant with the technical specifications of the Sistema di Interscambio (SDI).
+A Python MCP server for **Italian electronic invoicing** in **FatturaPA XML** format (SDI / Agenzia delle Entrate standard, XSD v1.2.3, Specifiche Tecniche 1.9.1). It enables AI agents (Claude, IDEs) to generate, validate, and analyze B2B, B2G, and cross-border electronic invoices that are directly compliant with the technical specifications of the Sistema di Interscambio (SDI).
 
-This is a **Model Context Protocol (MCP)** server exposing **42 tools** covering the full lifecycle of a FatturaPA XML document: transmission header construction, seller/buyer validation, document type codes (TD01-TD28), line items, VAT summary computation, payment terms, XSD validation against the official Agenzia delle Entrate schema (v1.2.3), XML generation, parsing, JSON export, SDI filename generation, withholding tax (ritenuta d'acconto) calculation, digital signatures (XAdES-BES and CAdES-BES), direct SDI transmission via SDICoop SOAP, SDI notification parsing, and conservazione sostitutiva (legally compliant archiving per AgID). Licensed under **Apache 2.0**.
+> **Note:** "Specifiche Tecniche" (the AdE Allegato A controls/codifiche document) and the XSD schema are two separate artefacts with independent version numbers. Specifiche Tecniche 1.9.1 (in force 2026-05-15) does **not** change the XSD — the bundled schema remains v1.2.3.
+
+This is a **Model Context Protocol (MCP)** server exposing **43 tools** covering the full lifecycle of a FatturaPA XML document: transmission header construction, seller/buyer validation (including Gruppo IVA / VAT-group CodiceFiscale), document type codes (TD01-TD28), line items with AltriDatiGestionali support, VAT summary computation, payment terms, XSD validation against the official Agenzia delle Entrate schema (v1.2.3), XML generation, parsing, JSON export, SDI filename generation, withholding tax (ritenuta d'acconto) calculation, digital signatures (XAdES-BES and CAdES-BES), direct SDI transmission via SDICoop SOAP, SDI notification parsing, and conservazione sostitutiva (legally compliant archiving per AgID). Licensed under **Apache 2.0**.
 
 ---
 
@@ -117,20 +119,21 @@ Configuration file (`~/.cursor/mcp.json` or `.cursor/mcp.json` in the project fo
 | Tool | Description |
 |------|-------------|
 | `build_transmission_header` | Build DatiTrasmissione block: ProgressivoInvio, CodiceDestinatario, PECDestinatario |
-| `validate_cedente_prestatore` | Validate seller block: IdFiscaleIVA, Anagrafica, Sede, RegimeFiscale codes |
-| `validate_cessionario` | Validate buyer block: IdFiscaleIVA or CodiceFiscale, Sede |
+| `validate_cedente_prestatore` | Validate seller block: IdFiscaleIVA, optional Gruppo IVA member CodiceFiscale, Anagrafica, Sede, RegimeFiscale codes |
+| `validate_cessionario` | Validate buyer block: IdFiscaleIVA or CodiceFiscale, Sede (warns on the structural precondition of scarto code 00327 for Gruppo IVA) |
 | `get_regime_fiscale_codes` | Return all valid RegimeFiscale codes with descriptions (RF01-RF19) |
 | `validate_partita_iva` | Validate Italian VAT number (Partita IVA) format and checksum (11 digits) |
 | `generate_progressivo_invio` | Generate a unique ProgressivoInvio identifier (max 10 alphanumeric chars) |
-| `lookup_codice_destinatario` | Return info about a CodiceDestinatario (6-char SDI code) or PEC address |
+| `lookup_codice_destinatario` | Return info about a CodiceDestinatario (6-char SDI code) or PEC address (300-code max per accredited channel, Specifiche Tecniche 1.9.1) |
 
-### Body: FatturaElettronicaBody (7 tools)
+### Body: FatturaElettronicaBody (8 tools)
 
 | Tool | Description |
 |------|-------------|
 | `build_dati_generali` | Build DatiGenerali block: TipoDocumento, Divisa, Data, Numero, Causale |
 | `get_tipo_documento_codes` | Return all TD01-TD28 codes with descriptions and use cases (incl. cross-border) |
-| `add_linea_dettaglio` | Add a DettaglioLinee entry: NumeroLinea, Descrizione, Quantita, PrezzoUnitario |
+| `add_linea_dettaglio` | Add a DettaglioLinee entry: NumeroLinea, Descrizione, Quantita, PrezzoUnitario, optional AltriDatiGestionali |
+| `build_sport_worker_exemption_dato_gestionale` | Build the AltriDatiGestionali entry for the sport-worker IRPEF exemption (TipoDato='ESENZSPORT', Specifiche Tecniche 1.9.1) |
 | `compute_totali` | Compute DatiRiepilogo: imponibile, imposta, AliquotaIVA from line items |
 | `get_natura_codes` | Return all Natura codes (N1-N7 and sub-codes) for VAT exemption with legal references |
 | `build_dati_pagamento` | Build DatiPagamento: CondizioniPagamento (TP01/02/03), ModalitaPagamento (MP01-MP23) |
@@ -179,7 +182,7 @@ Requires `cryptography>=42.0.0` (installed via the `[xml-sign]` extra on `mcp-ei
 |------|-------------|
 | `submit_to_sdi` | Submit a signed invoice to SDI via SDICoop SOAP (mTLS) |
 | `check_sdi_status` | Check submission status by IdentificativoSDI |
-| `parse_sdi_notification` | Parse SDI notification XML (RC/NS/MC/NE/EC/SE/DT/MT/AT) |
+| `parse_sdi_notification` | Parse SDI notification XML (RC/NS/MC/NE/EC/SE/DT/MT/AT); known scarto codes (e.g. 00327, Gruppo IVA CodiceFiscale) include a supplementary `reference_note` |
 | `send_esito_committente` | Send acceptance (EC01) or rejection (EC02) to SDI |
 | `get_sdi_channel_info` | Show current SDI channel configuration |
 
@@ -301,6 +304,7 @@ mcp-einvoicing-core (shared foundation, installed as dependency)
 |----------|------|
 | FatturaPA specifications | [fatturapa.gov.it](https://www.fatturapa.gov.it) |
 | Official XSD v1.2.3 | [Schema v1.2.2, Agenzia delle Entrate](https://www.fatturapa.gov.it/it/norme-e-aggiornamenti/documentazione-fatturapa/) |
+| Specifiche Tecniche (Allegato A) 1.9.1, in force 2026-05-15 | [Agenzia delle Entrate](https://www.agenziaentrate.gov.it/portale/specifiche-tecniche-versione-1.9.1-%C2%A0-utilizzabili-dal-15-maggio-2026-) — separate artefact from the XSD; does not change it |
 | XML namespace | `http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2` |
 | SDI, Sistema di Interscambio | [Agenzia delle Entrate](https://www.agenziaentrate.gov.it/portale/web/guest/aree-tematiche/fatturazione-elettronica) |
 | Withholding tax (ritenuta d'acconto) | Art. 25 DPR 600/73, Modello 770 |

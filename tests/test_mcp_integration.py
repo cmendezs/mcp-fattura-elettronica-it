@@ -33,6 +33,7 @@ EXPECTED_BODY_TOOLS = {
     "build_dati_generali",
     "get_tipo_documento_codes",
     "add_linea_dettaglio",
+    "build_sport_worker_exemption_dato_gestionale",
     "compute_totali",
     "get_natura_codes",
     "build_dati_pagamento",
@@ -70,11 +71,11 @@ def _parse(result) -> dict | list:
 
 class TestToolRegistration:
     @pytest.mark.asyncio
-    async def test_total_tool_count_is_42(self):
-        """The server exposes exactly 42 tools."""
+    async def test_total_tool_count_is_43(self):
+        """The server exposes exactly 43 tools."""
         async with Client(mcp) as client:
             tools = await client.list_tools()
-        assert len(tools) == 42
+        assert len(tools) == 43
 
     @pytest.mark.asyncio
     async def test_all_header_tools_registered(self):
@@ -86,7 +87,7 @@ class TestToolRegistration:
 
     @pytest.mark.asyncio
     async def test_all_body_tools_registered(self):
-        """All 7 Body tools are exposed."""
+        """All 8 Body tools are exposed."""
         async with Client(mcp) as client:
             tools = await client.list_tools()
         names = {t.name for t in tools}

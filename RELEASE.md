@@ -51,6 +51,46 @@ mcp-publisher publish
 
 ## Changelog
 
+### v0.7.0 — 2026-08-14
+#### Added
+- AltriDatiGestionali (DettaglioLinee) emission: new `AltriDatiGestionaliEntry`
+  model, `altri_dati_gestionali` parameter on `add_linea_dettaglio`, and
+  `build_sport_worker_exemption_dato_gestionale` tool for the sport-worker
+  IRPEF exemption codifica (`TipoDato='ESENZSPORT'`, verified against AdE
+  Allegato A — Specifiche Tecniche 1.9.1). Wired into `generate_fattura_xml`
+  and `FatturaGenerator`. Regulatory-watch closure.
+- Gruppo IVA (VAT-group) `CodiceFiscale` support alongside `IdFiscaleIVA`, for
+  both CedentePrestatore (seller) and CessionarioCommittente (buyer): new
+  `codice_fiscale` parameter on `validate_cedente_prestatore`; documented
+  Gruppo IVA use in `validate_cessionario`; new `cedente_codice_fiscale` /
+  `cessionario_codice_fiscale` fields on `ItalianInvoice`. `validate_cessionario`
+  now returns a `warnings` entry when the structural precondition of scarto
+  code 00327 is detected (buyer `IdFiscaleIVA` absent + 11-digit `CodiceFiscale`).
+- `SCARTO_CODE_REFERENCE` static lookup table in `sdi/notifications.py`
+  (currently covers 00327); `SDIErrore.reference_note` supplements the SdI's
+  own `<Descrizione>` text when the code is catalogued.
+- Server now exposes 43 tools (was 42).
+#### Changed
+- Server instructions, tool docstrings, `README.md`/`README.it.md`, and
+  `server.json` updated from stale/conflated FatturaPA version references to
+  distinguish the XSD (unchanged, v1.2.3) from the AdE Specifiche Tecniche
+  (Allegato A), now 1.9.1, in force 2026-05-15. Fixed `tools/__init__.py`
+  mislabeled version string.
+- `lookup_codice_destinatario` docstring documents the 300-code maximum per
+  accredited reception channel (Specifiche Tecniche 1.9.1); the per-invoice
+  6/7-character format validation is unchanged.
+#### Investigation
+- **[Step 1 verification, this release]** Confirmed against the AdE Allegato
+  A — Specifiche Tecniche 1.9.1 PDF (changelog entry dated 31/03/2026, in
+  force 2026-05-15): (1) `AltriDatiGestionali/TipoDato = "ESENZSPORT"` for the
+  sport-worker exemption (D.Lgs. 36/2021 art. 36, comma 6, EUR 15,000/year
+  threshold) — no `RiferimentoTesto`/`RiferimentoNumero` mandated; (2)
+  `CodiceDestinatario` cap is 300 codes per accredited channel; (3) scarto
+  code 00327 fires when the buyer's `IdFiscaleIVA` is absent and the supplied
+  `CodiceFiscale` is a VAT group's own CF rather than a participating
+  member's. All three verified from the primary source; no placeholders
+  needed.
+
 ### v0.6.0 — 2026-08-07
 #### Fixed
 - `<Imponibile>` renamed to `<ImponibileImporto>` in all emitted and parsed
