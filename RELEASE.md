@@ -91,6 +91,21 @@ mcp-publisher publish
   member's. All three verified from the primary source; no placeholders
   needed.
 
+#### Fixed
+- `PrezzoUnitario`/`Quantita` were XSD-invalid for whole-number values —
+  `mcp-einvoicing-core`'s `format_quantity()` stripped the decimal point
+  entirely (correct for NF-e's `TDec_1110v`, but not FatturaPA's
+  `Amount8DecimalType`/`QuantitaType`, which require a mandatory decimal
+  point with 2–8 digits). Fixed via core's new `min_decimals` parameter
+  (core dependency bumped to `>=1.17.0,<2.0.0`); `add_linea_dettaglio()` now
+  passes `min_decimals=2` for both fields. New XSD round-trip regression
+  test (`test_whole_number_unit_price_xsd_valid`).
+- CI ruff drift (`RUF012`, `ISC004`): `ruff>=0.4.0` has no upper bound, and
+  CI resolved 0.16.3 vs. the locally pinned 0.15.12, which enabled two new
+  default rules. Annotated genuinely-shared, unmutated test fixture dicts
+  as `typing.ClassVar`; parenthesized an implicit string concatenation in a
+  warning-message list literal.
+
 ### v0.6.0 — 2026-08-07
 #### Fixed
 - `<Imponibile>` renamed to `<ImponibileImporto>` in all emitted and parsed
