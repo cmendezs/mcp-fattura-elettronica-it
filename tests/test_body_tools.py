@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import asyncio
 import base64
+from typing import ClassVar
 
 from fastmcp import FastMCP
 
@@ -400,7 +401,7 @@ class TestAltriDatiGestionaliXsdRoundTrip:
     generate_fattura_xml -> validate_fattura_xsd pipeline (global_tools.py),
     not just be structurally correct in isolation."""
 
-    _DATI_TRASMISSIONE = {
+    _DATI_TRASMISSIONE: ClassVar[dict] = {
         "DatiTrasmissione": {
             "IdTrasmittente": {"IdPaese": "IT", "IdCodice": "01234567897"},
             "ProgressivoInvio": "00001",
@@ -408,7 +409,7 @@ class TestAltriDatiGestionaliXsdRoundTrip:
             "CodiceDestinatario": "ABC123",
         }
     }
-    _CEDENTE = {
+    _CEDENTE: ClassVar[dict] = {
         "CedentePrestatore": {
             "DatiAnagrafici": {
                 "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "01234567897"},
@@ -418,7 +419,7 @@ class TestAltriDatiGestionaliXsdRoundTrip:
             "Sede": {"Indirizzo": "Via Roma 1", "CAP": "00100", "Comune": "Roma", "Nazione": "IT"},
         }
     }
-    _CESSIONARIO = {
+    _CESSIONARIO: ClassVar[dict] = {
         "CessionarioCommittente": {
             "DatiAnagrafici": {
                 "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
@@ -427,7 +428,7 @@ class TestAltriDatiGestionaliXsdRoundTrip:
             "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
         }
     }
-    _DATI_GENERALI = {
+    _DATI_GENERALI: ClassVar[dict] = {
         "DatiGenerali": {
             "DatiGeneraliDocumento": {
                 "TipoDocumento": "TD01",

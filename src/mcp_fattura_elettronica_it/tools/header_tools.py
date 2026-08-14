@@ -445,12 +445,14 @@ def register_header_tools(mcp: FastMCP) -> None:
             cf_stripped = codice_fiscale.strip()
             if len(cf_stripped) == 11 and cf_stripped.isdigit():
                 result["warnings"] = [
-                    f"IdFiscaleIVA is absent and codice_fiscale ('{cf_stripped}') is an "
-                    "11-digit company-format code. If this CodiceFiscale identifies a VAT "
-                    "group (Gruppo IVA) itself rather than a specific participating member, "
-                    "SdI will reject the invoice with scarto code 00327: "
-                    f"{SCARTO_CODE_REFERENCE['00327']} This cannot be validated offline; "
-                    "confirm the CF identifies the correct member company."
+                    (
+                        f"IdFiscaleIVA is absent and codice_fiscale ('{cf_stripped}') is an "
+                        "11-digit company-format code. If this CodiceFiscale identifies a VAT "
+                        "group (Gruppo IVA) itself rather than a specific participating member, "
+                        "SdI will reject the invoice with scarto code 00327: "
+                        f"{SCARTO_CODE_REFERENCE['00327']} This cannot be validated offline; "
+                        "confirm the CF identifies the correct member company."
+                    )
                 ]
 
         return result
