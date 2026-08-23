@@ -230,5 +230,6 @@ class ItalianInvoice(EN16931Invoice):
     )
 
     tax_lines: list[ItalianTax] = Field(  # type: ignore[assignment]
-        ..., description="VAT breakdown (BG-23), narrowed with an optional Natura code.",
+        ...,
+        description="VAT breakdown (BG-23), narrowed with an optional Natura code.",
     )

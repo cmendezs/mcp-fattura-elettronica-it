@@ -50,7 +50,9 @@ class TestConservazioneProvider:
         assert await provider.verify_integrity(meta.document_id) is True
 
     @pytest.mark.asyncio
-    async def test_verify_integrity_invalid(self, provider: ConservazioneProvider, storage_path: Path):
+    async def test_verify_integrity_invalid(
+        self, provider: ConservazioneProvider, storage_path: Path
+    ):
         meta = await provider.archive_document(_SAMPLE_DOC, {})
         doc_path = storage_path / f"{meta.document_id}.dat"
         doc_path.write_bytes(b"tampered content")
@@ -104,7 +106,12 @@ class TestPacchettoDiVersamento:
 
     def test_build_indice_pdv(self):
         docs = [
-            {"filename": "a.xml", "hash": "abc123", "format_id": "FatturaPA-1.2.3", "size_bytes": 100},
+            {
+                "filename": "a.xml",
+                "hash": "abc123",
+                "format_id": "FatturaPA-1.2.3",
+                "size_bytes": 100,
+            },
         ]
         xml = build_indice_pdv(docs, {"producer_id": "TEST", "retention_years": 10})
         assert "<ProducerId>TEST</ProducerId>" in xml

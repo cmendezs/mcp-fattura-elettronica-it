@@ -77,9 +77,7 @@ class ConservazioneProvider(BaseArchiveProvider):
         self._storage_path.mkdir(parents=True, exist_ok=True)
         return self._storage_path
 
-    async def archive_document(
-        self, document: bytes, metadata: dict[str, Any]
-    ) -> ArchiveMetadata:
+    async def archive_document(self, document: bytes, metadata: dict[str, Any]) -> ArchiveMetadata:
         storage = self._ensure_storage()
         doc_hash = hashlib.sha256(document).hexdigest()
         now = datetime.now(UTC)
@@ -104,19 +102,17 @@ class ConservazioneProvider(BaseArchiveProvider):
             raw=metadata,
         )
 
-        meta_path.write_text(
-            archive_meta.model_dump_json(indent=2), encoding="utf-8"
-        )
+        meta_path.write_text(archive_meta.model_dump_json(indent=2), encoding="utf-8")
 
         logger.info(
             "Archived document %s (hash=%s, retention_until=%s)",
-            doc_id, doc_hash[:16], retention_until.isoformat(),
+            doc_id,
+            doc_hash[:16],
+            retention_until.isoformat(),
         )
         return archive_meta
 
-    async def retrieve_document(
-        self, document_id: str
-    ) -> tuple[bytes, ArchiveMetadata]:
+    async def retrieve_document(self, document_id: str) -> tuple[bytes, ArchiveMetadata]:
         storage = self._ensure_storage()
         doc_path = storage / f"{document_id}.dat"
         meta_path = storage / f"{document_id}.meta.json"
@@ -130,16 +126,12 @@ class ConservazioneProvider(BaseArchiveProvider):
 
         return document, meta
 
-    async def list_documents(
-        self, criteria: dict[str, Any]
-    ) -> list[ArchiveMetadata]:
+    async def list_documents(self, criteria: dict[str, Any]) -> list[ArchiveMetadata]:
         storage = self._ensure_storage()
         results: list[ArchiveMetadata] = []
 
         for meta_file in sorted(storage.glob("*.meta.json")):
-            meta = ArchiveMetadata.model_validate_json(
-                meta_file.read_text(encoding="utf-8")
-            )
+            meta = ArchiveMetadata.model_validate_json(meta_file.read_text(encoding="utf-8"))
             results.append(meta)
 
         return results

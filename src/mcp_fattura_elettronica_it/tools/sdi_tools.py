@@ -68,17 +68,17 @@ def register_sdi_tools(mcp: FastMCP) -> None:
             signed_bytes = base64.b64decode(signed_file_base64)
             settings = SDISettings()
             manager = SDILifecycleManager(settings)
-            result = await manager.submit_document(
-                signed_bytes, {"filename": filename}
-            )
+            result = await manager.submit_document(signed_bytes, {"filename": filename})
 
             gate.consume(confirmation_token)
-            return _ok({
-                "identificativo_sdi": result.invoice_ref,
-                "status": result.status,
-                "environment": settings.environment.value,
-                "raw": result.raw,
-            })
+            return _ok(
+                {
+                    "identificativo_sdi": result.invoice_ref,
+                    "status": result.status,
+                    "environment": settings.environment.value,
+                    "raw": result.raw,
+                }
+            )
 
         except Exception as exc:
             logger.exception("it__submit_to_sdi failed")
@@ -196,11 +196,13 @@ def register_sdi_tools(mcp: FastMCP) -> None:
     )
     async def get_sdi_channel_info() -> dict[str, Any]:
         settings = SDISettings()
-        return _ok({
-            "environment": settings.environment.value,
-            "channel": settings.channel.value,
-            "channel_id": settings.channel_id or "(not configured)",
-            "endpoint_url": settings.effective_endpoint,
-            "cert_configured": bool(settings.cert_path),
-            "timeout": settings.timeout,
-        })
+        return _ok(
+            {
+                "environment": settings.environment.value,
+                "channel": settings.channel.value,
+                "channel_id": settings.channel_id or "(not configured)",
+                "endpoint_url": settings.effective_endpoint,
+                "cert_configured": bool(settings.cert_path),
+                "timeout": settings.timeout,
+            }
+        )

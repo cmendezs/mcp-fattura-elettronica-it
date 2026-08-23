@@ -41,9 +41,7 @@ def build_indice_pdv(
     etree.SubElement(header, "ArchiveDate").text = metadata.get(
         "archive_date", datetime.now(UTC).isoformat()
     )
-    etree.SubElement(header, "RetentionYears").text = str(
-        metadata.get("retention_years", 10)
-    )
+    etree.SubElement(header, "RetentionYears").text = str(metadata.get("retention_years", 10))
 
     docs_el = etree.SubElement(root, "Documents")
     for doc in documents:
@@ -71,12 +69,14 @@ def build_pacchetto_di_versamento(
     """
     doc_entries: list[dict[str, Any]] = []
     for filename, content in documents:
-        doc_entries.append({
-            "filename": filename,
-            "hash": hashlib.sha256(content).hexdigest(),
-            "format_id": metadata.get("format_id", "FatturaPA-1.2.3"),
-            "size_bytes": len(content),
-        })
+        doc_entries.append(
+            {
+                "filename": filename,
+                "hash": hashlib.sha256(content).hexdigest(),
+                "format_id": metadata.get("format_id", "FatturaPA-1.2.3"),
+                "size_bytes": len(content),
+            }
+        )
 
     index_xml = build_indice_pdv(doc_entries, metadata)
 

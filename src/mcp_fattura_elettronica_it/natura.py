@@ -23,26 +23,80 @@ NATURA_CODES: dict[str, dict] = {
     # Parent codes N2, N3, N6 removed — retired from FatturaPA NaturaType XSD enumeration
     # effective 1 January 2021 (AdE Circular 14/E 2019). Use sub-codes only.
     "N1": {"description": "Escluse ex art. 15", "legal_ref": "Art. 15 DPR 633/72"},
-    "N2.1": {"description": "Non soggette ad IVA ai sensi degli artt. da 7 a 7-septies del DPR 633/72", "legal_ref": "Art. 7–7-septies DPR 633/72 (territoriality)"},
+    "N2.1": {
+        "description": "Non soggette ad IVA ai sensi degli artt. da 7 a 7-septies del DPR 633/72",
+        "legal_ref": "Art. 7–7-septies DPR 633/72 (territoriality)",
+    },
     "N2.2": {"description": "Non soggette — altri casi", "legal_ref": "Other out-of-scope cases"},
-    "N3.1": {"description": "Non imponibili — esportazioni", "legal_ref": "Art. 8 DPR 633/72 (exports)"},
-    "N3.2": {"description": "Non imponibili — cessioni intracomunitarie", "legal_ref": "Art. 41 DL 331/93 (intra-EU)"},
-    "N3.3": {"description": "Non imponibili — cessioni verso San Marino", "legal_ref": "Art. 71 DPR 633/72"},
-    "N3.4": {"description": "Non imponibili — operazioni assimilate alle cessioni all'esportazione", "legal_ref": "Art. 8-bis DPR 633/72"},
-    "N3.5": {"description": "Non imponibili — a seguito di dichiarazioni d'intento", "legal_ref": "Habitual exporter declaration (lettera d'intento)"},
-    "N3.6": {"description": "Non imponibili — altre operazioni che non concorrono alla formazione del plafond", "legal_ref": "Other zero-rated not forming VAT ceiling"},
+    "N3.1": {
+        "description": "Non imponibili — esportazioni",
+        "legal_ref": "Art. 8 DPR 633/72 (exports)",
+    },
+    "N3.2": {
+        "description": "Non imponibili — cessioni intracomunitarie",
+        "legal_ref": "Art. 41 DL 331/93 (intra-EU)",
+    },
+    "N3.3": {
+        "description": "Non imponibili — cessioni verso San Marino",
+        "legal_ref": "Art. 71 DPR 633/72",
+    },
+    "N3.4": {
+        "description": "Non imponibili — operazioni assimilate alle cessioni all'esportazione",
+        "legal_ref": "Art. 8-bis DPR 633/72",
+    },
+    "N3.5": {
+        "description": "Non imponibili — a seguito di dichiarazioni d'intento",
+        "legal_ref": "Habitual exporter declaration (lettera d'intento)",
+    },
+    "N3.6": {
+        "description": "Non imponibili — altre operazioni che non concorrono alla formazione del plafond",
+        "legal_ref": "Other zero-rated not forming VAT ceiling",
+    },
     "N4": {"description": "Esenti", "legal_ref": "Art. 10 DPR 633/72 (VAT-exempt supplies)"},
-    "N5": {"description": "Regime del margine / IVA non esposta in fattura", "legal_ref": "Art. 36 DL 41/95 (margin scheme)"},
-    "N6.1": {"description": "Inversione contabile — cessione di rottami e altri materiali di recupero", "legal_ref": "Art. 74 c. 7-8 DPR 633/72"},
-    "N6.2": {"description": "Inversione contabile — cessione di oro e argento puro", "legal_ref": "Art. 17 c. 5 DPR 633/72"},
-    "N6.3": {"description": "Inversione contabile — subappalto nel settore edile", "legal_ref": "Art. 17 c. 6 lett. a DPR 633/72"},
-    "N6.4": {"description": "Inversione contabile — cessione di fabbricati", "legal_ref": "Art. 17 c. 6 lett. a-bis DPR 633/72"},
-    "N6.5": {"description": "Inversione contabile — cessione di telefoni cellulari", "legal_ref": "Art. 17 c. 6 lett. b DPR 633/72"},
-    "N6.6": {"description": "Inversione contabile — cessione di prodotti elettronici", "legal_ref": "Art. 17 c. 6 lett. c DPR 633/72"},
-    "N6.7": {"description": "Inversione contabile — prestazioni comparto edile e settori connessi", "legal_ref": "Art. 17 c. 6 lett. a-ter DPR 633/72"},
-    "N6.8": {"description": "Inversione contabile — operazioni settore energetico", "legal_ref": "Art. 17 c. 6 lett. d-bis/d-ter/d-quater DPR 633/72"},
-    "N6.9": {"description": "Inversione contabile — altri casi", "legal_ref": "Other reverse charge cases"},
-    "N7": {"description": "IVA assolta in altro stato UE (one stop shop)", "legal_ref": "OSS / IOSS — VAT paid in another EU member state"},
+    "N5": {
+        "description": "Regime del margine / IVA non esposta in fattura",
+        "legal_ref": "Art. 36 DL 41/95 (margin scheme)",
+    },
+    "N6.1": {
+        "description": "Inversione contabile — cessione di rottami e altri materiali di recupero",
+        "legal_ref": "Art. 74 c. 7-8 DPR 633/72",
+    },
+    "N6.2": {
+        "description": "Inversione contabile — cessione di oro e argento puro",
+        "legal_ref": "Art. 17 c. 5 DPR 633/72",
+    },
+    "N6.3": {
+        "description": "Inversione contabile — subappalto nel settore edile",
+        "legal_ref": "Art. 17 c. 6 lett. a DPR 633/72",
+    },
+    "N6.4": {
+        "description": "Inversione contabile — cessione di fabbricati",
+        "legal_ref": "Art. 17 c. 6 lett. a-bis DPR 633/72",
+    },
+    "N6.5": {
+        "description": "Inversione contabile — cessione di telefoni cellulari",
+        "legal_ref": "Art. 17 c. 6 lett. b DPR 633/72",
+    },
+    "N6.6": {
+        "description": "Inversione contabile — cessione di prodotti elettronici",
+        "legal_ref": "Art. 17 c. 6 lett. c DPR 633/72",
+    },
+    "N6.7": {
+        "description": "Inversione contabile — prestazioni comparto edile e settori connessi",
+        "legal_ref": "Art. 17 c. 6 lett. a-ter DPR 633/72",
+    },
+    "N6.8": {
+        "description": "Inversione contabile — operazioni settore energetico",
+        "legal_ref": "Art. 17 c. 6 lett. d-bis/d-ter/d-quater DPR 633/72",
+    },
+    "N6.9": {
+        "description": "Inversione contabile — altri casi",
+        "legal_ref": "Other reverse charge cases",
+    },
+    "N7": {
+        "description": "IVA assolta in altro stato UE (one stop shop)",
+        "legal_ref": "OSS / IOSS — VAT paid in another EU member state",
+    },
 }
 
 # ---------------------------------------------------------------------------

@@ -189,10 +189,7 @@ class FatturaGenerator(BaseDocumentGenerator[ItalianInvoice]):
             pm = document.payment_means
             tp = "TP02"  # default: deferred payment
             due = document.due_date
-            scad = (
-                f"<DataScadenzaPagamento>{due}</DataScadenzaPagamento>"
-                if due else ""
-            )
+            scad = f"<DataScadenzaPagamento>{due}</DataScadenzaPagamento>" if due else ""
             iban = f"<IBAN>{xml_escape(pm.iban)}</IBAN>" if pm.iban else ""
             pagamento_xml = (
                 f"<DatiPagamento>"
@@ -287,7 +284,9 @@ class FatturaValidator(BaseDocumentValidator):
         Both files share the same ordinary FatturaPA schema content (v1.2.2);
         they differ only in SdI business rules, not in XSD structure.
         """
-        filename = "FatturaPA_FPA12_v1.2.3.xsd" if formato == "FPA12" else "FatturaPA_FPR12_v1.2.3.xsd"
+        filename = (
+            "FatturaPA_FPA12_v1.2.3.xsd" if formato == "FPA12" else "FatturaPA_FPR12_v1.2.3.xsd"
+        )
         path = _SCHEMAS_DIR / filename
         return str(path) if path.exists() else None
 
@@ -301,7 +300,11 @@ class FatturaValidator(BaseDocumentValidator):
             )
 
         try:
-            xml_bytes = document_content.encode("utf-8") if isinstance(document_content, str) else document_content
+            xml_bytes = (
+                document_content.encode("utf-8")
+                if isinstance(document_content, str)
+                else document_content
+            )
             xml_doc = safe_fromstring(xml_bytes)
         except etree.XMLSyntaxError as exc:
             return DocumentValidationResult(
@@ -312,7 +315,10 @@ class FatturaValidator(BaseDocumentValidator):
         xsd_path_str = self._get_schema_path_for_format(versione)
         if not xsd_path_str:
             return DocumentValidationResult(
-                valid=False, errors=[f"XSD schema not found for format '{versione}'"], warnings=[], metadata={}
+                valid=False,
+                errors=[f"XSD schema not found for format '{versione}'"],
+                warnings=[],
+                metadata={},
             )
 
         xsd_path = Path(xsd_path_str)
@@ -321,11 +327,13 @@ class FatturaValidator(BaseDocumentValidator):
         try:
             parser = safe_parser()
             if xmldsig_path.exists():
+
                 class _LocalResolver(etree.Resolver):
                     def resolve(self, url, id, context):
                         if "xmldsig" in url:
                             return self.resolve_filename(str(xmldsig_path), context)
                         return None
+
                 parser.resolvers.add(_LocalResolver())
             xsd_doc = etree.parse(str(xsd_path), parser)
             schema = etree.XMLSchema(xsd_doc)
@@ -336,7 +344,9 @@ class FatturaValidator(BaseDocumentValidator):
 
         if schema.validate(xml_doc):
             return DocumentValidationResult(
-                valid=True, errors=[], warnings=[],
+                valid=True,
+                errors=[],
+                warnings=[],
                 metadata={"formato_trasmissione": versione, "schema": self.get_schema_version()},
             )
         return DocumentValidationResult(
@@ -362,7 +372,11 @@ class FatturaParser(BaseDocumentParser):
         except ImportError:
             return {"error": "lxml is not installed"}
 
-        xml_bytes = document_content.encode("utf-8") if isinstance(document_content, str) else document_content
+        xml_bytes = (
+            document_content.encode("utf-8")
+            if isinstance(document_content, str)
+            else document_content
+        )
         try:
             root = safe_fromstring(xml_bytes)
         except etree.XMLSyntaxError as exc:
@@ -509,8 +523,12 @@ class ItalyPartyValidator(BasePartyValidator):
 
         if errors:
             return {"valid": False, "errors": errors}
-        return {"valid": True, "id_paese": id_paese.upper(), "id_codice": id_codice,
-                "regime_fiscale": regime_fiscale}
+        return {
+            "valid": True,
+            "id_paese": id_paese.upper(),
+            "id_codice": id_codice,
+            "regime_fiscale": regime_fiscale,
+        }
 
     def validate_buyer(self, **kwargs) -> dict:
         """Validate buyer (CessionarioCommittente) fields."""
@@ -531,8 +549,12 @@ class ItalyPartyValidator(BasePartyValidator):
 
         if errors:
             return {"valid": False, "errors": errors}
-        return {"valid": True, "id_paese": id_paese, "id_codice": id_codice,
-                "codice_fiscale": codice_fiscale}
+        return {
+            "valid": True,
+            "id_paese": id_paese,
+            "id_codice": id_codice,
+            "codice_fiscale": codice_fiscale,
+        }
 
     def validate_tax_id(self, tax_id: str, country_code: str) -> dict:
         """Validate Italian Partita IVA using the Agenzia delle Entrate modulo-10 algorithm."""

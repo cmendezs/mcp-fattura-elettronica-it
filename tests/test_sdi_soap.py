@@ -13,16 +13,12 @@ from mcp_fattura_elettronica_it.sdi.soap import (
 
 class TestBuildRiceviFattureEnvelope:
     def test_produces_valid_xml(self):
-        result = build_ricevi_fatture_envelope(
-            "IT01234567890_00001.xml", b"<test/>"
-        )
+        result = build_ricevi_fatture_envelope("IT01234567890_00001.xml", b"<test/>")
         root = etree.fromstring(result)
         assert "Envelope" in root.tag
 
     def test_contains_filename(self):
-        result = build_ricevi_fatture_envelope(
-            "IT01234567890_00001.xml", b"<test/>"
-        )
+        result = build_ricevi_fatture_envelope("IT01234567890_00001.xml", b"<test/>")
         assert b"IT01234567890_00001.xml" in result
 
     def test_contains_base64_content(self):
@@ -32,16 +28,12 @@ class TestBuildRiceviFattureEnvelope:
 
 class TestBuildNotificaEsitoEnvelope:
     def test_produces_valid_xml(self):
-        result = build_notifica_esito_envelope(
-            "123456789012", "test_EC_001.xml", b"<esito/>"
-        )
+        result = build_notifica_esito_envelope("123456789012", "test_EC_001.xml", b"<esito/>")
         root = etree.fromstring(result)
         assert "Envelope" in root.tag
 
     def test_contains_id_sdi(self):
-        result = build_notifica_esito_envelope(
-            "123456789012", "test_EC_001.xml", b"<esito/>"
-        )
+        result = build_notifica_esito_envelope("123456789012", "test_EC_001.xml", b"<esito/>")
         assert b"123456789012" in result
 
 

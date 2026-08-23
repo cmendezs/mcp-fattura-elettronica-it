@@ -44,7 +44,7 @@ _server = EInvoicingMCPServer(
     name="mcp-fattura-elettronica-it",
     instructions=(
         "MCP server for Italian electronic invoicing (FatturaPA XSD v1.2.3, "
-        "Specifiche Tecniche 1.9.1 / SDI). \"Specifiche Tecniche\" and the XSD are "
+        'Specifiche Tecniche 1.9.1 / SDI). "Specifiche Tecniche" and the XSD are '
         "separate artefacts with independent version numbers; 1.9.1 does not change "
         "the XSD. Generates, validates, and analyses e-invoices for B2B, B2G, and "
         "cross-border transactions compliant with Agenzia delle Entrate specifications.\n\n"

@@ -69,9 +69,7 @@ class SDILifecycleManager(BaseLifecycleManager):
             ),
         }
 
-    async def search_documents(
-        self, criteria: dict[str, Any]
-    ) -> list[dict[str, Any]]:
+    async def search_documents(self, criteria: dict[str, Any]) -> list[dict[str, Any]]:
         """Search is not supported by SDICoop.
 
         SDI does not provide a query API. Document tracking must be maintained

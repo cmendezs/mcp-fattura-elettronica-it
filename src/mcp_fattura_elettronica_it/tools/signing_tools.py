@@ -69,9 +69,7 @@ def register_signing_tools(mcp: FastMCP) -> None:
 
             if SignerClient.is_configured():
                 signer_client = SignerClient.from_env()
-                signed_bytes = await signer_client.sign(
-                    xml_bytes, algorithm="xades"
-                )
+                signed_bytes = await signer_client.sign(xml_bytes, algorithm="xades")
                 logger.info("FatturaPA XAdES-BES signature applied via signer microservice")
             else:
                 if not cert_path:
@@ -95,10 +93,12 @@ def register_signing_tools(mcp: FastMCP) -> None:
                 logger.info("FatturaPA XAdES-BES signature applied with cert %s", cert_path)
 
             gate.consume(confirmation_token)
-            return _ok({
-                "signed_xml": signed_bytes.decode("utf-8"),
-                "signature_format": "XAdES-BES",
-            })
+            return _ok(
+                {
+                    "signed_xml": signed_bytes.decode("utf-8"),
+                    "signature_format": "XAdES-BES",
+                }
+            )
 
         except ImportError as exc:
             return _err(
@@ -146,9 +146,7 @@ def register_signing_tools(mcp: FastMCP) -> None:
 
             if SignerClient.is_configured():
                 signer_client = SignerClient.from_env()
-                signed_bytes = await signer_client.sign(
-                    xml_bytes, algorithm="cades-bes"
-                )
+                signed_bytes = await signer_client.sign(xml_bytes, algorithm="cades-bes")
                 logger.info("FatturaPA CAdES-BES signature applied via signer microservice")
             else:
                 if not cert_path:
@@ -171,11 +169,13 @@ def register_signing_tools(mcp: FastMCP) -> None:
                 logger.info("FatturaPA CAdES-BES signature applied with cert %s", cert_path)
 
             gate.consume(confirmation_token)
-            return _ok({
-                "signed_p7m_base64": base64.b64encode(signed_bytes).decode(),
-                "signature_format": "CAdES-BES",
-                "length_bytes": len(signed_bytes),
-            })
+            return _ok(
+                {
+                    "signed_p7m_base64": base64.b64encode(signed_bytes).decode(),
+                    "signature_format": "CAdES-BES",
+                    "length_bytes": len(signed_bytes),
+                }
+            )
 
         except ImportError as exc:
             return _err(

@@ -30,7 +30,9 @@ SELLER = EN16931Party(
 
 BUYER = EN16931Party(
     name="Buyer Srl",
-    address=EN16931Address(line_one="Via Verdi 2", city="Milano", postcode="20100", country_code="IT"),
+    address=EN16931Address(
+        line_one="Via Verdi 2", city="Milano", postcode="20100", country_code="IT"
+    ),
     vat_id="IT98765432109",
 )
 
@@ -230,13 +232,20 @@ class TestAltriDatiGestionaliEmission:
 class TestGruppoIvaCodiceFiscale:
     def test_cedente_codice_fiscale_emitted(self):
         line = ItalianLineItem(
-            line_id="1", name="Consulenza", quantity=Decimal(1), unit_code="EA",
-            unit_price=Decimal("1000.00"), line_net_amount=Decimal("1000.00"),
-            tax_category="S", tax_rate=Decimal("22.00"),
+            line_id="1",
+            name="Consulenza",
+            quantity=Decimal(1),
+            unit_code="EA",
+            unit_price=Decimal("1000.00"),
+            line_net_amount=Decimal("1000.00"),
+            tax_category="S",
+            tax_rate=Decimal("22.00"),
         )
         tax = ItalianTax(
-            category="S", rate=Decimal("22.00"),
-            taxable_amount=Decimal("1000.00"), tax_amount=Decimal("220.00"),
+            category="S",
+            rate=Decimal("22.00"),
+            taxable_amount=Decimal("1000.00"),
+            tax_amount=Decimal("220.00"),
         )
         invoice = _invoice([line], [tax], cedente_codice_fiscale="01234567897")
 
@@ -244,17 +253,28 @@ class TestGruppoIvaCodiceFiscale:
 
         assert "<CodiceFiscale>01234567897</CodiceFiscale>" in xml
         # XSD order within CedentePrestatore/DatiAnagrafici: IdFiscaleIVA, CodiceFiscale, Anagrafica.
-        assert xml.index("</IdFiscaleIVA>") < xml.index("<CodiceFiscale>01234567897</CodiceFiscale>") < xml.index("<Anagrafica>")
+        assert (
+            xml.index("</IdFiscaleIVA>")
+            < xml.index("<CodiceFiscale>01234567897</CodiceFiscale>")
+            < xml.index("<Anagrafica>")
+        )
 
     def test_cessionario_codice_fiscale_emitted(self):
         line = ItalianLineItem(
-            line_id="1", name="Consulenza", quantity=Decimal(1), unit_code="EA",
-            unit_price=Decimal("1000.00"), line_net_amount=Decimal("1000.00"),
-            tax_category="S", tax_rate=Decimal("22.00"),
+            line_id="1",
+            name="Consulenza",
+            quantity=Decimal(1),
+            unit_code="EA",
+            unit_price=Decimal("1000.00"),
+            line_net_amount=Decimal("1000.00"),
+            tax_category="S",
+            tax_rate=Decimal("22.00"),
         )
         tax = ItalianTax(
-            category="S", rate=Decimal("22.00"),
-            taxable_amount=Decimal("1000.00"), tax_amount=Decimal("220.00"),
+            category="S",
+            rate=Decimal("22.00"),
+            taxable_amount=Decimal("1000.00"),
+            tax_amount=Decimal("220.00"),
         )
         invoice = _invoice([line], [tax], cessionario_codice_fiscale="98765432109")
 
@@ -265,13 +285,20 @@ class TestGruppoIvaCodiceFiscale:
 
     def test_no_codice_fiscale_when_not_set(self):
         line = ItalianLineItem(
-            line_id="1", name="Consulenza", quantity=Decimal(1), unit_code="EA",
-            unit_price=Decimal("1000.00"), line_net_amount=Decimal("1000.00"),
-            tax_category="S", tax_rate=Decimal("22.00"),
+            line_id="1",
+            name="Consulenza",
+            quantity=Decimal(1),
+            unit_code="EA",
+            unit_price=Decimal("1000.00"),
+            line_net_amount=Decimal("1000.00"),
+            tax_category="S",
+            tax_rate=Decimal("22.00"),
         )
         tax = ItalianTax(
-            category="S", rate=Decimal("22.00"),
-            taxable_amount=Decimal("1000.00"), tax_amount=Decimal("220.00"),
+            category="S",
+            rate=Decimal("22.00"),
+            taxable_amount=Decimal("1000.00"),
+            tax_amount=Decimal("220.00"),
         )
         invoice = _invoice([line], [tax])
 

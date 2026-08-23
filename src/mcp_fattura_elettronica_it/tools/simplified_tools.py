@@ -197,7 +197,9 @@ def register_simplified_tools(mcp: FastMCP) -> None:
                     return ""
                 parts = []
                 if "Denominazione" in cc_altri:
-                    parts.append(f"<Denominazione>{xml_escape(cc_altri['Denominazione'])}</Denominazione>")
+                    parts.append(
+                        f"<Denominazione>{xml_escape(cc_altri['Denominazione'])}</Denominazione>"
+                    )
                 elif "Nome" in cc_altri:
                     parts.append(f"<Nome>{xml_escape(cc_altri.get('Nome', ''))}</Nome>")
                     parts.append(f"<Cognome>{xml_escape(cc_altri.get('Cognome', ''))}</Cognome>")
@@ -221,7 +223,8 @@ def register_simplified_tools(mcp: FastMCP) -> None:
                     natura = f"<Natura>{entry['Natura']}</Natura>" if "Natura" in entry else ""
                     rif_norm = (
                         f"<RiferimentoNormativo>{xml_escape(entry['RiferimentoNormativo'][:100])}</RiferimentoNormativo>"
-                        if "RiferimentoNormativo" in entry else ""
+                        if "RiferimentoNormativo" in entry
+                        else ""
                     )
                     parts.append(
                         f"<DatiBeniServizi>"
@@ -242,11 +245,13 @@ def register_simplified_tools(mcp: FastMCP) -> None:
                     entry = a.get("Allegati", a)
                     fmt = (
                         f"<FormatoAttachment>{xml_escape(entry['FormatoAttachment'])}</FormatoAttachment>"
-                        if "FormatoAttachment" in entry else ""
+                        if "FormatoAttachment" in entry
+                        else ""
                     )
                     desc = (
                         f"<DescrizioneAttachment>{xml_escape(entry['DescrizioneAttachment'][:100])}</DescrizioneAttachment>"
-                        if "DescrizioneAttachment" in entry else ""
+                        if "DescrizioneAttachment" in entry
+                        else ""
                     )
                     parts.append(
                         f"<Allegati>"
@@ -269,7 +274,9 @@ def register_simplified_tools(mcp: FastMCP) -> None:
                     f"</DatiFatturaRettificata>"
                 )
 
-            pec_xml = f"<PECDestinatario>{xml_escape(pec_dest)}</PECDestinatario>" if pec_dest else ""
+            pec_xml = (
+                f"<PECDestinatario>{xml_escape(pec_dest)}</PECDestinatario>" if pec_dest else ""
+            )
             cp_cf_xml = f"<CodiceFiscale>{cp_cf}</CodiceFiscale>" if cp_cf else ""
             bollo_xml = f"<BolloVirtuale>{bollo}</BolloVirtuale>" if bollo else ""
 
@@ -382,11 +389,13 @@ def register_simplified_tools(mcp: FastMCP) -> None:
 
             parser = safe_parser()
             if xmldsig_path.exists():
+
                 class _LocalResolver(etree.Resolver):
                     def resolve(self, url, id, context):
                         if "xmldsig" in url or "xmldsig-core" in url:
                             return self.resolve_filename(str(xmldsig_path), context)
                         return None
+
                 parser.resolvers.add(_LocalResolver())
 
             xsd_doc = etree.parse(str(xsd_path), parser)

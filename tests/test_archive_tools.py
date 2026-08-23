@@ -28,9 +28,7 @@ class TestArchiveInvoice:
     @pytest.mark.asyncio
     async def test_missing_document_returns_error(self):
         async with Client(mcp) as client:
-            result = await client.call_tool(
-                "it__archive_invoice", {"document_base64": ""}
-            )
+            result = await client.call_tool("it__archive_invoice", {"document_base64": ""})
         text = result.content[0].text if result.content else ""
         assert "MISSING_PARAM" in text
 
@@ -39,9 +37,7 @@ class TestRetrieveArchivedInvoice:
     @pytest.mark.asyncio
     async def test_missing_id_returns_error(self):
         async with Client(mcp) as client:
-            result = await client.call_tool(
-                "it__retrieve_archived_invoice", {"document_id": ""}
-            )
+            result = await client.call_tool("it__retrieve_archived_invoice", {"document_id": ""})
         text = result.content[0].text if result.content else ""
         assert "MISSING_PARAM" in text
 
@@ -50,8 +46,6 @@ class TestVerifyArchiveIntegrity:
     @pytest.mark.asyncio
     async def test_missing_id_returns_error(self):
         async with Client(mcp) as client:
-            result = await client.call_tool(
-                "it__verify_archive_integrity", {"document_id": ""}
-            )
+            result = await client.call_tool("it__verify_archive_integrity", {"document_id": ""})
         text = result.content[0].text if result.content else ""
         assert "MISSING_PARAM" in text

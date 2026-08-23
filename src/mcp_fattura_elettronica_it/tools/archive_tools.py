@@ -84,11 +84,13 @@ def register_archive_tools(mcp: FastMCP) -> None:
 
             provider = ConservazioneProvider()
             doc_bytes, meta = await provider.retrieve_document(document_id)
-            return _ok({
-                "document_base64": base64.b64encode(doc_bytes).decode(),
-                "length_bytes": len(doc_bytes),
-                **meta.model_dump(mode="json"),
-            })
+            return _ok(
+                {
+                    "document_base64": base64.b64encode(doc_bytes).decode(),
+                    "length_bytes": len(doc_bytes),
+                    **meta.model_dump(mode="json"),
+                }
+            )
 
         except FileNotFoundError:
             return _err(f"Document not found: {document_id}", "NOT_FOUND")
@@ -112,10 +114,12 @@ def register_archive_tools(mcp: FastMCP) -> None:
 
             provider = ConservazioneProvider()
             is_valid = await provider.verify_integrity(document_id)
-            return _ok({
-                "document_id": document_id,
-                "integrity_valid": is_valid,
-            })
+            return _ok(
+                {
+                    "document_id": document_id,
+                    "integrity_valid": is_valid,
+                }
+            )
 
         except Exception as exc:
             logger.exception("it__verify_archive_integrity failed")
@@ -132,10 +136,12 @@ def register_archive_tools(mcp: FastMCP) -> None:
         try:
             provider = ConservazioneProvider()
             results = await provider.list_documents({})
-            return _ok({
-                "count": len(results),
-                "documents": [r.model_dump(mode="json") for r in results],
-            })
+            return _ok(
+                {
+                    "count": len(results),
+                    "documents": [r.model_dump(mode="json") for r in results],
+                }
+            )
 
         except Exception as exc:
             logger.exception("it__list_archived_invoices failed")
@@ -180,11 +186,13 @@ def register_archive_tools(mcp: FastMCP) -> None:
                 metadata["producer_id"] = producer_id
 
             pdv_bytes = build_pacchetto_di_versamento(documents, metadata)
-            return _ok({
-                "pdv_base64": base64.b64encode(pdv_bytes).decode(),
-                "length_bytes": len(pdv_bytes),
-                "document_count": len(documents),
-            })
+            return _ok(
+                {
+                    "pdv_base64": base64.b64encode(pdv_bytes).decode(),
+                    "length_bytes": len(pdv_bytes),
+                    "document_count": len(documents),
+                }
+            )
 
         except json.JSONDecodeError as exc:
             return _err(f"Invalid JSON: {exc}", "INVALID_PARAM")

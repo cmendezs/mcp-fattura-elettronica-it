@@ -292,6 +292,7 @@ class TestGenerateFatturaXml:
 
     def test_with_allegato(self):
         import base64
+
         allegato = {
             "Allegati": {
                 "NomeAllegato": "doc.pdf",
@@ -526,6 +527,7 @@ class TestParseFatturaXml:
 class TestExportToJson:
     def test_exports_parsed_fattura(self):
         import json
+
         xml = _generate_xml()["xml"]
         parsed = call("parse_fattura_xml", xml_string=xml)
         result = call("export_to_json", parsed_fattura=parsed)
@@ -535,10 +537,12 @@ class TestExportToJson:
 
     def test_filters_null_fields_by_default(self):
         import json
+
         xml = _generate_xml()["xml"]
         parsed = call("parse_fattura_xml", xml_string=xml)
         result = call("export_to_json", parsed_fattura=parsed, include_empty=False)
         data = json.loads(result["json_string"])
+
         # No null values should appear at top level
         def _has_none(obj):
             if isinstance(obj, dict):
@@ -546,6 +550,7 @@ class TestExportToJson:
             if isinstance(obj, list):
                 return any(_has_none(i) for i in obj)
             return obj is None
+
         assert not _has_none(data)
 
     def test_include_empty_keeps_null_fields(self):
@@ -813,7 +818,12 @@ class TestAdditionalBodies:
                     "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
                     "Anagrafica": {"Denominazione": "Ente PA"},
                 },
-                "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
+                "Sede": {
+                    "Indirizzo": "Via Verdi 2",
+                    "CAP": "20100",
+                    "Comune": "Milano",
+                    "Nazione": "IT",
+                },
             }
         }
         extra = [
@@ -859,7 +869,12 @@ class TestAdditionalBodies:
                     "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
                     "Anagrafica": {"Denominazione": "Ente PA"},
                 },
-                "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
+                "Sede": {
+                    "Indirizzo": "Via Verdi 2",
+                    "CAP": "20100",
+                    "Comune": "Milano",
+                    "Nazione": "IT",
+                },
             }
         }
         result = call(
@@ -885,20 +900,24 @@ class TestItalianInvoiceTransmissionFields:
 
     def test_progressivo_invio_is_required(self):
         from mcp_fattura_elettronica_it.models import ItalianInvoice
+
         fields = ItalianInvoice.model_fields
         assert fields["progressivo_invio"].is_required()
 
     def test_codice_destinatario_is_required(self):
         from mcp_fattura_elettronica_it.models import ItalianInvoice
+
         fields = ItalianInvoice.model_fields
         assert fields["codice_destinatario"].is_required()
 
     def test_formato_trasmissione_is_required(self):
         from mcp_fattura_elettronica_it.models import ItalianInvoice
+
         fields = ItalianInvoice.model_fields
         assert fields["formato_trasmissione"].is_required()
 
     def test_pec_destinatario_still_optional(self):
         from mcp_fattura_elettronica_it.models import ItalianInvoice
+
         fields = ItalianInvoice.model_fields
         assert not fields["pec_destinatario"].is_required()

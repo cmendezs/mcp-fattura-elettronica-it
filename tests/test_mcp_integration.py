@@ -56,7 +56,9 @@ EXPECTED_SIMPLIFIED_TOOLS = {
     "parse_fattura_semplificata_xml",
 }
 
-EXPECTED_ALL_TOOLS = EXPECTED_HEADER_TOOLS | EXPECTED_BODY_TOOLS | EXPECTED_GLOBAL_TOOLS | EXPECTED_SIMPLIFIED_TOOLS
+EXPECTED_ALL_TOOLS = (
+    EXPECTED_HEADER_TOOLS | EXPECTED_BODY_TOOLS | EXPECTED_GLOBAL_TOOLS | EXPECTED_SIMPLIFIED_TOOLS
+)
 
 
 def _parse(result) -> dict | list:
@@ -123,7 +125,13 @@ class TestToolSchemas:
             tools = await client.list_tools()
         tool = next(t for t in tools if t.name == "build_transmission_header")
         required = set(tool.inputSchema.get("required", []))
-        assert {"id_paese", "id_codice", "progressivo_invio", "formato_trasmissione", "codice_destinatario"}.issubset(required)
+        assert {
+            "id_paese",
+            "id_codice",
+            "progressivo_invio",
+            "formato_trasmissione",
+            "codice_destinatario",
+        }.issubset(required)
 
     @pytest.mark.asyncio
     async def test_pec_destinatario_is_optional(self):
@@ -202,9 +210,7 @@ class TestHeaderToolCalls:
     async def test_validate_partita_iva_valid(self):
         """validate_partita_iva returns valid=True for correct Partita IVA."""
         async with Client(mcp) as client:
-            result = await client.call_tool(
-                "validate_partita_iva", {"partita_iva": "01234567897"}
-            )
+            result = await client.call_tool("validate_partita_iva", {"partita_iva": "01234567897"})
         data = _parse(result)
         assert data["valid"] is True
 
@@ -212,9 +218,7 @@ class TestHeaderToolCalls:
     async def test_validate_partita_iva_invalid(self):
         """validate_partita_iva returns valid=False for wrong checksum."""
         async with Client(mcp) as client:
-            result = await client.call_tool(
-                "validate_partita_iva", {"partita_iva": "01234567890"}
-            )
+            result = await client.call_tool("validate_partita_iva", {"partita_iva": "01234567890"})
         data = _parse(result)
         assert data["valid"] is False
 
@@ -248,9 +252,7 @@ class TestHeaderToolCalls:
     async def test_lookup_codice_destinatario_valid_code(self):
         """lookup_codice_destinatario identifies a valid 6-char SDI code."""
         async with Client(mcp) as client:
-            result = await client.call_tool(
-                "lookup_codice_destinatario", {"codice": "K23T45"}
-            )
+            result = await client.call_tool("lookup_codice_destinatario", {"codice": "K23T45"})
         data = _parse(result)
         assert data["routing_type"] == "SDI_CODE"
 

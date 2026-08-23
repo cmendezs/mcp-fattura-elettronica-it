@@ -128,7 +128,9 @@ def register_header_tools(mcp: FastMCP) -> None:
         On failure returns {'error': '<reason>'} — do not proceed to XML generation.
         """
         if formato_trasmissione not in ("FPA12", "FPR12"):
-            return {"error": f"Invalid formato_trasmissione '{formato_trasmissione}'. Must be 'FPA12' or 'FPR12'."}
+            return {
+                "error": f"Invalid formato_trasmissione '{formato_trasmissione}'. Must be 'FPA12' or 'FPR12'."
+            }
 
         if len(progressivo_invio) > 10 or not re.match(r"^[A-Za-z0-9]+$", progressivo_invio):
             return {"error": "progressivo_invio must be 1–10 alphanumeric characters."}
@@ -281,7 +283,9 @@ def register_header_tools(mcp: FastMCP) -> None:
             anagrafica["Nome"] = nome
             anagrafica["Cognome"] = cognome
 
-        dati_anagrafici: dict = {"IdFiscaleIVA": {"IdPaese": id_paese.upper(), "IdCodice": id_codice}}
+        dati_anagrafici: dict = {
+            "IdFiscaleIVA": {"IdPaese": id_paese.upper(), "IdCodice": id_codice}
+        }
         if codice_fiscale:
             dati_anagrafici["CodiceFiscale"] = codice_fiscale.strip()
         dati_anagrafici["Anagrafica"] = anagrafica
@@ -305,10 +309,7 @@ def register_header_tools(mcp: FastMCP) -> None:
             str | None,
             Field(
                 default=None,
-                description=(
-                    "Company name of the buyer. "
-                    "Mutually exclusive with nome+cognome."
-                ),
+                description=("Company name of the buyer. Mutually exclusive with nome+cognome."),
             ),
         ] = None,
         nome: Annotated[
@@ -388,7 +389,9 @@ def register_header_tools(mcp: FastMCP) -> None:
             errors.append("'denominazione' is mutually exclusive with 'nome'/'cognome'.")
 
         if not id_codice and not codice_fiscale:
-            errors.append("At least one of 'id_codice' (with 'id_paese') or 'codice_fiscale' is required.")
+            errors.append(
+                "At least one of 'id_codice' (with 'id_paese') or 'codice_fiscale' is required."
+            )
 
         if id_paese and not id_codice:
             errors.append("'id_codice' is required when 'id_paese' is provided.")

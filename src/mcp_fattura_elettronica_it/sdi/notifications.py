@@ -125,7 +125,9 @@ class SDINotification(BaseModel):
     note: str | None = None
 
     errori: list[SDIErrore] = Field(default_factory=list, description="Errors (NS only).")
-    esito: str | None = Field(default=None, description="EC01 (accept) or EC02 (reject), for EC/NE.")
+    esito: str | None = Field(
+        default=None, description="EC01 (accept) or EC02 (reject), for EC/NE."
+    )
     scarto: str | None = Field(default=None, description="EN00/EN01 for SE.")
     riferimento_fattura: RiferimentoFattura | None = None
 
@@ -181,11 +183,13 @@ def parse_notification(xml_bytes: bytes) -> SDINotification:
                         desc_el = child
             if codice_el is not None:
                 codice_val = codice_el.text or ""
-                errori.append(SDIErrore(
-                    codice=codice_val,
-                    descrizione=(desc_el.text or "") if desc_el is not None else "",
-                    reference_note=describe_scarto_code(codice_val),
-                ))
+                errori.append(
+                    SDIErrore(
+                        codice=codice_val,
+                        descrizione=(desc_el.text or "") if desc_el is not None else "",
+                        reference_note=describe_scarto_code(codice_val),
+                    )
+                )
 
     rif_fattura: RiferimentoFattura | None = None
     rif_el = None
@@ -195,6 +199,7 @@ def parse_notification(xml_bytes: bytes) -> SDINotification:
             rif_el = el
             break
     if rif_el is not None:
+
         def _rif_text(tag: str) -> str | None:
             for child in rif_el:
                 child_local = child.tag.split("}")[-1] if "}" in child.tag else child.tag

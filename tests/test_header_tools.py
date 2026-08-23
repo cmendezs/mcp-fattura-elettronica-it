@@ -208,7 +208,12 @@ class TestValidateCedentePrestatore:
         cp_dati = result["CedentePrestatore"]["DatiAnagrafici"]
         assert cp_dati["CodiceFiscale"] == "01234567897"
         # XSD order: IdFiscaleIVA, CodiceFiscale, Anagrafica, ..., RegimeFiscale.
-        assert list(cp_dati.keys()) == ["IdFiscaleIVA", "CodiceFiscale", "Anagrafica", "RegimeFiscale"]
+        assert list(cp_dati.keys()) == [
+            "IdFiscaleIVA",
+            "CodiceFiscale",
+            "Anagrafica",
+            "RegimeFiscale",
+        ]
 
     def test_codice_fiscale_omitted_when_not_provided(self):
         result = call(
@@ -328,7 +333,9 @@ class TestValidateCessionario:
 class TestGetRegimeFiscaleCodes:
     def test_returns_all_codes(self):
         result = call("get_regime_fiscale_codes")
-        assert result["total"] == len(REGIME_FISCALE)  # 18 codes (RF03 does not exist in official specs)
+        assert result["total"] == len(
+            REGIME_FISCALE
+        )  # 18 codes (RF03 does not exist in official specs)
         codes = {c["code"] for c in result["codes"]}
         assert "RF01" in codes
         assert "RF19" in codes

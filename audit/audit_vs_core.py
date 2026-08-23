@@ -304,34 +304,35 @@ _PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
 
 _REQUIRED_TOOLS: dict[str, str] = {
     # Header tools (7)
-    "build_transmission_header":   "Build DatiTrasmissione block (SDI routing)",
+    "build_transmission_header": "Build DatiTrasmissione block (SDI routing)",
     "validate_cedente_prestatore": "Validate seller block (tax ID, address, regime)",
-    "validate_cessionario":        "Validate buyer block (tax ID, CodiceFiscale)",
-    "get_regime_fiscale_codes":    "List all RegimeFiscale codes RF01-RF19",
-    "generate_progressivo_invio":  "Generate a unique ProgressivoInvio sequence",
-    "lookup_codice_destinatario":  "Validate SDI recipient code (6/7-char) or PEC address",
-    "validate_partita_iva":        "Validate Italian Partita IVA (modulo-10 checksum)",
+    "validate_cessionario": "Validate buyer block (tax ID, CodiceFiscale)",
+    "get_regime_fiscale_codes": "List all RegimeFiscale codes RF01-RF19",
+    "generate_progressivo_invio": "Generate a unique ProgressivoInvio sequence",
+    "lookup_codice_destinatario": "Validate SDI recipient code (6/7-char) or PEC address",
+    "validate_partita_iva": "Validate Italian Partita IVA (modulo-10 checksum)",
     # Body tools (7)
-    "build_dati_generali":         "Build DatiGenerali (TD01-TD29, date, number, currency)",
-    "get_tipo_documento_codes":    "List all document type codes TD01-TD29",
-    "add_linea_dettaglio":         "Add a DettaglioLinee line item",
-    "compute_totali":              "Compute DatiRiepilogo VAT summary from line items",
-    "get_natura_codes":            "List all Natura exemption codes (N1-N7 and sub-codes)",
-    "build_dati_pagamento":        "Build DatiPagamento (TP01/02/03, MP01-MP23)",
-    "add_allegato":                "Attach a base64-encoded file to the invoice",
+    "build_dati_generali": "Build DatiGenerali (TD01-TD29, date, number, currency)",
+    "get_tipo_documento_codes": "List all document type codes TD01-TD29",
+    "add_linea_dettaglio": "Add a DettaglioLinee line item",
+    "compute_totali": "Compute DatiRiepilogo VAT summary from line items",
+    "get_natura_codes": "List all Natura exemption codes (N1-N7 and sub-codes)",
+    "build_dati_pagamento": "Build DatiPagamento (TP01/02/03, MP01-MP23)",
+    "add_allegato": "Attach a base64-encoded file to the invoice",
     # Global tools (7)
-    "generate_fattura_xml":        "Assemble a complete FatturaPA v1.2.3 XML document",
-    "validate_fattura_xsd":        "Validate XML against FatturaPA XSD (FPR12 or FPA12)",
-    "parse_fattura_xml":           "Parse a FatturaPA XML into structured JSON",
-    "export_to_json":              "Export parsed invoice to clean JSON format",
+    "generate_fattura_xml": "Assemble a complete FatturaPA v1.2.3 XML document",
+    "validate_fattura_xsd": "Validate XML against FatturaPA XSD (FPR12 or FPA12)",
+    "parse_fattura_xml": "Parse a FatturaPA XML into structured JSON",
+    "export_to_json": "Export parsed invoice to clean JSON format",
     "validate_partita_iva_format": "Standalone Partita IVA format and checksum check",
-    "get_sdi_filename":            "Generate the SDI filename IT{PIVA}_{Progressivo}.xml",
-    "check_ritenuta_acconto":      "Compute ritenuta d'acconto RT01-RT06",
+    "get_sdi_filename": "Generate the SDI filename IT{PIVA}_{Progressivo}.xml",
+    "check_ritenuta_acconto": "Compute ritenuta d'acconto RT01-RT06",
 }
 
 
 def _collect_registered_tools() -> set[str]:
     import asyncio
+
     registered: set[str] = set()
     try:
         from fastmcp import FastMCP as _FastMCP
@@ -358,24 +359,32 @@ def run_check_2() -> CheckResult:
     for tool_name, description in _REQUIRED_TOOLS.items():
         tag = "[OK]" if tool_name in registered else "[MISSING_TOOL]"
         sev = SEVERITY_OK if tool_name in registered else SEVERITY_BLOCKING
-        result.findings.append(CheckFinding(
-            check_id="CHECK_2", tag=tag, severity=sev,
-            symbol=tool_name,
-            message=(
-                f"Tool '{tool_name}' is present. ({description})"
-                if tool_name in registered
-                else (
-                    f"Required tool '{tool_name}' ({description}) not found. "
-                    "Ensure it is decorated with @mcp.tool."
-                )
-            ),
-        ))
+        result.findings.append(
+            CheckFinding(
+                check_id="CHECK_2",
+                tag=tag,
+                severity=sev,
+                symbol=tool_name,
+                message=(
+                    f"Tool '{tool_name}' is present. ({description})"
+                    if tool_name in registered
+                    else (
+                        f"Required tool '{tool_name}' ({description}) not found. "
+                        "Ensure it is decorated with @mcp.tool."
+                    )
+                ),
+            )
+        )
     for tool_name in sorted(registered - set(_REQUIRED_TOOLS)):
-        result.findings.append(CheckFinding(
-            check_id="CHECK_2", tag="[EXTRA]", severity=SEVERITY_OK,
-            symbol=tool_name,
-            message=f"Tool '{tool_name}' is present but not in the required spec.",
-        ))
+        result.findings.append(
+            CheckFinding(
+                check_id="CHECK_2",
+                tag="[EXTRA]",
+                severity=SEVERITY_OK,
+                symbol=tool_name,
+                message=f"Tool '{tool_name}' is present but not in the required spec.",
+            )
+        )
     return result
 
 
@@ -385,12 +394,12 @@ def run_check_2() -> CheckResult:
 
 _REQUIRED_EN16931_FIELDS: dict[str, str] = {
     "invoice_number": "BT-1  — Invoice number",
-    "invoice_date":   "BT-2  — Invoice issue date",
-    "currency_code":  "BT-5  — Invoice currency code",
-    "seller":         "BG-4  — Seller party",
-    "buyer":          "BG-7  — Buyer party",
-    "line_items":     "BG-25 — Invoice line items",
-    "tax_lines":      "BG-23 — Tax breakdown",
+    "invoice_date": "BT-2  — Invoice issue date",
+    "currency_code": "BT-5  — Invoice currency code",
+    "seller": "BG-4  — Seller party",
+    "buyer": "BG-7  — Buyer party",
+    "line_items": "BG-25 — Invoice line items",
+    "tax_lines": "BG-23 — Tax breakdown",
 }
 
 
@@ -405,45 +414,56 @@ def run_check_3() -> CheckResult:
 
     invoice_cls = getattr(core_mod, "EN16931Invoice", None)
     if invoice_cls is None:
-        result.findings.append(CheckFinding(
-            check_id="CHECK_3", tag="[MISSING]", severity=SEVERITY_BLOCKING,
-            symbol="mcp_einvoicing_core.en16931.EN16931Invoice",
-            message="EN16931Invoice not found in core — core may be outdated.",
-        ))
+        result.findings.append(
+            CheckFinding(
+                check_id="CHECK_3",
+                tag="[MISSING]",
+                severity=SEVERITY_BLOCKING,
+                symbol="mcp_einvoicing_core.en16931.EN16931Invoice",
+                message="EN16931Invoice not found in core — core may be outdated.",
+            )
+        )
         return result
 
-    result.findings.append(CheckFinding(
-        check_id="CHECK_3", tag="[OK]", severity=SEVERITY_OK,
-        symbol="mcp_einvoicing_core.en16931.EN16931Invoice",
-        message="EN16931Invoice is available from core.",
-    ))
+    result.findings.append(
+        CheckFinding(
+            check_id="CHECK_3",
+            tag="[OK]",
+            severity=SEVERITY_OK,
+            symbol="mcp_einvoicing_core.en16931.EN16931Invoice",
+            message="EN16931Invoice is available from core.",
+        )
+    )
 
     model_fields: set[str] = (
-        set(invoice_cls.model_fields.keys())
-        if hasattr(invoice_cls, "model_fields")
-        else set()
+        set(invoice_cls.model_fields.keys()) if hasattr(invoice_cls, "model_fields") else set()
     )
     for field_name, description in _REQUIRED_EN16931_FIELDS.items():
         tag = "[OK]" if field_name in model_fields else "[FIELD_MISSING]"
         sev = SEVERITY_OK if field_name in model_fields else SEVERITY_WARNING
-        result.findings.append(CheckFinding(
-            check_id="CHECK_3", tag=tag, severity=sev,
-            symbol=f"EN16931Invoice.{field_name}",
-            message=(
-                f"Required field present. {description}"
-                if field_name in model_fields
-                else (
-                    f"Field '{field_name}' ({description}) not found in EN16931Invoice. "
-                    "Verify ItalianInvoice subclass will not fail at runtime."
-                )
-            ),
-        ))
+        result.findings.append(
+            CheckFinding(
+                check_id="CHECK_3",
+                tag=tag,
+                severity=sev,
+                symbol=f"EN16931Invoice.{field_name}",
+                message=(
+                    f"Required field present. {description}"
+                    if field_name in model_fields
+                    else (
+                        f"Field '{field_name}' ({description}) not found in EN16931Invoice. "
+                        "Verify ItalianInvoice subclass will not fail at runtime."
+                    )
+                ),
+            )
+        )
     return result
 
 
 # ---------------------------------------------------------------------------
 # CHECK 5 — FatturaPA-specific structural checks
 # ---------------------------------------------------------------------------
+
 
 def run_check_5() -> CheckResult:
     """CHECK 5 — FatturaPA-specific structural and schema checks."""
@@ -452,41 +472,53 @@ def run_check_5() -> CheckResult:
     # 5a: server module exports main and mcp
     server_mod, err = _try_import("mcp_fattura_elettronica_it.server")
     if server_mod is None:
-        result.findings.append(CheckFinding(
-            check_id="CHECK_5", tag="[MISSING]", severity=SEVERITY_BLOCKING,
-            symbol="server",
-            message=f"Could not import server module: {err}",
-        ))
+        result.findings.append(
+            CheckFinding(
+                check_id="CHECK_5",
+                tag="[MISSING]",
+                severity=SEVERITY_BLOCKING,
+                symbol="server",
+                message=f"Could not import server module: {err}",
+            )
+        )
     else:
         for attr in ("main", "mcp"):
             tag = "[OK]" if hasattr(server_mod, attr) else "[MISSING]"
             sev = SEVERITY_OK if hasattr(server_mod, attr) else SEVERITY_BLOCKING
-            result.findings.append(CheckFinding(
-                check_id="CHECK_5", tag=tag, severity=sev,
-                symbol=f"server.{attr}",
-                message=(
-                    f"server.{attr} is present."
-                    if hasattr(server_mod, attr)
-                    else f"server.{attr} is missing — required for MCP server operation."
-                ),
-            ))
+            result.findings.append(
+                CheckFinding(
+                    check_id="CHECK_5",
+                    tag=tag,
+                    severity=sev,
+                    symbol=f"server.{attr}",
+                    message=(
+                        f"server.{attr} is present."
+                        if hasattr(server_mod, attr)
+                        else f"server.{attr} is missing — required for MCP server operation."
+                    ),
+                )
+            )
         mcp_obj = getattr(server_mod, "mcp", None)
         if mcp_obj is not None:
             mcp_type = type(mcp_obj).__name__
             tag = "[OK]" if mcp_type == "FastMCP" else "[UNEXPECTED_TYPE]"
             sev = SEVERITY_OK if mcp_type == "FastMCP" else SEVERITY_WARNING
-            result.findings.append(CheckFinding(
-                check_id="CHECK_5", tag=tag, severity=sev,
-                symbol="server.mcp",
-                message=(
-                    "server.mcp is a FastMCP instance."
-                    if mcp_type == "FastMCP"
-                    else (
-                        f"server.mcp is {mcp_type!r}, expected FastMCP. "
-                        "Verify tool registration is using FastMCP decorators."
-                    )
-                ),
-            ))
+            result.findings.append(
+                CheckFinding(
+                    check_id="CHECK_5",
+                    tag=tag,
+                    severity=sev,
+                    symbol="server.mcp",
+                    message=(
+                        "server.mcp is a FastMCP instance."
+                        if mcp_type == "FastMCP"
+                        else (
+                            f"server.mcp is {mcp_type!r}, expected FastMCP. "
+                            "Verify tool registration is using FastMCP decorators."
+                        )
+                    ),
+                )
+            )
 
     # 5b: FPR12 and FPA12 XSD schema files
     schemas_dir = _PKG_DIR / "src" / "mcp_fattura_elettronica_it" / "schemas"
@@ -499,71 +531,100 @@ def run_check_5() -> CheckResult:
             xsd_path = schemas_dir / schema_file
             tag = "[OK]" if xsd_path.exists() else "[MISSING_SCHEMA]"
             sev = SEVERITY_OK if xsd_path.exists() else SEVERITY_BLOCKING
-            result.findings.append(CheckFinding(
-                check_id="CHECK_5", tag=tag, severity=sev,
-                symbol=f"schemas/{schema_file}",
-                message=(
-                    f"XSD schema present: {description}."
-                    if xsd_path.exists()
-                    else (
-                        f"Required XSD '{schema_file}' ({description}) not found. "
-                        "Download from https://www.fatturapa.gov.it."
-                    )
-                ),
-            ))
+            result.findings.append(
+                CheckFinding(
+                    check_id="CHECK_5",
+                    tag=tag,
+                    severity=sev,
+                    symbol=f"schemas/{schema_file}",
+                    message=(
+                        f"XSD schema present: {description}."
+                        if xsd_path.exists()
+                        else (
+                            f"Required XSD '{schema_file}' ({description}) not found. "
+                            "Download from https://www.fatturapa.gov.it."
+                        )
+                    ),
+                )
+            )
     else:
-        result.findings.append(CheckFinding(
-            check_id="CHECK_5", tag="[MISSING_SCHEMA]", severity=SEVERITY_BLOCKING,
-            symbol="schemas/",
-            message=(
-                "schemas/ directory not found. FatturaPA XSD validation will fail. "
-                "Download XSD files from https://www.fatturapa.gov.it."
-            ),
-        ))
+        result.findings.append(
+            CheckFinding(
+                check_id="CHECK_5",
+                tag="[MISSING_SCHEMA]",
+                severity=SEVERITY_BLOCKING,
+                symbol="schemas/",
+                message=(
+                    "schemas/ directory not found. FatturaPA XSD validation will fail. "
+                    "Download XSD files from https://www.fatturapa.gov.it."
+                ),
+            )
+        )
 
     # 5c: ItalianInvoice(EN16931Invoice) scaffold check (IT-SC-7)
     models_mod, err = _try_import("mcp_fattura_elettronica_it.models")
     if models_mod is None:
-        result.findings.append(CheckFinding(
-            check_id="CHECK_5", tag="[MISSING]", severity=SEVERITY_WARNING,
-            symbol="models.ItalianInvoice",
-            message=(
-                f"Could not import models module: {err}. "
-                "ItalianInvoice(EN16931Invoice) scaffold (IT-SC-7) not importable."
-            ),
-        ))
+        result.findings.append(
+            CheckFinding(
+                check_id="CHECK_5",
+                tag="[MISSING]",
+                severity=SEVERITY_WARNING,
+                symbol="models.ItalianInvoice",
+                message=(
+                    f"Could not import models module: {err}. "
+                    "ItalianInvoice(EN16931Invoice) scaffold (IT-SC-7) not importable."
+                ),
+            )
+        )
     else:
         italian_invoice_cls = getattr(models_mod, "ItalianInvoice", None)
         if italian_invoice_cls is None:
-            result.findings.append(CheckFinding(
-                check_id="CHECK_5", tag="[MISSING]", severity=SEVERITY_WARNING,
-                symbol="models.ItalianInvoice",
-                message="ItalianInvoice not found in models.py. IT-SC-7 scaffold may be incomplete.",
-            ))
+            result.findings.append(
+                CheckFinding(
+                    check_id="CHECK_5",
+                    tag="[MISSING]",
+                    severity=SEVERITY_WARNING,
+                    symbol="models.ItalianInvoice",
+                    message="ItalianInvoice not found in models.py. IT-SC-7 scaffold may be incomplete.",
+                )
+            )
         else:
             try:
                 from mcp_einvoicing_core.en16931 import EN16931Invoice
+
                 if issubclass(italian_invoice_cls, EN16931Invoice):
-                    result.findings.append(CheckFinding(
-                        check_id="CHECK_5", tag="[OK]", severity=SEVERITY_OK,
-                        symbol="models.ItalianInvoice",
-                        message="ItalianInvoice(EN16931Invoice) is correctly scaffolded.",
-                    ))
+                    result.findings.append(
+                        CheckFinding(
+                            check_id="CHECK_5",
+                            tag="[OK]",
+                            severity=SEVERITY_OK,
+                            symbol="models.ItalianInvoice",
+                            message="ItalianInvoice(EN16931Invoice) is correctly scaffolded.",
+                        )
+                    )
                 else:
-                    result.findings.append(CheckFinding(
-                        check_id="CHECK_5", tag="[WRONG_BASE_CLASS]", severity=SEVERITY_BLOCKING,
-                        symbol="models.ItalianInvoice",
-                        message=(
-                            f"ItalianInvoice extends {italian_invoice_cls.__bases__!r} "
-                            "but must extend EN16931Invoice (FatturaPA is an EN 16931 CIUS)."
-                        ),
-                    ))
+                    result.findings.append(
+                        CheckFinding(
+                            check_id="CHECK_5",
+                            tag="[WRONG_BASE_CLASS]",
+                            severity=SEVERITY_BLOCKING,
+                            symbol="models.ItalianInvoice",
+                            message=(
+                                f"ItalianInvoice extends {italian_invoice_cls.__bases__!r} "
+                                "but must extend EN16931Invoice (FatturaPA is an EN 16931 CIUS)."
+                            ),
+                        )
+                    )
             except ImportError as exc:
-                result.findings.append(CheckFinding(
-                    check_id="CHECK_5", tag="[SKIP]", severity=SEVERITY_WARNING,
-                    symbol="models.ItalianInvoice base class check",
-                    message=f"Could not verify base class: {exc}",
-                ))
+                result.findings.append(
+                    CheckFinding(
+                        check_id="CHECK_5",
+                        tag="[SKIP]",
+                        severity=SEVERITY_WARNING,
+                        symbol="models.ItalianInvoice base class check",
+                        message=f"Could not verify base class: {exc}",
+                    )
+                )
 
     # 5d: generate→validate XSD roundtrip for FPR12 and FPA12 (IT-AG-1)
     result.findings.extend(_run_xsd_roundtrip_check())
@@ -592,11 +653,15 @@ def _run_xsd_roundtrip_check() -> list[CheckFinding]:
         generate = tools["generate_fattura_xml"]
         validate = tools["validate_fattura_xsd"]
     except Exception as exc:
-        findings.append(CheckFinding(
-            check_id="CHECK_5", tag="[SKIP]", severity=SEVERITY_WARNING,
-            symbol="xsd_roundtrip",
-            message=f"Could not register global tools for XSD roundtrip check: {exc}",
-        ))
+        findings.append(
+            CheckFinding(
+                check_id="CHECK_5",
+                tag="[SKIP]",
+                severity=SEVERITY_WARNING,
+                symbol="xsd_roundtrip",
+                message=f"Could not register global tools for XSD roundtrip check: {exc}",
+            )
+        )
         return findings
 
     cedente_prestatore = {
@@ -615,7 +680,12 @@ def _run_xsd_roundtrip_check() -> list[CheckFinding]:
                 "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
                 "Anagrafica": {"Denominazione": "Buyer Srl"},
             },
-            "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
+            "Sede": {
+                "Indirizzo": "Via Verdi 2",
+                "CAP": "20100",
+                "Comune": "Milano",
+                "Nazione": "IT",
+            },
         }
     }
     dati_generali = {
@@ -671,29 +741,41 @@ def _run_xsd_roundtrip_check() -> list[CheckFinding]:
         )
         symbol = f"xsd_roundtrip[{formato}]"
         if "error" in gen_result:
-            findings.append(CheckFinding(
-                check_id="CHECK_5", tag="[GENERATION_FAILED]", severity=SEVERITY_BLOCKING,
-                symbol=symbol,
-                message=f"generate_fattura_xml() failed for {formato}: {gen_result['error']}",
-            ))
+            findings.append(
+                CheckFinding(
+                    check_id="CHECK_5",
+                    tag="[GENERATION_FAILED]",
+                    severity=SEVERITY_BLOCKING,
+                    symbol=symbol,
+                    message=f"generate_fattura_xml() failed for {formato}: {gen_result['error']}",
+                )
+            )
             continue
 
         xsd_result = validate(xml_string=gen_result["xml"])
         if xsd_result.get("valid") is True:
-            findings.append(CheckFinding(
-                check_id="CHECK_5", tag="[OK]", severity=SEVERITY_OK,
-                symbol=symbol,
-                message=f"generate_fattura_xml() output for {formato} validates against the bundled XSD.",
-            ))
+            findings.append(
+                CheckFinding(
+                    check_id="CHECK_5",
+                    tag="[OK]",
+                    severity=SEVERITY_OK,
+                    symbol=symbol,
+                    message=f"generate_fattura_xml() output for {formato} validates against the bundled XSD.",
+                )
+            )
         else:
-            findings.append(CheckFinding(
-                check_id="CHECK_5", tag="[XSD_INVALID]", severity=SEVERITY_BLOCKING,
-                symbol=symbol,
-                message=(
-                    f"generate_fattura_xml() output for {formato} fails XSD validation: "
-                    f"{xsd_result.get('errors', xsd_result)}"
-                ),
-            ))
+            findings.append(
+                CheckFinding(
+                    check_id="CHECK_5",
+                    tag="[XSD_INVALID]",
+                    severity=SEVERITY_BLOCKING,
+                    symbol=symbol,
+                    message=(
+                        f"generate_fattura_xml() output for {formato} fails XSD validation: "
+                        f"{xsd_result.get('errors', xsd_result)}"
+                    ),
+                )
+            )
 
     return findings
 
@@ -707,33 +789,74 @@ def _run_xsd_roundtrip_check() -> list[CheckFinding]:
 # ---------------------------------------------------------------------------
 
 _CORE_CAPABILITIES: list[tuple[str, str, list[str]]] = [
-    ("cii_ubl_conversion", "mcp_einvoicing_core.convert", [
-        "convert_wire_format",
-    ]),
-    ("peppol_participant_lookup", "mcp_einvoicing_core.peppol", [
-        "PeppolSMPClient",
-    ]),
-    ("en16931_cii_parsing", "mcp_einvoicing_core.wire_formats", [
-        "EN16931CIIParser", "EN16931CIISerializer",
-    ]),
-    ("en16931_ubl_parsing", "mcp_einvoicing_core.wire_formats", [
-        "EN16931UBLParser", "EN16931UBLSerializer",
-    ]),
-    ("schematron_validation", "mcp_einvoicing_core.schematron", [
-        "SchematronValidator",
-    ]),
-    ("xades_xmldsig_signing", "mcp_einvoicing_core.digital_signature", [
-        "XAdESEPESSigner", "XMLDSigSigner",
-    ]),
-    ("http_client", "mcp_einvoicing_core.http_client", [
-        "BaseEInvoicingClient",
-    ]),
-    ("routing_identifier_validation", "mcp_einvoicing_core.routing", [
-        "RoutingIdentifier",
-    ]),
-    ("peppol_as4_transport", "mcp_einvoicing_core.peppol.transport", [
-        "AS4MessageEnvelope", "AS4TransportClient", "PeppolTransmitter",
-    ]),
+    (
+        "cii_ubl_conversion",
+        "mcp_einvoicing_core.convert",
+        [
+            "convert_wire_format",
+        ],
+    ),
+    (
+        "peppol_participant_lookup",
+        "mcp_einvoicing_core.peppol",
+        [
+            "PeppolSMPClient",
+        ],
+    ),
+    (
+        "en16931_cii_parsing",
+        "mcp_einvoicing_core.wire_formats",
+        [
+            "EN16931CIIParser",
+            "EN16931CIISerializer",
+        ],
+    ),
+    (
+        "en16931_ubl_parsing",
+        "mcp_einvoicing_core.wire_formats",
+        [
+            "EN16931UBLParser",
+            "EN16931UBLSerializer",
+        ],
+    ),
+    (
+        "schematron_validation",
+        "mcp_einvoicing_core.schematron",
+        [
+            "SchematronValidator",
+        ],
+    ),
+    (
+        "xades_xmldsig_signing",
+        "mcp_einvoicing_core.digital_signature",
+        [
+            "XAdESEPESSigner",
+            "XMLDSigSigner",
+        ],
+    ),
+    (
+        "http_client",
+        "mcp_einvoicing_core.http_client",
+        [
+            "BaseEInvoicingClient",
+        ],
+    ),
+    (
+        "routing_identifier_validation",
+        "mcp_einvoicing_core.routing",
+        [
+            "RoutingIdentifier",
+        ],
+    ),
+    (
+        "peppol_as4_transport",
+        "mcp_einvoicing_core.peppol.transport",
+        [
+            "AS4MessageEnvelope",
+            "AS4TransportClient",
+            "PeppolTransmitter",
+        ],
+    ),
 ]
 
 _INTENTIONAL_PARALLEL_IMPLEMENTATIONS: dict[tuple[str, str], str] = {}
@@ -747,11 +870,15 @@ def run_check_6() -> CheckResult:
 
     pkg_root = Path(__file__).parent.parent / "src" / "mcp_fattura_elettronica_it"
     if not pkg_root.is_dir():
-        result.findings.append(CheckFinding(
-            check_id="CHECK_6", tag="[SKIP]", severity=SEVERITY_OK,
-            symbol="mcp_fattura_elettronica_it",
-            message="Package source directory not found; skipping parallel-implementation scan.",
-        ))
+        result.findings.append(
+            CheckFinding(
+                check_id="CHECK_6",
+                tag="[SKIP]",
+                severity=SEVERITY_OK,
+                symbol="mcp_fattura_elettronica_it",
+                message="Package source directory not found; skipping parallel-implementation scan.",
+            )
+        )
         return result
 
     defined_names: dict[str, str] = {}
@@ -772,35 +899,47 @@ def run_check_6() -> CheckResult:
 
             override_key = (cap_tag, symbol)
             if override_key in _INTENTIONAL_PARALLEL_IMPLEMENTATIONS:
-                result.findings.append(CheckFinding(
-                    check_id="CHECK_6", tag="[OVERRIDE]", severity=SEVERITY_OK,
-                    symbol=symbol,
-                    message=(
-                        f"Parallel implementation of {symbol} ({cap_tag}) in "
-                        f"{defined_names[symbol]} is intentional: "
-                        f"{_INTENTIONAL_PARALLEL_IMPLEMENTATIONS[override_key]}"
-                    ),
-                ))
+                result.findings.append(
+                    CheckFinding(
+                        check_id="CHECK_6",
+                        tag="[OVERRIDE]",
+                        severity=SEVERITY_OK,
+                        symbol=symbol,
+                        message=(
+                            f"Parallel implementation of {symbol} ({cap_tag}) in "
+                            f"{defined_names[symbol]} is intentional: "
+                            f"{_INTENTIONAL_PARALLEL_IMPLEMENTATIONS[override_key]}"
+                        ),
+                    )
+                )
                 continue
 
             found_any = True
-            result.findings.append(CheckFinding(
-                check_id="CHECK_6", tag="[PARALLEL]", severity=SEVERITY_WARNING,
-                symbol=symbol,
-                message=(
-                    f"Country package defines {symbol!r} in {defined_names[symbol]}, "
-                    f"which mirrors core capability {cap_tag!r} from {core_module}. "
-                    "Delegate to the core symbol or register in "
-                    "_INTENTIONAL_PARALLEL_IMPLEMENTATIONS with a justification."
-                ),
-            ))
+            result.findings.append(
+                CheckFinding(
+                    check_id="CHECK_6",
+                    tag="[PARALLEL]",
+                    severity=SEVERITY_WARNING,
+                    symbol=symbol,
+                    message=(
+                        f"Country package defines {symbol!r} in {defined_names[symbol]}, "
+                        f"which mirrors core capability {cap_tag!r} from {core_module}. "
+                        "Delegate to the core symbol or register in "
+                        "_INTENTIONAL_PARALLEL_IMPLEMENTATIONS with a justification."
+                    ),
+                )
+            )
 
     if not found_any and not result.findings:
-        result.findings.append(CheckFinding(
-            check_id="CHECK_6", tag="[OK]", severity=SEVERITY_OK,
-            symbol="*",
-            message="No parallel implementations of core capabilities detected.",
-        ))
+        result.findings.append(
+            CheckFinding(
+                check_id="CHECK_6",
+                tag="[OK]",
+                severity=SEVERITY_OK,
+                symbol="*",
+                message="No parallel implementations of core capabilities detected.",
+            )
+        )
 
     return result
 
@@ -809,19 +948,23 @@ def run_audit() -> AuditReport:
     """Execute all checks and return the aggregated AuditReport. No side effects."""
     report = make_report("mcp-fattura-elettronica-it", _PYPROJECT)
 
-    report.checks.append(run_check_core_coverage(
-        package_name="mcp-fattura-elettronica-it",
-        package_modules=_PKG_MODULES,
-        intentional_overrides=_INTENTIONAL_OVERRIDES,
-        is_en16931_family=_IS_EN16931_FAMILY,
-        primary_invoice_class=_PRIMARY_INVOICE_CLASS,
-    ))
+    report.checks.append(
+        run_check_core_coverage(
+            package_name="mcp-fattura-elettronica-it",
+            package_modules=_PKG_MODULES,
+            intentional_overrides=_INTENTIONAL_OVERRIDES,
+            is_en16931_family=_IS_EN16931_FAMILY,
+            primary_invoice_class=_PRIMARY_INVOICE_CLASS,
+        )
+    )
     report.checks.append(run_check_2())
     report.checks.append(run_check_3())
-    report.checks.append(run_check_version_compatibility(
-        package_name="mcp-fattura-elettronica-it",
-        pyproject_path=_PYPROJECT,
-    ))
+    report.checks.append(
+        run_check_version_compatibility(
+            package_name="mcp-fattura-elettronica-it",
+            pyproject_path=_PYPROJECT,
+        )
+    )
     report.checks.append(run_check_5())
     report.checks.append(run_check_6())
 

@@ -37,9 +37,7 @@ def build_ricevi_fatture_envelope(
 
     richiesta = etree.SubElement(body, f"{{{_SDI_NS}}}fileSdIAccoglienza")
     etree.SubElement(richiesta, f"{{{_SDI_NS}}}NomeFile").text = filename
-    etree.SubElement(richiesta, f"{{{_SDI_NS}}}File").text = (
-        base64.b64encode(file_content).decode()
-    )
+    etree.SubElement(richiesta, f"{{{_SDI_NS}}}File").text = base64.b64encode(file_content).decode()
 
     return etree.tostring(envelope, xml_declaration=True, encoding="UTF-8")
 
@@ -66,9 +64,7 @@ def build_notifica_esito_envelope(
     richiesta = etree.SubElement(body, f"{{{_SDI_NS}}}risposta")
     etree.SubElement(richiesta, f"{{{_SDI_NS}}}IdentificativoSdI").text = id_sdi
     etree.SubElement(richiesta, f"{{{_SDI_NS}}}NomeFile").text = nome_file
-    etree.SubElement(richiesta, f"{{{_SDI_NS}}}File").text = (
-        base64.b64encode(esito_xml).decode()
-    )
+    etree.SubElement(richiesta, f"{{{_SDI_NS}}}File").text = base64.b64encode(esito_xml).decode()
 
     return etree.tostring(envelope, xml_declaration=True, encoding="UTF-8")
 

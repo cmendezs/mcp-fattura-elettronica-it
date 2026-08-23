@@ -171,7 +171,10 @@ class TestParseNotificaScarto:
 class TestScartoCodeReference:
     def test_00327_catalogued(self):
         assert "00327" in SCARTO_CODE_REFERENCE
-        assert "Gruppo IVA" in SCARTO_CODE_REFERENCE["00327"] or "VAT group" in SCARTO_CODE_REFERENCE["00327"]
+        assert (
+            "Gruppo IVA" in SCARTO_CODE_REFERENCE["00327"]
+            or "VAT group" in SCARTO_CODE_REFERENCE["00327"]
+        )
 
     def test_describe_scarto_code_known(self):
         note = describe_scarto_code("00327")

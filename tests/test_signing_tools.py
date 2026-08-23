@@ -9,7 +9,7 @@ from mcp_fattura_elettronica_it.server import mcp
 
 _SAMPLE_XML = (
     '<?xml version="1.0" encoding="UTF-8"?>'
-    '<p:FatturaElettronica xmlns:p='
+    "<p:FatturaElettronica xmlns:p="
     '"http://ivaservizi.agenziaentrate.gov.it/docs/xsd/fatture/v1.2" '
     'versione="FPR12">'
     "<FatturaElettronicaHeader/>"

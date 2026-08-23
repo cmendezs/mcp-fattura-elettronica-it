@@ -425,7 +425,12 @@ class TestAltriDatiGestionaliXsdRoundTrip:
                 "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
                 "Anagrafica": {"Denominazione": "Buyer Srl"},
             },
-            "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
+            "Sede": {
+                "Indirizzo": "Via Verdi 2",
+                "CAP": "20100",
+                "Comune": "Milano",
+                "Nazione": "IT",
+            },
         }
     }
     _DATI_GENERALI: ClassVar[dict] = {

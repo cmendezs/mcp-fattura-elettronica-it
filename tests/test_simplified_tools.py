@@ -299,7 +299,12 @@ class TestCrossFormatRejection:
                     "Anagrafica": {"Denominazione": "ACME"},
                     "RegimeFiscale": "RF01",
                 },
-                "Sede": {"Indirizzo": "Via Roma 1", "CAP": "00100", "Comune": "Roma", "Nazione": "IT"},
+                "Sede": {
+                    "Indirizzo": "Via Roma 1",
+                    "CAP": "00100",
+                    "Comune": "Roma",
+                    "Nazione": "IT",
+                },
             }
         }
         cc = {
@@ -308,11 +313,33 @@ class TestCrossFormatRejection:
                     "IdFiscaleIVA": {"IdPaese": "IT", "IdCodice": "98765432109"},
                     "Anagrafica": {"Denominazione": "Buyer"},
                 },
-                "Sede": {"Indirizzo": "Via Verdi 2", "CAP": "20100", "Comune": "Milano", "Nazione": "IT"},
+                "Sede": {
+                    "Indirizzo": "Via Verdi 2",
+                    "CAP": "20100",
+                    "Comune": "Milano",
+                    "Nazione": "IT",
+                },
             }
         }
-        linee = [{"DettaglioLinee": {"NumeroLinea": 1, "Descrizione": "X", "PrezzoUnitario": "10", "PrezzoTotale": "10.00", "AliquotaIVA": "22.00"}}]
-        riepilogo = [{"AliquotaIVA": "22.00", "ImponibileImporto": "10.00", "Imposta": "2.20", "EsigibilitaIVA": "I"}]
+        linee = [
+            {
+                "DettaglioLinee": {
+                    "NumeroLinea": 1,
+                    "Descrizione": "X",
+                    "PrezzoUnitario": "10",
+                    "PrezzoTotale": "10.00",
+                    "AliquotaIVA": "22.00",
+                }
+            }
+        ]
+        riepilogo = [
+            {
+                "AliquotaIVA": "22.00",
+                "ImponibileImporto": "10.00",
+                "Imposta": "2.20",
+                "EsigibilitaIVA": "I",
+            }
+        ]
 
         result = call(
             "generate_fattura_xml",

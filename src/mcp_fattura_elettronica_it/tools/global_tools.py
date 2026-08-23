@@ -271,7 +271,9 @@ def register_global_tools(mcp: FastMCP) -> None:
 
             def _seller_name(anagrafica: dict) -> str:
                 if "Denominazione" in anagrafica:
-                    return f"<Denominazione>{xml_escape(anagrafica['Denominazione'])}</Denominazione>"
+                    return (
+                        f"<Denominazione>{xml_escape(anagrafica['Denominazione'])}</Denominazione>"
+                    )
                 return (
                     f"<Nome>{xml_escape(anagrafica.get('Nome', ''))}</Nome>"
                     f"<Cognome>{xml_escape(anagrafica.get('Cognome', ''))}</Cognome>"
@@ -295,9 +297,21 @@ def register_global_tools(mcp: FastMCP) -> None:
                     return ""
                 parts = []
                 for e in entries:
-                    rt = f"<RiferimentoTesto>{xml_escape(e['RiferimentoTesto'])}</RiferimentoTesto>" if "RiferimentoTesto" in e else ""
-                    rn = f"<RiferimentoNumero>{e['RiferimentoNumero']}</RiferimentoNumero>" if "RiferimentoNumero" in e else ""
-                    rd = f"<RiferimentoData>{e['RiferimentoData']}</RiferimentoData>" if "RiferimentoData" in e else ""
+                    rt = (
+                        f"<RiferimentoTesto>{xml_escape(e['RiferimentoTesto'])}</RiferimentoTesto>"
+                        if "RiferimentoTesto" in e
+                        else ""
+                    )
+                    rn = (
+                        f"<RiferimentoNumero>{e['RiferimentoNumero']}</RiferimentoNumero>"
+                        if "RiferimentoNumero" in e
+                        else ""
+                    )
+                    rd = (
+                        f"<RiferimentoData>{e['RiferimentoData']}</RiferimentoData>"
+                        if "RiferimentoData" in e
+                        else ""
+                    )
                     parts.append(
                         f"<AltriDatiGestionali>"
                         f"<TipoDato>{xml_escape(e['TipoDato'])}</TipoDato>"
@@ -311,7 +325,11 @@ def register_global_tools(mcp: FastMCP) -> None:
                 for linea in linee:
                     ld = linea.get("DettaglioLinee", linea)
                     qta = f"<Quantita>{ld['Quantita']}</Quantita>" if "Quantita" in ld else ""
-                    um = f"<UnitaMisura>{ld['UnitaMisura']}</UnitaMisura>" if "UnitaMisura" in ld else ""
+                    um = (
+                        f"<UnitaMisura>{ld['UnitaMisura']}</UnitaMisura>"
+                        if "UnitaMisura" in ld
+                        else ""
+                    )
                     nat = f"<Natura>{ld['Natura']}</Natura>" if "Natura" in ld else ""
                     rit = f"<Ritenuta>{ld['Ritenuta']}</Ritenuta>" if "Ritenuta" in ld else ""
                     # XSD order: ... AliquotaIVA, Ritenuta, Natura, RiferimentoAmministrazione,
@@ -335,7 +353,9 @@ def register_global_tools(mcp: FastMCP) -> None:
                 parts = []
                 for r in riepilogo:
                     nat = f"<Natura>{r['Natura']}</Natura>" if "Natura" in r else ""
-                    imponibile = r["ImponibileImporto"] if "ImponibileImporto" in r else r["Imponibile"]
+                    imponibile = (
+                        r["ImponibileImporto"] if "ImponibileImporto" in r else r["Imponibile"]
+                    )
                     parts.append(
                         f"<DatiRiepilogo>"
                         f"<AliquotaIVA>{r['AliquotaIVA']}</AliquotaIVA>"
@@ -352,9 +372,17 @@ def register_global_tools(mcp: FastMCP) -> None:
                     return ""
                 p = pagamento.get("DatiPagamento", pagamento)
                 dp = p.get("DettaglioPagamento", {})
-                scad = f"<DataScadenzaPagamento>{dp['DataScadenzaPagamento']}</DataScadenzaPagamento>" if "DataScadenzaPagamento" in dp else ""
+                scad = (
+                    f"<DataScadenzaPagamento>{dp['DataScadenzaPagamento']}</DataScadenzaPagamento>"
+                    if "DataScadenzaPagamento" in dp
+                    else ""
+                )
                 iban = f"<IBAN>{dp['IBAN']}</IBAN>" if "IBAN" in dp else ""
-                banca = f"<IstitutoFinanziario>{xml_escape(dp['IstitutoFinanziario'])}</IstitutoFinanziario>" if "IstitutoFinanziario" in dp else ""
+                banca = (
+                    f"<IstitutoFinanziario>{xml_escape(dp['IstitutoFinanziario'])}</IstitutoFinanziario>"
+                    if "IstitutoFinanziario" in dp
+                    else ""
+                )
                 return (
                     f"<DatiPagamento>"
                     f"<CondizioniPagamento>{p['CondizioniPagamento']}</CondizioniPagamento>"
@@ -373,8 +401,16 @@ def register_global_tools(mcp: FastMCP) -> None:
                 parts = []
                 for a in allegati_list:
                     entry = a.get("Allegati", a)
-                    fmt = f"<FormatoAllegato>{xml_escape(entry['FormatoAllegato'])}</FormatoAllegato>" if "FormatoAllegato" in entry else ""
-                    desc = f"<DescrizioneAllegato>{xml_escape(entry['DescrizioneAllegato'])}</DescrizioneAllegato>" if "DescrizioneAllegato" in entry else ""
+                    fmt = (
+                        f"<FormatoAllegato>{xml_escape(entry['FormatoAllegato'])}</FormatoAllegato>"
+                        if "FormatoAllegato" in entry
+                        else ""
+                    )
+                    desc = (
+                        f"<DescrizioneAllegato>{xml_escape(entry['DescrizioneAllegato'])}</DescrizioneAllegato>"
+                        if "DescrizioneAllegato" in entry
+                        else ""
+                    )
                     parts.append(
                         f"<Allegati>"
                         f"<NomeAllegato>{xml_escape(entry['NomeAllegato'])}</NomeAllegato>"
@@ -397,7 +433,9 @@ def register_global_tools(mcp: FastMCP) -> None:
                     f"</DatiRitenuta>"
                 )
 
-            pec_xml = f"<PECDestinatario>{xml_escape(pec_dest)}</PECDestinatario>" if pec_dest else ""
+            pec_xml = (
+                f"<PECDestinatario>{xml_escape(pec_dest)}</PECDestinatario>" if pec_dest else ""
+            )
 
             def _build_body(
                 body_dg: dict,
@@ -416,9 +454,7 @@ def register_global_tools(mcp: FastMCP) -> None:
                 caus = dg_doc_inner.get("Causale", [])
                 if isinstance(caus, str):
                     caus = [caus] if caus else []
-                caus_xml = "".join(
-                    f"<Causale>{xml_escape(c[:200])}</Causale>" for c in caus
-                )
+                caus_xml = "".join(f"<Causale>{xml_escape(c[:200])}</Causale>" for c in caus)
                 return (
                     f"<FatturaElettronicaBody>"
                     f"<DatiGenerali>"
@@ -441,8 +477,12 @@ def register_global_tools(mcp: FastMCP) -> None:
                 )
 
             primary_body = _build_body(
-                dg, dettaglio_linee, dati_riepilogo,
-                dati_pagamento, allegati, dati_ritenuta,
+                dg,
+                dettaglio_linee,
+                dati_riepilogo,
+                dati_pagamento,
+                allegati,
+                dati_ritenuta,
             )
 
             extra_bodies = ""
@@ -455,8 +495,12 @@ def register_global_tools(mcp: FastMCP) -> None:
                     ab_allegati = ab.get("allegati")
                     ab_ritenuta = ab.get("dati_ritenuta")
                     extra_bodies += _build_body(
-                        ab_dg, ab_linee, ab_riepilogo,
-                        ab_pagamento, ab_allegati, ab_ritenuta,
+                        ab_dg,
+                        ab_linee,
+                        ab_riepilogo,
+                        ab_pagamento,
+                        ab_allegati,
+                        ab_ritenuta,
                     )
 
             xml = (
@@ -579,11 +623,13 @@ def register_global_tools(mcp: FastMCP) -> None:
 
             parser = safe_parser()
             if xmldsig_path.exists():
+
                 class _LocalResolver(etree.Resolver):
                     def resolve(self, url, id, context):
                         if "xmldsig" in url or "xmldsig-core" in url:
                             return self.resolve_filename(str(xmldsig_path), context)
                         return None
+
                 parser.resolvers.add(_LocalResolver())
 
             xsd_doc = etree.parse(str(xsd_path), parser)
@@ -689,9 +735,13 @@ def register_global_tools(mcp: FastMCP) -> None:
                 cp_an = cp.find("DatiAnagrafici")
                 result["header"]["cedente_prestatore"] = {
                     "id_paese": _txt(cp_an, "IdFiscaleIVA/IdPaese") if cp_an is not None else None,
-                    "id_codice": _txt(cp_an, "IdFiscaleIVA/IdCodice") if cp_an is not None else None,
+                    "id_codice": _txt(cp_an, "IdFiscaleIVA/IdCodice")
+                    if cp_an is not None
+                    else None,
                     "codice_fiscale": _txt(cp_an, "CodiceFiscale") if cp_an is not None else None,
-                    "denominazione": _txt(cp_an, "Anagrafica/Denominazione") if cp_an is not None else None,
+                    "denominazione": _txt(cp_an, "Anagrafica/Denominazione")
+                    if cp_an is not None
+                    else None,
                     "nome": _txt(cp_an, "Anagrafica/Nome") if cp_an is not None else None,
                     "cognome": _txt(cp_an, "Anagrafica/Cognome") if cp_an is not None else None,
                     "regime_fiscale": _txt(cp_an, "RegimeFiscale") if cp_an is not None else None,
@@ -705,9 +755,13 @@ def register_global_tools(mcp: FastMCP) -> None:
                 cc_an = cc.find("DatiAnagrafici")
                 result["header"]["cessionario_committente"] = {
                     "id_paese": _txt(cc_an, "IdFiscaleIVA/IdPaese") if cc_an is not None else None,
-                    "id_codice": _txt(cc_an, "IdFiscaleIVA/IdCodice") if cc_an is not None else None,
+                    "id_codice": _txt(cc_an, "IdFiscaleIVA/IdCodice")
+                    if cc_an is not None
+                    else None,
                     "codice_fiscale": _txt(cc_an, "CodiceFiscale") if cc_an is not None else None,
-                    "denominazione": _txt(cc_an, "Anagrafica/Denominazione") if cc_an is not None else None,
+                    "denominazione": _txt(cc_an, "Anagrafica/Denominazione")
+                    if cc_an is not None
+                    else None,
                     "nome": _txt(cc_an, "Anagrafica/Nome") if cc_an is not None else None,
                     "cognome": _txt(cc_an, "Anagrafica/Cognome") if cc_an is not None else None,
                     "indirizzo": _txt(cc, "Sede/Indirizzo"),
@@ -735,26 +789,30 @@ def register_global_tools(mcp: FastMCP) -> None:
 
             linee = []
             for linea in body.findall("DatiBeniServizi/DettaglioLinee"):
-                linee.append({
-                    "numero_linea": _txt(linea, "NumeroLinea"),
-                    "descrizione": _txt(linea, "Descrizione"),
-                    "quantita": _txt(linea, "Quantita"),
-                    "prezzo_unitario": _txt(linea, "PrezzoUnitario"),
-                    "prezzo_totale": _txt(linea, "PrezzoTotale"),
-                    "aliquota_iva": _txt(linea, "AliquotaIVA"),
-                    "natura": _txt(linea, "Natura"),
-                })
+                linee.append(
+                    {
+                        "numero_linea": _txt(linea, "NumeroLinea"),
+                        "descrizione": _txt(linea, "Descrizione"),
+                        "quantita": _txt(linea, "Quantita"),
+                        "prezzo_unitario": _txt(linea, "PrezzoUnitario"),
+                        "prezzo_totale": _txt(linea, "PrezzoTotale"),
+                        "aliquota_iva": _txt(linea, "AliquotaIVA"),
+                        "natura": _txt(linea, "Natura"),
+                    }
+                )
             body_result["dettaglio_linee"] = linee
 
             riepilogo = []
             for r in body.findall("DatiBeniServizi/DatiRiepilogo"):
-                riepilogo.append({
-                    "aliquota_iva": _txt(r, "AliquotaIVA"),
-                    "natura": _txt(r, "Natura"),
-                    "imponibile": _txt(r, "ImponibileImporto"),
-                    "imposta": _txt(r, "Imposta"),
-                    "esigibilita_iva": _txt(r, "EsigibilitaIVA"),
-                })
+                riepilogo.append(
+                    {
+                        "aliquota_iva": _txt(r, "AliquotaIVA"),
+                        "natura": _txt(r, "Natura"),
+                        "imponibile": _txt(r, "ImponibileImporto"),
+                        "imposta": _txt(r, "Imposta"),
+                        "esigibilita_iva": _txt(r, "EsigibilitaIVA"),
+                    }
+                )
             body_result["dati_riepilogo"] = riepilogo
 
             dp = body.find("DatiPagamento")
@@ -762,9 +820,13 @@ def register_global_tools(mcp: FastMCP) -> None:
                 ddp = dp.find("DettaglioPagamento")
                 body_result["dati_pagamento"] = {
                     "condizioni_pagamento": _txt(dp, "CondizioniPagamento"),
-                    "modalita_pagamento": _txt(ddp, "ModalitaPagamento") if ddp is not None else None,
+                    "modalita_pagamento": _txt(ddp, "ModalitaPagamento")
+                    if ddp is not None
+                    else None,
                     "importo_pagamento": _txt(ddp, "ImportoPagamento") if ddp is not None else None,
-                    "data_scadenza": _txt(ddp, "DataScadenzaPagamento") if ddp is not None else None,
+                    "data_scadenza": _txt(ddp, "DataScadenzaPagamento")
+                    if ddp is not None
+                    else None,
                     "iban": _txt(ddp, "IBAN") if ddp is not None else None,
                 }
 
@@ -999,7 +1061,11 @@ def register_global_tools(mcp: FastMCP) -> None:
             }
 
         _REQUIRES_OVERRIDE = {"RT03", "RT04", "RT05", "RT06"}
-        if tipo_ritenuta in _REQUIRES_OVERRIDE and importo_override is None and aliquota_override is None:
+        if (
+            tipo_ritenuta in _REQUIRES_OVERRIDE
+            and importo_override is None
+            and aliquota_override is None
+        ):
             return {
                 "error": (
                     f"{tipo_ritenuta} ({TIPO_RITENUTA[tipo_ritenuta]['description']}) has no statutory default rate. "
@@ -1011,11 +1077,15 @@ def register_global_tools(mcp: FastMCP) -> None:
         base = Decimal(str(imponibile))
 
         if importo_override is not None:
-            importo = Decimal(str(importo_override)).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            importo = Decimal(str(importo_override)).quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
             if aliquota_override is not None:
                 aliquota_pct = Decimal(str(aliquota_override)).quantize(Decimal("0.01"))
             else:
-                aliquota_pct = (importo / base * 100).quantize(Decimal("0.01")) if base else Decimal("0.00")
+                aliquota_pct = (
+                    (importo / base * 100).quantize(Decimal("0.01")) if base else Decimal("0.00")
+                )
         elif aliquota_override is not None:
             rate = Decimal(str(aliquota_override)) / 100
             importo = (base * rate).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)

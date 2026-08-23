@@ -34,28 +34,88 @@ logger = get_logger(__name__)
 
 TIPO_DOCUMENTO: dict[str, dict] = {
     "TD01": {"description": "Fattura", "use_case": "Standard B2B/B2G invoice"},
-    "TD02": {"description": "Acconto/anticipo su fattura", "use_case": "Advance payment on invoice"},
-    "TD03": {"description": "Acconto/anticipo su parcella", "use_case": "Advance payment on professional fee"},
+    "TD02": {
+        "description": "Acconto/anticipo su fattura",
+        "use_case": "Advance payment on invoice",
+    },
+    "TD03": {
+        "description": "Acconto/anticipo su parcella",
+        "use_case": "Advance payment on professional fee",
+    },
     "TD04": {"description": "Nota di credito", "use_case": "Credit note (reversal of TD01)"},
     "TD05": {"description": "Nota di debito", "use_case": "Debit note"},
-    "TD06": {"description": "Parcella", "use_case": "Professional fee invoice (avvocati, medici, etc.)"},
-    "TD07": {"description": "Fattura semplificata", "use_case": "Simplified invoice ≤400 EUR — use generate_fattura_semplificata() (VFSM10 format, namespace v1.0)"},
-    "TD08": {"description": "Nota di credito semplificata", "use_case": "Simplified credit note — use generate_fattura_semplificata() (VFSM10 format, namespace v1.0)"},
-    "TD09": {"description": "Nota di debito semplificata", "use_case": "Simplified debit note — use generate_fattura_semplificata() (VFSM10 format, namespace v1.0)"},
-    "TD16": {"description": "Integrazione fattura reverse charge interno", "use_case": "Domestic reverse charge self-invoice"},
-    "TD17": {"description": "Integrazione/autofattura acquisto servizi dall'estero", "use_case": "Self-invoice for services purchased abroad"},
-    "TD18": {"description": "Integrazione acquisto beni intracomunitari", "use_case": "Self-invoice for intra-EU goods purchase"},
-    "TD19": {"description": "Integrazione/autofattura acquisto beni ex art.17 c.2 DPR 633/72", "use_case": "Self-invoice for goods under art. 17(2)"},
-    "TD20": {"description": "Autofattura per regolarizzazione e integrazione delle fatture", "use_case": "Self-invoice for regularisation"},
-    "TD21": {"description": "Autofattura per splafonamento", "use_case": "Self-invoice for VAT exemption ceiling exceeded"},
-    "TD22": {"description": "Estrazione beni da Deposito IVA", "use_case": "Extraction of goods from VAT warehouse"},
-    "TD23": {"description": "Estrazione beni da Deposito IVA con versamento IVA", "use_case": "Extraction with VAT payment"},
-    "TD24": {"description": "Fattura differita di cui all'art.21, c.4, lett. a", "use_case": "Deferred invoice (goods, DDT-based)"},
-    "TD25": {"description": "Fattura differita di cui all'art.21, c.4, terzo periodo lett. b", "use_case": "Deferred invoice (services)"},
-    "TD26": {"description": "Cessione di beni ammortizzabili e per passaggi interni", "use_case": "Transfer of depreciable assets"},
-    "TD27": {"description": "Fattura per autoconsumo o per cessioni gratuite senza rivalsa", "use_case": "Invoice for self-consumption or free transfers"},
-    "TD28": {"description": "Acquisti da San Marino con IVA (art. 16, c. 11, D.Lgs. 175/2014)", "use_case": "Purchases from San Marino with VAT (cross-border since 2022)"},
-    "TD29": {"description": "Comunicazione per omessa o irregolare fatturazione", "use_case": "Communication for omitted or irregular invoicing by Italian supplier (art. 6, c. 8, D.Lgs. 471/97) — added in FatturaPA XSD v1.2.3"},
+    "TD06": {
+        "description": "Parcella",
+        "use_case": "Professional fee invoice (avvocati, medici, etc.)",
+    },
+    "TD07": {
+        "description": "Fattura semplificata",
+        "use_case": "Simplified invoice ≤400 EUR — use generate_fattura_semplificata() (VFSM10 format, namespace v1.0)",
+    },
+    "TD08": {
+        "description": "Nota di credito semplificata",
+        "use_case": "Simplified credit note — use generate_fattura_semplificata() (VFSM10 format, namespace v1.0)",
+    },
+    "TD09": {
+        "description": "Nota di debito semplificata",
+        "use_case": "Simplified debit note — use generate_fattura_semplificata() (VFSM10 format, namespace v1.0)",
+    },
+    "TD16": {
+        "description": "Integrazione fattura reverse charge interno",
+        "use_case": "Domestic reverse charge self-invoice",
+    },
+    "TD17": {
+        "description": "Integrazione/autofattura acquisto servizi dall'estero",
+        "use_case": "Self-invoice for services purchased abroad",
+    },
+    "TD18": {
+        "description": "Integrazione acquisto beni intracomunitari",
+        "use_case": "Self-invoice for intra-EU goods purchase",
+    },
+    "TD19": {
+        "description": "Integrazione/autofattura acquisto beni ex art.17 c.2 DPR 633/72",
+        "use_case": "Self-invoice for goods under art. 17(2)",
+    },
+    "TD20": {
+        "description": "Autofattura per regolarizzazione e integrazione delle fatture",
+        "use_case": "Self-invoice for regularisation",
+    },
+    "TD21": {
+        "description": "Autofattura per splafonamento",
+        "use_case": "Self-invoice for VAT exemption ceiling exceeded",
+    },
+    "TD22": {
+        "description": "Estrazione beni da Deposito IVA",
+        "use_case": "Extraction of goods from VAT warehouse",
+    },
+    "TD23": {
+        "description": "Estrazione beni da Deposito IVA con versamento IVA",
+        "use_case": "Extraction with VAT payment",
+    },
+    "TD24": {
+        "description": "Fattura differita di cui all'art.21, c.4, lett. a",
+        "use_case": "Deferred invoice (goods, DDT-based)",
+    },
+    "TD25": {
+        "description": "Fattura differita di cui all'art.21, c.4, terzo periodo lett. b",
+        "use_case": "Deferred invoice (services)",
+    },
+    "TD26": {
+        "description": "Cessione di beni ammortizzabili e per passaggi interni",
+        "use_case": "Transfer of depreciable assets",
+    },
+    "TD27": {
+        "description": "Fattura per autoconsumo o per cessioni gratuite senza rivalsa",
+        "use_case": "Invoice for self-consumption or free transfers",
+    },
+    "TD28": {
+        "description": "Acquisti da San Marino con IVA (art. 16, c. 11, D.Lgs. 175/2014)",
+        "use_case": "Purchases from San Marino with VAT (cross-border since 2022)",
+    },
+    "TD29": {
+        "description": "Comunicazione per omessa o irregolare fatturazione",
+        "use_case": "Communication for omitted or irregular invoicing by Italian supplier (art. 6, c. 8, D.Lgs. 471/97) — added in FatturaPA XSD v1.2.3",
+    },
 }
 
 # ---------------------------------------------------------------------------
@@ -357,8 +417,7 @@ def register_body_tools(mcp: FastMCP) -> None:
         if natura and natura not in NATURA_CODES:
             return {
                 "error": (
-                    f"Invalid natura code '{natura}'. "
-                    "Use get_natura_codes() for the complete list."
+                    f"Invalid natura code '{natura}'. Use get_natura_codes() for the complete list."
                 )
             }
 
@@ -541,7 +600,9 @@ def register_body_tools(mcp: FastMCP) -> None:
         totale_imposta = Decimal(0)
 
         for entry in groups.values():
-            imponibile = entry["ImponibileImporto"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+            imponibile = entry["ImponibileImporto"].quantize(
+                Decimal("0.01"), rounding=ROUND_HALF_UP
+            )
             imposta = entry["Imposta"].quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
             totale_imponibile += imponibile
             totale_imposta += imposta
@@ -613,7 +674,9 @@ def register_body_tools(mcp: FastMCP) -> None:
         ],
         importo_pagamento: Annotated[
             float,
-            Field(description="Payment amount (may equal or differ from invoice total for instalments)."),
+            Field(
+                description="Payment amount (may equal or differ from invoice total for instalments)."
+            ),
         ],
         data_scadenza_pagamento: Annotated[
             str | None,
@@ -674,7 +737,9 @@ def register_body_tools(mcp: FastMCP) -> None:
             return {"error": f"Invalid IBAN format: '{iban}'."}
 
         if data_scadenza_pagamento and not validate_date_iso(data_scadenza_pagamento):
-            return {"error": f"Invalid due date format '{data_scadenza_pagamento}'. Use YYYY-MM-DD."}
+            return {
+                "error": f"Invalid due date format '{data_scadenza_pagamento}'. Use YYYY-MM-DD."
+            }
 
         dettaglio_pagamento: dict = {
             "ModalitaPagamento": modalita_pagamento,
