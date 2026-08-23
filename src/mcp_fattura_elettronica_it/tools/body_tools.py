@@ -463,8 +463,8 @@ def register_body_tools(mcp: FastMCP) -> None:
                 adg_entries.append(adg_xml_entry)
 
         warnings: list[str] = []
-        _STANDARD_IT_RATES = {4.0, 5.0, 10.0, 22.0}
-        if aliquota_iva != 0.0 and aliquota_iva not in _STANDARD_IT_RATES:
+        standard_it_rates = {4.0, 5.0, 10.0, 22.0}
+        if aliquota_iva != 0.0 and aliquota_iva not in standard_it_rates:
             message = (
                 f"Unusual IT VAT rate {aliquota_iva:.2f}% on linea {numero_linea}; "
                 "standard rates are 4, 5, 10, 22"

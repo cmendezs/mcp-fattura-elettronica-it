@@ -260,8 +260,8 @@ def register_global_tools(mcp: FastMCP) -> None:
             dg_doc = dg.get("DatiGeneraliDocumento", dg)
             tipo_doc = dg_doc.get("TipoDocumento", "TD01")
 
-            _SIMPLIFIED_TYPES = {"TD07", "TD08", "TD09"}
-            if tipo_doc in _SIMPLIFIED_TYPES:
+            simplified_types = {"TD07", "TD08", "TD09"}
+            if tipo_doc in simplified_types:
                 return {
                     "error": (
                         f"TipoDocumento '{tipo_doc}' is a simplified invoice type. "
@@ -1060,9 +1060,9 @@ def register_global_tools(mcp: FastMCP) -> None:
                 )
             }
 
-        _REQUIRES_OVERRIDE = {"RT03", "RT04", "RT05", "RT06"}
+        requires_override = {"RT03", "RT04", "RT05", "RT06"}
         if (
-            tipo_ritenuta in _REQUIRES_OVERRIDE
+            tipo_ritenuta in requires_override
             and importo_override is None
             and aliquota_override is None
         ):

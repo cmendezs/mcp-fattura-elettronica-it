@@ -14,7 +14,7 @@ Notification types per section 1.1:
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from mcp_einvoicing_core.logging_utils import get_logger
 from mcp_einvoicing_core.xml_utils import safe_fromstring
@@ -23,7 +23,7 @@ from pydantic import BaseModel, Field
 logger = get_logger(__name__)
 
 
-class SDINotificationType(str, Enum):
+class SDINotificationType(StrEnum):
     """SDI notification/receipt type codes."""
 
     RC = "RC"

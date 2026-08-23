@@ -2,20 +2,20 @@
 
 from __future__ import annotations
 
-from enum import Enum
+from enum import StrEnum
 
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
-class SDIEnvironment(str, Enum):
+class SDIEnvironment(StrEnum):
     """SDI environment selector."""
 
     TEST = "test"
     PRODUCTION = "production"
 
 
-class SDIChannel(str, Enum):
+class SDIChannel(StrEnum):
     """SDI transmission channel."""
 
     SDICOOP = "sdicoop"

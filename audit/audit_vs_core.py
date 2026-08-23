@@ -336,6 +336,7 @@ def _collect_registered_tools() -> set[str]:
     registered: set[str] = set()
     try:
         from fastmcp import FastMCP as _FastMCP
+
         from mcp_fattura_elettronica_it.tools.body_tools import register_body_tools
         from mcp_fattura_elettronica_it.tools.global_tools import register_global_tools
         from mcp_fattura_elettronica_it.tools.header_tools import register_header_tools
@@ -645,6 +646,7 @@ def _run_xsd_roundtrip_check() -> list[CheckFinding]:
     findings: list[CheckFinding] = []
     try:
         from fastmcp import FastMCP as _FastMCP
+
         from mcp_fattura_elettronica_it.tools.global_tools import register_global_tools
 
         test_mcp = _FastMCP("it-audit-xsd-roundtrip")
