@@ -341,9 +341,3 @@ I contributi sono benvenuti — vedere [CONTRIBUTING.md](CONTRIBUTING.md) per le
 ## Licenza
 
 Questo progetto è distribuito sotto licenza **Apache 2.0**. Vedere il file [LICENSE](LICENSE) per i dettagli completi. Per la cronologia completa delle versioni, vedere [CHANGELOG.md](CHANGELOG.md).
-
-Copyright 2026 cmendezs
-
----
-
-*Progetto mantenuto da [cmendezs](https://github.com/cmendezs). Per domande relative all'implementazione dello standard FatturaPA, aprire una Issue.*

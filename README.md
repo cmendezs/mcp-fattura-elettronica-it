@@ -366,9 +366,3 @@ Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for guideli
 ## License
 
 This project is distributed under the **Apache 2.0** license. See the [LICENSE](LICENSE) file for full details. For the full version history, see [CHANGELOG.md](CHANGELOG.md).
-
-Copyright 2026 cmendezs
-
----
-
-*Project maintained by [cmendezs](https://github.com/cmendezs). For questions about the FatturaPA standard implementation, please open an Issue.*
