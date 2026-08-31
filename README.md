@@ -8,15 +8,17 @@
 [![PyPI version](https://img.shields.io/pypi/v/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/)
 [![Python](https://img.shields.io/pypi/pyversions/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/) [![mcp-fattura-elettronica-it MCP server](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it/badges/score.svg)](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it)
 
-A Python MCP server for **Italian electronic invoicing** in **FatturaPA XML** format (SDI / Agenzia delle Entrate standard, XSD v1.2.3, Specifiche Tecniche 1.9.1). It enables AI agents (Claude, IDEs) to generate, validate, and analyze B2B, B2G, and cross-border electronic invoices that are directly compliant with the technical specifications of the Sistema di Interscambio (SDI).
+---
+
+## Introduction
+
+A Python MCP server for **Italian electronic invoicing** in **FatturaPA XML** format (SDI / Agenzia delle Entrate standard, XSD v1.2.3, Specifiche Tecniche 1.9.1). It enables AI agents (Claude, IDEs) to generate, validate, and analyze B2B, B2G, and cross-border electronic invoices that are directly compliant with the technical specifications of the Sistema di Interscambio (SDI). It is built on [`mcp-einvoicing-core`](https://github.com/cmendezs/mcp-einvoicing-core), the shared base library for e-invoicing MCP servers.
 
 > **Note:** "Specifiche Tecniche" (the AdE Allegato A controls/codifiche document) and the XSD schema are two separate artefacts with independent version numbers. Specifiche Tecniche 1.9.1 (in force 2026-05-15) does **not** change the XSD — the bundled schema remains v1.2.3.
 
 This is a **Model Context Protocol (MCP)** server exposing **43 tools** covering the full lifecycle of a FatturaPA XML document: transmission header construction, seller/buyer validation (including Gruppo IVA / VAT-group CodiceFiscale), document type codes (TD01-TD28), line items with AltriDatiGestionali support, VAT summary computation, payment terms, XSD validation against the official Agenzia delle Entrate schema (v1.2.3), XML generation, parsing, JSON export, SDI filename generation, withholding tax (ritenuta d'acconto) calculation, digital signatures (XAdES-BES and CAdES-BES), direct SDI transmission via SDICoop SOAP, SDI notification parsing, and conservazione sostitutiva (legally compliant archiving per AgID). Licensed under **Apache 2.0**.
 
----
-
-## 🚀 Installation
+## Installation
 
 ### Via PyPI (recommended)
 
@@ -46,9 +48,7 @@ pip install -e ".[dev]"
 cp .env.example .env
 ```
 
----
-
-## ⚙️ Configuration
+## Configuration
 
 The available environment variables are:
 
@@ -65,7 +65,7 @@ The available environment variables are:
 | `EINVOICING_SIGNER_TOKEN` | Auth token for the signer microservice | (none) |
 | `CONSERVAZIONE_STORAGE_PATH` | Local archive storage path (dev only) | `.conservazione/` |
 
-### 🤖 Claude Desktop integration
+## Claude Desktop integration
 
 Add the following to your `claude_desktop_config.json` file:
 
@@ -74,28 +74,23 @@ Add the following to your `claude_desktop_config.json` file:
   "mcpServers": {
     "fattura-elettronica-it": {
       "command": "uvx",
-      "args": ["mcp-fattura-elettronica-it"]
+      "args": ["mcp-fattura-elettronica-it"],
+      "env": {
+        "SDI_ENVIRONMENT": "test",
+        "SDI_CERT_PATH": "/path/to/your-cert.p12",
+        "SDI_CERT_PASSWORD": "your-cert-password",
+        "SDI_CHANNEL_ID": "your-channel-id"
+      }
     }
   }
 }
 ```
 
-### ⌨️ Cursor integration
+## Cursor integration
 
-Configuration file (`~/.cursor/mcp.json` or `.cursor/mcp.json` in the project folder):
-
-```json
-{
-  "mcpServers": {
-    "fattura-elettronica-it": {
-      "command": "uvx",
-      "args": ["mcp-fattura-elettronica-it"]
-    }
-  }
-}
-```
-
-### 🪐 Kiro integration
+Cursor supports MCP servers via stdio. Add the configuration in:
+- **Global** (all projects): `~/.cursor/mcp.json`
+- **Project** (this repository only): `.cursor/mcp.json`
 
 ```json
 {
@@ -103,6 +98,37 @@ Configuration file (`~/.cursor/mcp.json` or `.cursor/mcp.json` in the project fo
     "fattura-elettronica-it": {
       "command": "uvx",
       "args": ["mcp-fattura-elettronica-it"],
+      "env": {
+        "SDI_ENVIRONMENT": "test",
+        "SDI_CERT_PATH": "/path/to/your-cert.p12",
+        "SDI_CERT_PASSWORD": "your-cert-password",
+        "SDI_CHANNEL_ID": "your-channel-id"
+      }
+    }
+  }
+}
+```
+
+Reload the Cursor window (`Ctrl+Shift+P` then *Reload Window*) to apply the changes.
+
+## Kiro integration
+
+Kiro supports MCP servers via its dedicated configuration file. Two levels are available:
+- **Global** (all projects): `~/.kiro/settings/mcp.json`
+- **Workspace** (this repository only): `.kiro/settings/mcp.json`
+
+```json
+{
+  "mcpServers": {
+    "fattura-elettronica-it": {
+      "command": "uvx",
+      "args": ["mcp-fattura-elettronica-it"],
+      "env": {
+        "SDI_ENVIRONMENT": "test",
+        "SDI_CERT_PATH": "/path/to/your-cert.p12",
+        "SDI_CERT_PASSWORD": "your-cert-password",
+        "SDI_CHANNEL_ID": "your-channel-id"
+      },
       "disabled": false,
       "autoApprove": []
     }
@@ -110,9 +136,11 @@ Configuration file (`~/.cursor/mcp.json` or `.cursor/mcp.json` in the project fo
 }
 ```
 
----
+The file is automatically reloaded on save. You can also open the config via the command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) then *MCP*.
 
-## 🧰 Available MCP tools
+> **Kiro security tip**: rather than writing secrets in plain text, use the syntax `"SDI_CERT_PASSWORD": "${SDI_CERT_PASSWORD}"`, Kiro resolves shell environment variables at startup.
+
+## Available tools
 
 ### Header: FatturaElettronicaHeader (7 tools)
 
@@ -203,11 +231,9 @@ Per AgID circolare 65/2014 and DM 17/06/2014, electronic invoices must be archiv
 a minimum of 10 years. The local filesystem backend is for development only; production
 requires integration with an AgID-accredited conservazione provider.
 
----
+### Usage examples
 
-## Usage examples
-
-### Example 1: Generate a complete B2B invoice
+**Example 1: Generate a complete B2B invoice**
 
 ```
 1. validate_partita_iva_format("01234567897")
@@ -248,7 +274,7 @@ requires integration with an AgID-accredited conservazione provider.
     → { "valid": true }
 ```
 
-### Example 2: Professional invoice with withholding tax
+**Example 2: Professional invoice with withholding tax**
 
 ```
 check_ritenuta_acconto(imponibile=1000.0, tipo_ritenuta="RT02",
@@ -264,7 +290,7 @@ check_ritenuta_acconto(imponibile=1000.0, tipo_ritenuta="RT02",
   }
 ```
 
-### Example 3: Look up VAT exemption codes
+**Example 3: Look up VAT exemption codes**
 
 ```
 get_natura_codes()
@@ -276,8 +302,6 @@ get_natura_codes()
     ...
   ]
 ```
-
----
 
 ## Architecture
 
@@ -296,9 +320,7 @@ mcp-einvoicing-core (shared foundation, installed as dependency)
 └── EInvoicingMCPServer (optional multi-country aggregator)
 ```
 
----
-
-## 📚 Reference standards
+## Supported standards
 
 | Resource | Link |
 |----------|------|
@@ -309,9 +331,7 @@ mcp-einvoicing-core (shared foundation, installed as dependency)
 | SDI, Sistema di Interscambio | [Agenzia delle Entrate](https://www.agenziaentrate.gov.it/portale/web/guest/aree-tematiche/fatturazione-elettronica) |
 | Withholding tax (ritenuta d'acconto) | Art. 25 DPR 600/73, Modello 770 |
 
----
-
-## 🧪 Tests
+## Tests
 
 ```bash
 # Install development dependencies
@@ -324,19 +344,9 @@ pytest tests/ -v
 pytest tests/test_mcp_integration.py -v
 ```
 
----
+## Contributing
 
-## Roadmap
-
-| Version | Features |
-|---------|----------|
-| **v0.1.0** | XML generation, XSD validation, parsing, 21 MCP tools, withholding tax |
-| **v0.2.0** | Simplified invoices (TD07/TD08/TD09), FPA12 batch invoicing, Codice Fiscale validation, VAT rate warnings, 30 MCP tools |
-| **v0.3.0** | SdI lifecycle scope boundary documented, transmission field defaults removed |
-| **v0.5.0** (current) | XAdES-BES and CAdES-BES digital signatures, direct SDI integration (SDICoop SOAP), conservazione sostitutiva (AgID archiving), 42 MCP tools |
-| **v0.6.0** | SFTP channel, AgID-accredited provider API integration |
-
----
+Contributions are welcome — see [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 
 ## Other e-invoicing MCP servers
 
@@ -353,12 +363,9 @@ pytest tests/test_mcp_integration.py -v
 | 🇪🇸 Spain | [mcp-facturacion-electronica-es](https://github.com/cmendezs/mcp-facturacion-electronica-es) |
 | 🇦🇪 United Arab Emirates | [mcp-einvoicing-ae](https://github.com/cmendezs/mcp-einvoicing-ae) |
 
----
+## License
 
-## 📄 License
-
-This project is distributed under the **Apache 2.0** license.
-See the [LICENSE](LICENSE) file for full details.
+This project is distributed under the **Apache 2.0** license. See the [LICENSE](LICENSE) file for full details. For the full version history, see [CHANGELOG.md](CHANGELOG.md).
 
 Copyright 2026 cmendezs
 

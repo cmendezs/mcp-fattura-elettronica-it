@@ -8,15 +8,17 @@
 [![PyPI version](https://img.shields.io/pypi/v/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/)
 [![Python](https://img.shields.io/pypi/pyversions/mcp-fattura-elettronica-it.svg)](https://pypi.org/project/mcp-fattura-elettronica-it/) [![mcp-fattura-elettronica-it MCP server](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it/badges/score.svg)](https://glama.ai/mcp/servers/cmendezs/mcp-fattura-elettronica-it)
 
-Server MCP Python per la **fatturazione elettronica italiana** in formato **FatturaPA XML** (standard SDI / Agenzia delle Entrate, XSD v1.2.3, Specifiche Tecniche 1.9.1). Permette agli agenti IA (Claude, IDE) di generare, validare e analizzare fatture elettroniche B2B, B2G e transfrontaliere direttamente conformi alle specifiche tecniche del Sistema di Interscambio (SDI).
+---
+
+## Introduzione
+
+Server MCP Python per la **fatturazione elettronica italiana** in formato **FatturaPA XML** (standard SDI / Agenzia delle Entrate, XSD v1.2.3, Specifiche Tecniche 1.9.1). Permette agli agenti IA (Claude, IDE) di generare, validare e analizzare fatture elettroniche B2B, B2G e transfrontaliere direttamente conformi alle specifiche tecniche del Sistema di Interscambio (SDI). E costruito su [`mcp-einvoicing-core`](https://github.com/cmendezs/mcp-einvoicing-core), la libreria di base condivisa per i server MCP di fatturazione elettronica.
 
 > **Nota:** le "Specifiche Tecniche" (Allegato A, il documento AdE su controlli e codifiche) e lo schema XSD sono due artefatti distinti con numerazioni indipendenti. La versione 1.9.1 delle Specifiche Tecniche (in vigore dal 15/05/2026) **non** modifica l'XSD, che resta alla v1.2.3.
 
 Si tratta di un server **Model Context Protocol (MCP)** che espone **43 strumenti** per l'intero ciclo di vita di un documento FatturaPA XML: costruzione dell'header di trasmissione, validazione cedente/cessionario (incluso il CodiceFiscale per Gruppo IVA), codici tipo documento (TD01-TD28), righe dettaglio con supporto AltriDatiGestionali, calcolo riepilogo IVA, condizioni di pagamento, validazione XSD contro lo schema ufficiale dell'Agenzia delle Entrate (v1.2.3), generazione XML, parsing, esportazione JSON, generazione del nome file SDI, calcolo della ritenuta d'acconto, firma digitale (XAdES-BES e CAdES-BES), trasmissione diretta al SDI via SDICoop SOAP, parsing delle notifiche SDI e conservazione sostitutiva (archiviazione conforme AgID). Licenza **Apache 2.0**.
 
----
-
-## 🚀 Installazione
+## Installazione
 
 ### Via PyPI (raccomandato)
 
@@ -46,9 +48,7 @@ pip install -e ".[dev]"
 cp .env.example .env
 ```
 
----
-
-## ⚙️ Configurazione
+## Configurazione
 
 Le variabili d'ambiente disponibili sono:
 
@@ -65,7 +65,7 @@ Le variabili d'ambiente disponibili sono:
 | `EINVOICING_SIGNER_TOKEN` | Token di autenticazione per il microservizio di firma | (nessuno) |
 | `CONSERVAZIONE_STORAGE_PATH` | Percorso archivio locale (solo sviluppo) | `.conservazione/` |
 
-### 🤖 Integrazione Claude Desktop
+## Integrazione Claude Desktop
 
 Aggiungere al file `claude_desktop_config.json`:
 
@@ -74,28 +74,23 @@ Aggiungere al file `claude_desktop_config.json`:
   "mcpServers": {
     "fattura-elettronica-it": {
       "command": "uvx",
-      "args": ["mcp-fattura-elettronica-it"]
+      "args": ["mcp-fattura-elettronica-it"],
+      "env": {
+        "SDI_ENVIRONMENT": "test",
+        "SDI_CERT_PATH": "/path/to/your-cert.p12",
+        "SDI_CERT_PASSWORD": "your-cert-password",
+        "SDI_CHANNEL_ID": "your-channel-id"
+      }
     }
   }
 }
 ```
 
-### ⌨️ Integrazione Cursor
+## Integrazione Cursor
 
-File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella cartella del progetto):
-
-```json
-{
-  "mcpServers": {
-    "fattura-elettronica-it": {
-      "command": "uvx",
-      "args": ["mcp-fattura-elettronica-it"]
-    }
-  }
-}
-```
-
-### 🪐 Integrazione Kiro
+Cursor supporta i server MCP via stdio. Aggiungere la configurazione in:
+- **Globale** (tutti i progetti): `~/.cursor/mcp.json`
+- **Progetto** (solo questo repository): `.cursor/mcp.json`
 
 ```json
 {
@@ -103,6 +98,37 @@ File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella car
     "fattura-elettronica-it": {
       "command": "uvx",
       "args": ["mcp-fattura-elettronica-it"],
+      "env": {
+        "SDI_ENVIRONMENT": "test",
+        "SDI_CERT_PATH": "/path/to/your-cert.p12",
+        "SDI_CERT_PASSWORD": "your-cert-password",
+        "SDI_CHANNEL_ID": "your-channel-id"
+      }
+    }
+  }
+}
+```
+
+Ricaricare la finestra di Cursor (`Ctrl+Shift+P` poi *Reload Window*) per applicare le modifiche.
+
+## Integrazione Kiro
+
+Kiro supporta i server MCP tramite il proprio file di configurazione dedicato. Due livelli sono disponibili:
+- **Globale** (tutti i progetti): `~/.kiro/settings/mcp.json`
+- **Workspace** (solo questo repository): `.kiro/settings/mcp.json`
+
+```json
+{
+  "mcpServers": {
+    "fattura-elettronica-it": {
+      "command": "uvx",
+      "args": ["mcp-fattura-elettronica-it"],
+      "env": {
+        "SDI_ENVIRONMENT": "test",
+        "SDI_CERT_PATH": "/path/to/your-cert.p12",
+        "SDI_CERT_PASSWORD": "your-cert-password",
+        "SDI_CHANNEL_ID": "your-channel-id"
+      },
       "disabled": false,
       "autoApprove": []
     }
@@ -110,9 +136,11 @@ File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella car
 }
 ```
 
----
+Il file viene ricaricato automaticamente al salvataggio. È anche possibile aprire la configurazione dalla command palette (`Cmd+Shift+P` / `Ctrl+Shift+P`) e poi *MCP*.
 
-## 🧰 Strumenti MCP disponibili
+> **Suggerimento di sicurezza Kiro**: invece di scrivere i segreti in chiaro, usare la sintassi `"SDI_CERT_PASSWORD": "${SDI_CERT_PASSWORD}"`, Kiro risolve le variabili d'ambiente della shell all'avvio.
+
+## Strumenti disponibili
 
 ### Header: FatturaElettronicaHeader (7 strumenti)
 
@@ -178,11 +206,9 @@ File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella car
 | `list_archived_invoices` | Elenco fatture archiviate |
 | `build_pacchetto_versamento` | Costruisci PdV ZIP per trasferimento a conservatore accreditato AgID |
 
----
+### Esempi di utilizzo
 
-## Esempi di utilizzo
-
-### Esempio 1: Generare una fattura B2B completa
+**Esempio 1: Generare una fattura B2B completa**
 
 ```
 1. validate_partita_iva_format("01234567897")
@@ -223,7 +249,7 @@ File di configurazione (`~/.cursor/mcp.json` oppure `.cursor/mcp.json` nella car
     → { "valid": true }
 ```
 
-### Esempio 2: Fattura professionale con ritenuta d'acconto
+**Esempio 2: Fattura professionale con ritenuta d'acconto**
 
 ```
 check_ritenuta_acconto(imponibile=1000.0, tipo_ritenuta="RT02",
@@ -239,7 +265,7 @@ check_ritenuta_acconto(imponibile=1000.0, tipo_ritenuta="RT02",
   }
 ```
 
-### Esempio 3: Consultare i codici di esenzione IVA
+**Esempio 3: Consultare i codici di esenzione IVA**
 
 ```
 get_natura_codes()
@@ -251,8 +277,6 @@ get_natura_codes()
     ...
   ]
 ```
-
----
 
 ## Architettura
 
@@ -271,9 +295,7 @@ mcp-einvoicing-core (base condivisa, installata come dipendenza)
 └── EInvoicingMCPServer (aggregatore multi-paese opzionale)
 ```
 
----
-
-## 📚 Standard di riferimento
+## Standard supportati
 
 | Risorsa | Link |
 |---------|------|
@@ -284,9 +306,7 @@ mcp-einvoicing-core (base condivisa, installata come dipendenza)
 | SDI, Sistema di Interscambio | [Agenzia delle Entrate](https://www.agenziaentrate.gov.it/portale/web/guest/aree-tematiche/fatturazione-elettronica) |
 | Ritenuta d'acconto | Art. 25 DPR 600/73, Modello 770 |
 
----
-
-## 🧪 Test
+## Test
 
 ```bash
 # Installare le dipendenze di sviluppo
@@ -299,19 +319,9 @@ pytest tests/ -v
 pytest tests/test_mcp_integration.py -v
 ```
 
----
+## Contribuire
 
-## Roadmap
-
-| Versione | Funzionalità |
-|----------|---------------|
-| **v0.1.0** | Generazione XML, validazione XSD, parsing, 21 strumenti MCP, ritenuta d'acconto |
-| **v0.2.0** | Fattura Semplificata (TD07/TD08/TD09), lotti FPA12, validazione Codice Fiscale, avvisi aliquota IVA, 30 strumenti |
-| **v0.3.0** | Documentazione scope SdI, rimozione default campi trasmissione |
-| **v0.5.0** (attuale) | Firma digitale XAdES-BES e CAdES-BES, integrazione diretta SDI (SDICoop SOAP), conservazione sostitutiva (archiviazione AgID), 42 strumenti MCP |
-| **v0.6.0** | Canale SFTP, integrazione API provider accreditati AgID |
-
----
+I contributi sono benvenuti — vedere [CONTRIBUTING.md](CONTRIBUTING.md) per le linee guida.
 
 ## Altri server MCP per la fatturazione elettronica
 
@@ -328,12 +338,9 @@ pytest tests/test_mcp_integration.py -v
 | 🇪🇸 Spagna | [mcp-facturacion-electronica-es](https://github.com/cmendezs/mcp-facturacion-electronica-es) |
 | 🇦🇪 Emirati Arabi Uniti | [mcp-einvoicing-ae](https://github.com/cmendezs/mcp-einvoicing-ae) |
 
----
+## Licenza
 
-## 📄 Licenza
-
-Questo progetto è distribuito sotto licenza **Apache 2.0**.
-Vedere il file [LICENSE](LICENSE) per i dettagli completi.
+Questo progetto è distribuito sotto licenza **Apache 2.0**. Vedere il file [LICENSE](LICENSE) per i dettagli completi. Per la cronologia completa delle versioni, vedere [CHANGELOG.md](CHANGELOG.md).
 
 Copyright 2026 cmendezs
 
