@@ -1,0 +1,17 @@
+# mcp-fattura-elettronica-it
+
+> MCP server for Italian e-invoicing — FatturaPA XML / SDI
+
+## Docs
+
+- [Overview](https://cmendezs.github.io/mcp-fattura-elettronica-it/): the full README — what this server does, installation, configuration, available tools
+- [Tools](https://cmendezs.github.io/mcp-fattura-elettronica-it/tools/): full MCP tool reference
+- [Changelog](https://cmendezs.github.io/mcp-fattura-elettronica-it/changelog/): version history
+- [Contributing](https://cmendezs.github.io/mcp-fattura-elettronica-it/contributing/): dev setup and PR checklist
+- [Security](https://cmendezs.github.io/mcp-fattura-elettronica-it/security/): vulnerability disclosure policy
+
+## Links
+
+- [PyPI](https://pypi.org/project/mcp-fattura-elettronica-it/)
+- [MCP registry](https://registry.modelcontextprotocol.io/v0/servers?search=io.github.cmendezs/mcp-fattura-elettronica-it)
+- [GitHub](https://github.com/cmendezs/mcp-fattura-elettronica-it)
