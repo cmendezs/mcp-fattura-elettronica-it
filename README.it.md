@@ -296,6 +296,15 @@ mcp-einvoicing-core (base condivisa, installata come dipendenza)
 └── EInvoicingMCPServer (aggregatore multi-paese opzionale)
 ```
 
+## Neutralità rispetto ai fornitori
+
+Questo server implementa lo standard autonomamente: costruisce, valida e firma il documento
+localmente. Non è un client per una piattaforma di fatturazione commerciale, e le tue chiavi
+di firma e credenziali non lasciano mai la tua infrastruttura.
+
+Le fatture vengono inviate direttamente a SdI tramite SDICoop con il tuo accreditamento; non è
+coinvolto alcun intermediario.
+
 ## Standard supportati
 
 | Risorsa | Link |

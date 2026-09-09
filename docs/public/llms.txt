@@ -1,6 +1,6 @@
 # mcp-fattura-elettronica-it
 
-> MCP server for Italian e-invoicing — FatturaPA XML / SDI
+> MCP server for Italian e-invoicing — FatturaPA XML / SDI, direct-to-SdI, no intermediary
 
 ## Docs
 

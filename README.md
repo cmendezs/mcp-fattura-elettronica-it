@@ -321,6 +321,15 @@ mcp-einvoicing-core (shared foundation, installed as dependency)
 └── EInvoicingMCPServer (optional multi-country aggregator)
 ```
 
+## Vendor neutrality
+
+This server implements the standard itself: it builds, validates, and signs the document
+locally. It is not a client for a commercial invoicing platform, and your signing keys and
+credentials never leave your own infrastructure.
+
+Invoices go directly to SdI over SDICoop with your own accreditation; no intermediary is
+involved.
+
 ## Supported standards
 
 | Resource | Link |

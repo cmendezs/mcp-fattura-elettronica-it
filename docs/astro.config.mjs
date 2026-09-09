@@ -8,7 +8,7 @@ export default defineConfig({
   integrations: [
     starlight({
       title: "mcp-fattura-elettronica-it",
-      description: "MCP server for Italian e-invoicing — FatturaPA XML / SDI",
+      description: "MCP server for Italian e-invoicing — FatturaPA XML / SDI, direct-to-SdI, no intermediary",
       customCss: ["./src/styles/docs-theme.css"],
       social: [
         { icon: "github", label: "GitHub", href: "https://github.com/cmendezs/mcp-fattura-elettronica-it" },
@@ -28,7 +28,7 @@ export default defineConfig({
       plugins: [
         starlightLlmsTxt({
           projectName: "mcp-fattura-elettronica-it",
-          description: "MCP server for Italian e-invoicing — FatturaPA XML / SDI",
+          description: "MCP server for Italian e-invoicing — FatturaPA XML / SDI, direct-to-SdI, no intermediary",
           customSets: [
             {
               label: "Key links",
