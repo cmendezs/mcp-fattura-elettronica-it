@@ -51,6 +51,29 @@ mcp-publisher publish
 
 ## Changelog
 
+### v0.8.0 — 2026-09-09
+#### Added
+- `SDISubmissionMetadata` (filename, channel_id) and `SDIEsitoMetadata`
+  (nome_file, esito_xml) in `sdi/lifecycle.py`: typed, subclassable pydantic
+  models replacing the untyped `dict` `SDILifecycleManager.submit_document`
+  and `.submit_lifecycle_status` previously took, adopting
+  `mcp-einvoicing-core` v1.34.0's `SubmissionMetadata`/`SearchCriteria`
+  contract. Resolves CORE-2 for this package (core audit Step 8,
+  `audit/2026-09-audit-core.md` in the workspace root repo).
+- `tests/test_metadata.py` and `__version__` in `__init__.py` (both
+  previously missing) — closes the version-slot drift gap this package
+  had going forward.
+
+#### Changed
+- Both MCP tool call sites in `tools/sdi_tools.py` (`it__submit_to_sdi`,
+  `it__send_esito_committente`) now construct the typed metadata instead
+  of a plain dict. No tool name, parameter, or return shape changed.
+- `mcp-einvoicing-core` floor pin bumped to `>=1.34.0,<2.0.0`.
+
+New `tests/test_sdi_lifecycle.py` (6 tests). 296/296 tests passing (290
+prior + 6 new); `ruff check` and `ruff format --check` both clean;
+cross-package audit re-run with zero BLOCKING findings.
+
 ### v0.7.0 — 2026-08-14
 #### Added
 - AltriDatiGestionali (DettaglioLinee) emission: new `AltriDatiGestionaliEntry`
