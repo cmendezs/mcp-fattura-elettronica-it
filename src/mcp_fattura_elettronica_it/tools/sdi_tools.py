@@ -15,7 +15,11 @@ from mcp_einvoicing_core.confirmation import ConfirmationGate
 from mcp_einvoicing_core.logging_utils import get_logger
 
 from mcp_fattura_elettronica_it.sdi.config import SDISettings
-from mcp_fattura_elettronica_it.sdi.lifecycle import SDILifecycleManager
+from mcp_fattura_elettronica_it.sdi.lifecycle import (
+    SDIEsitoMetadata,
+    SDILifecycleManager,
+    SDISubmissionMetadata,
+)
 from mcp_fattura_elettronica_it.sdi.notifications import parse_notification
 
 logger = get_logger(__name__)
@@ -68,7 +72,9 @@ def register_sdi_tools(mcp: FastMCP) -> None:
             signed_bytes = base64.b64decode(signed_file_base64)
             settings = SDISettings()
             manager = SDILifecycleManager(settings)
-            result = await manager.submit_document(signed_bytes, {"filename": filename})
+            result = await manager.submit_document(
+                signed_bytes, SDISubmissionMetadata(filename=filename)
+            )
 
             gate.consume(confirmation_token)
             return _ok(
@@ -176,7 +182,7 @@ def register_sdi_tools(mcp: FastMCP) -> None:
             result = await manager.submit_lifecycle_status(
                 identificativo_sdi,
                 esito,
-                {"nome_file": nome_file, "esito_xml": esito_xml.encode("utf-8")},
+                SDIEsitoMetadata(nome_file=nome_file, esito_xml=esito_xml.encode("utf-8")),
             )
 
             gate.consume(confirmation_token)
