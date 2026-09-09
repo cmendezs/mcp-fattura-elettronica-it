@@ -1,12 +1,12 @@
 {
-  "generated_at": "2026-09-01T16:11:27.416682+00:00",
+  "generated_at": "2026-09-09T15:38:30.608140+00:00",
   "pkg_name": "mcp-fattura-elettronica-it",
   "pkg_version": "0.7.0",
-  "core_version": "1.29.0",
+  "core_version": "1.32.0",
   "core_version_compatible": true,
   "exit_code": 1,
   "total_blocking": 0,
-  "total_warnings": 10,
+  "total_warnings": 13,
   "checks": [
     {
       "check_id": "CHECK_1",
@@ -15,7 +15,7 @@
       "skipped": false,
       "skip_reason": "",
       "blocking_count": 0,
-      "warning_count": 10,
+      "warning_count": 13,
       "findings": [
         {
           "check_id": "CHECK_1",
@@ -72,6 +72,13 @@
           "severity": "OK",
           "symbol": "mcp_einvoicing_core.base_server.BasePartyValidator",
           "message": "Imported and used."
+        },
+        {
+          "check_id": "CHECK_1",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
+          "symbol": "mcp_einvoicing_core.base_server.BaseScopeInfo",
+          "message": "Core symbol 'BaseScopeInfo' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -334,6 +341,13 @@
         },
         {
           "check_id": "CHECK_1",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
+          "symbol": "mcp_einvoicing_core.en16931.Annotated",
+          "message": "Core symbol 'Annotated' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
+        },
+        {
+          "check_id": "CHECK_1",
           "tag": "[OVERRIDE]",
           "severity": "OK",
           "symbol": "mcp_einvoicing_core.en16931.BaseModel",
@@ -478,6 +492,13 @@
           "severity": "OK",
           "symbol": "mcp_einvoicing_core.exceptions.XSDValidationError",
           "message": "Intentionally overridden by mcp-fattura-elettronica-it."
+        },
+        {
+          "check_id": "CHECK_1",
+          "tag": "[MISSING]",
+          "severity": "WARNING",
+          "symbol": "mcp_einvoicing_core.http_client.APIKeyConfig",
+          "message": "Core symbol 'APIKeyConfig' is neither imported by mcp-fattura-elettronica-it nor marked as an intentional override. Add to _INTENTIONAL_OVERRIDES if this is deliberate."
         },
         {
           "check_id": "CHECK_1",
@@ -1336,7 +1357,7 @@
           "tag": "[OK]",
           "severity": "OK",
           "symbol": "mcp-einvoicing-core",
-          "message": "Installed: 1.29.0 | Declared range: >=1.17.0,<2.0.0 | Compatible: True"
+          "message": "Installed: 1.32.0 | Declared range: >=1.17.0,<2.0.0 | Compatible: True"
         }
       ]
     },
@@ -1422,6 +1443,45 @@
           "severity": "OK",
           "symbol": "*",
           "message": "No parallel implementations of core capabilities detected."
+        }
+      ]
+    },
+    {
+      "check_id": "CHECK_7",
+      "name": "Runtime resource paths",
+      "passed": true,
+      "skipped": false,
+      "skip_reason": "",
+      "blocking_count": 0,
+      "warning_count": 0,
+      "findings": [
+        {
+          "check_id": "CHECK_7",
+          "tag": "[OK]",
+          "severity": "OK",
+          "symbol": "mcp_fattura_elettronica_it.tools.adapters._SCHEMAS_DIR",
+          "message": "mcp_fattura_elettronica_it.tools.adapters._SCHEMAS_DIR resolves to /Users/christophe/Documents/Claude/Projects/mcp-einvoicing/mcp-fattura-elettronica-it/src/mcp_fattura_elettronica_it/schemas, inside the installed package."
+        },
+        {
+          "check_id": "CHECK_7",
+          "tag": "[OK]",
+          "severity": "OK",
+          "symbol": "mcp_fattura_elettronica_it.tools.global_tools._get_xsd_path('FPR12')",
+          "message": "mcp_fattura_elettronica_it.tools.global_tools._get_xsd_path('FPR12') resolves to /Users/christophe/Documents/Claude/Projects/mcp-einvoicing/mcp-fattura-elettronica-it/src/mcp_fattura_elettronica_it/schemas/FatturaPA_FPR12_v1.2.3.xsd, inside the installed package."
+        },
+        {
+          "check_id": "CHECK_7",
+          "tag": "[OK]",
+          "severity": "OK",
+          "symbol": "mcp_fattura_elettronica_it.tools.global_tools._get_xsd_path('FPA12')",
+          "message": "mcp_fattura_elettronica_it.tools.global_tools._get_xsd_path('FPA12') resolves to /Users/christophe/Documents/Claude/Projects/mcp-einvoicing/mcp-fattura-elettronica-it/src/mcp_fattura_elettronica_it/schemas/FatturaPA_FPA12_v1.2.3.xsd, inside the installed package."
+        },
+        {
+          "check_id": "CHECK_7",
+          "tag": "[OK]",
+          "severity": "OK",
+          "symbol": "mcp_fattura_elettronica_it.tools.simplified_tools._get_vfsm10_xsd_path()",
+          "message": "mcp_fattura_elettronica_it.tools.simplified_tools._get_vfsm10_xsd_path() resolves to /Users/christophe/Documents/Claude/Projects/mcp-einvoicing/mcp-fattura-elettronica-it/src/mcp_fattura_elettronica_it/schemas/FatturaSemplificata_VFSM10_v1.0.2.xsd, inside the installed package."
         }
       ]
     }

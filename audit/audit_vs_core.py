@@ -37,6 +37,7 @@ from mcp_einvoicing_core.audit import (
     parse_audit_args,
     render_summary_table,
     run_check_core_coverage,
+    run_check_resource_paths,
     run_check_version_compatibility,
 )
 
@@ -296,6 +297,26 @@ _PKG_MODULES: list[str] = [
 ]
 
 _PYPROJECT = Path(__file__).parent.parent / "pyproject.toml"
+
+# CHECK 7 configuration — every runtime resource directory this package's
+# own modules resolve at import time (CORE-1, core v1.32.0). Each entry is
+# the actual resolved Path object the running module computes, not a
+# re-derivation, so this exercises the same resolution logic as production.
+# _get_xsd_path()/_get_vfsm10_xsd_path() read an env-var override first —
+# calling them here (with no override set in this environment) exercises
+# their real default resolution, the same as a fresh production process.
+import mcp_fattura_elettronica_it  # noqa: E402
+from mcp_fattura_elettronica_it.tools.adapters import _SCHEMAS_DIR  # noqa: E402
+from mcp_fattura_elettronica_it.tools.global_tools import _get_xsd_path  # noqa: E402
+from mcp_fattura_elettronica_it.tools.simplified_tools import _get_vfsm10_xsd_path  # noqa: E402
+
+_PACKAGE_ROOT = Path(mcp_fattura_elettronica_it.__file__).resolve().parent
+_RESOURCE_PATHS: dict[str, Path] = {
+    "mcp_fattura_elettronica_it.tools.adapters._SCHEMAS_DIR": _SCHEMAS_DIR,
+    "mcp_fattura_elettronica_it.tools.global_tools._get_xsd_path('FPR12')": _get_xsd_path("FPR12"),
+    "mcp_fattura_elettronica_it.tools.global_tools._get_xsd_path('FPA12')": _get_xsd_path("FPA12"),
+    "mcp_fattura_elettronica_it.tools.simplified_tools._get_vfsm10_xsd_path()": _get_vfsm10_xsd_path(),
+}
 
 
 # ---------------------------------------------------------------------------
@@ -969,6 +990,12 @@ def run_audit() -> AuditReport:
     )
     report.checks.append(run_check_5())
     report.checks.append(run_check_6())
+    report.checks.append(
+        run_check_resource_paths(
+            package_root=_PACKAGE_ROOT,
+            resource_paths=_RESOURCE_PATHS,
+        )
+    )
 
     return report
 
