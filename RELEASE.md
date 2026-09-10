@@ -51,6 +51,15 @@ mcp-publisher publish
 
 ## Changelog
 
+### v0.9.0 — 2026-09-10
+#### Changed
+- SDICoop test/production endpoint constants (`sdi/config.py`) replaced with
+  `mcp_einvoicing_core.endpoints.EndpointSet`/`EndpointEnvironment`, the same
+  abstraction PL, IT, and ES now share (CORE-5, core audit Step 9, optional,
+  `audit/2026-09-audit-core.md` in the workspace root repo). The pre-existing
+  `[NEED: verify]` marker on the underlying URLs is carried over unresolved.
+  No behavior change to `SDISettings.effective_endpoint`.
+
 ### v0.8.0 — 2026-09-09
 #### Added
 - `SDISubmissionMetadata` (filename, channel_id) and `SDIEsitoMetadata`
