@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from enum import StrEnum
 
+from mcp_einvoicing_core.endpoints import EndpointEnvironment, EndpointSet
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
@@ -13,6 +14,19 @@ class SDIEnvironment(StrEnum):
 
     TEST = "test"
     PRODUCTION = "production"
+
+
+# SDIEnvironment.TEST maps to core's SANDBOX; SDI has no separate "sandbox" name.
+_ENDPOINT_ENV: dict[SDIEnvironment, EndpointEnvironment] = {
+    SDIEnvironment.TEST: EndpointEnvironment.SANDBOX,
+    SDIEnvironment.PRODUCTION: EndpointEnvironment.PRODUCTION,
+}
+
+# [NEED: verify SDICoop test/production endpoint URLs from AdE accreditation portal]
+_SDICOOP_ENDPOINT = EndpointSet(
+    sandbox="https://testservizi.fatturapa.it/ricevi_fatture",
+    production="https://servizi.fatturapa.it/ricevi_fatture",
+)
 
 
 class SDIChannel(StrEnum):
@@ -71,7 +85,4 @@ class SDISettings(BaseSettings):
     def effective_endpoint(self) -> str:
         if self.endpoint_url:
             return self.endpoint_url
-        # [NEED: verify SDICoop test/production endpoint URLs from AdE accreditation portal]
-        if self.environment == SDIEnvironment.TEST:
-            return "https://testservizi.fatturapa.it/ricevi_fatture"
-        return "https://servizi.fatturapa.it/ricevi_fatture"
+        return _SDICOOP_ENDPOINT.resolve(_ENDPOINT_ENV[self.environment])
