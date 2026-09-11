@@ -7,8 +7,8 @@ unchanged and there is exactly one implementation (see audit CHECK 6).
 UNCL5305_TO_NATURA maps the EN 16931 UNCL5305 VAT category code (BT-118 on
 EN16931Tax.category / BT-151 on EN16931LineItem.tax_category) to the FatturaPA
 Natura code, for the subset of mappings that are unambiguous without further
-business context. See context-library/countries/it.md "Exemption and
-special-scheme codes" for the source table.
+business context. See the package's own compliance reference, "Exemption
+and special-scheme codes", for the source table.
 """
 
 from __future__ import annotations
@@ -104,8 +104,8 @@ NATURA_CODES: dict[str, dict] = {
 # ---------------------------------------------------------------------------
 #
 # Only codes whose UNCL5305 meaning maps to exactly one Natura code without
-# additional business context are included here. Source: context-library/
-# countries/it.md "Exemption and special-scheme codes (FatturaPA Natura)".
+# additional business context are included here. Source: the package's own
+# compliance reference, "Exemption and special-scheme codes (FatturaPA Natura)".
 #
 # S  (Standard rate)          -> no Natura (line is taxed; Natura is omitted)
 # E  (Exempt from tax)        -> N4  — Art. 10 DPR 633/1972

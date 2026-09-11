@@ -55,8 +55,7 @@ mcp-publisher publish
 #### Changed
 - SDICoop test/production endpoint constants (`sdi/config.py`) replaced with
   `mcp_einvoicing_core.endpoints.EndpointSet`/`EndpointEnvironment`, the same
-  abstraction PL, IT, and ES now share (CORE-5, core audit Step 9, optional,
-  `audit/2026-09-audit-core.md` in the workspace root repo). The pre-existing
+  abstraction PL, IT, and ES now share (CORE-5, core audit Step 9, optional). The pre-existing
   `[NEED: verify]` marker on the underlying URLs is carried over unresolved.
   No behavior change to `SDISettings.effective_endpoint`.
 
@@ -67,8 +66,7 @@ mcp-publisher publish
   models replacing the untyped `dict` `SDILifecycleManager.submit_document`
   and `.submit_lifecycle_status` previously took, adopting
   `mcp-einvoicing-core` v1.34.0's `SubmissionMetadata`/`SearchCriteria`
-  contract. Resolves CORE-2 for this package (core audit Step 8,
-  `audit/2026-09-audit-core.md` in the workspace root repo).
+  contract. Resolves CORE-2 for this package (core audit Step 8).
 - `tests/test_metadata.py` and `__version__` in `__init__.py` (both
   previously missing) — closes the version-slot drift gap this package
   had going forward.
